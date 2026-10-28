@@ -877,7 +877,9 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
         return r ? toPledge(r) : null;
       },
       async payments(orgId) {
-        const rows = await db.select<any>("SELECT * FROM pledge_payments WHERE org_id = ?", [orgId]);
+        const rows = await db.select<any>("SELECT * FROM pledge_payments WHERE org_id = ?", [
+          orgId,
+        ]);
         return rows.map((r) => ({
           id: r.id,
           orgId: r.org_id,

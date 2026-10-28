@@ -53,7 +53,8 @@ export async function setFundRestricted(
   const used = (await repos.transactions.ledgerRows(input.orgId)).some(
     (r) => r.fundId === input.fundId,
   );
-  if (used) throw new Error("A fund with transactions cannot change restriction. Create a new fund.");
+  if (used)
+    throw new Error("A fund with transactions cannot change restriction. Create a new fund.");
   await repos.catalog.setRestricted(input.orgId, input.fundId, input.isRestricted, {
     orgId: input.orgId,
     userId: input.userId,

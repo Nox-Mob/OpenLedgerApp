@@ -263,7 +263,11 @@ export interface PledgeRepository {
   payments(orgId: Id): Promise<PledgePayment[]>;
   create(p: Pledge, audit?: AuditEvent): Promise<void>;
   /** Saves the payment and any status change together. */
-  addPayment(p: PledgePayment, newStatus: Pledge["status"] | null, audit?: AuditEvent): Promise<void>;
+  addPayment(
+    p: PledgePayment,
+    newStatus: Pledge["status"] | null,
+    audit?: AuditEvent,
+  ): Promise<void>;
 }
 
 /** Everything a request needs, built per request by the active adapter. */

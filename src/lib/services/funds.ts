@@ -168,7 +168,14 @@ export async function receivableAccount(repos: Repositories, orgId: Id) {
   }
   const id = newId();
   await repos.accounts.create([
-    { id, orgId, name: "Pledges Receivable", type: "asset", subtype: "pledges_receivable", isActive: true },
+    {
+      id,
+      orgId,
+      name: "Pledges Receivable",
+      type: "asset",
+      subtype: "pledges_receivable",
+      isActive: true,
+    },
   ]);
   return id;
 }
@@ -221,7 +228,10 @@ export async function recordPledge(
   if (!donorName) throw new Error("Enter who made the pledge. Nothing was recorded.");
   const [rev] = await repos.accounts.getMany(input.orgId, [input.revenueAccountId]);
   if (!rev || rev.type !== "revenue") throw new Error("Choose an income account.");
-  if (input.fundId && !(await repos.catalog.list(input.orgId, "fund")).some((f) => f.id === input.fundId))
+  if (
+    input.fundId &&
+    !(await repos.catalog.list(input.orgId, "fund")).some((f) => f.id === input.fundId)
+  )
     throw new Error("Fund not found.");
   const receivableAccountId = await receivableAccount(repos, input.orgId);
   const tx = await postPledge(repos, {
@@ -284,6 +294,10 @@ export async function recordPledgeSettlement(
   if (!p) throw new Error("Pledge not found.");
   const pays = (await repos.pledges.payments(input.orgId)).filter((x) => x.pledgeId === p.id);
   const settled = pays.reduce((s, x) => s + x.amountCents, 0);
+  // Same submit sent twice (double click, retry): it already counted, so do nothing.
+  const key = `pledge-${input.kind}:${input.idempotencyKey}`;
+  const prior = await repos.transactions.findByIdempotencyKey(input.orgId, key);
+  if (prior && pays.some((x) => x.transactionId === prior)) return { ok: true };
   const receivableAccountId = await receivableAccount(repos, input.orgId);
   let debitAccountId: Id;
   if (input.kind === "payment") {
@@ -311,7 +325,7 @@ export async function recordPledgeSettlement(
     fundId: p.fundId,
     donorName: p.donorName,
     date: input.date,
-    idempotencyKey: `pledge-${input.kind}:${input.idempotencyKey}`,
+    idempotencyKey: key,
   });
   if (tx.duplicate && pays.some((x) => x.transactionId === tx.id)) return { ok: true };
   const remaining = pledgeOutstanding(p.amountCents, settled + input.amountCents);

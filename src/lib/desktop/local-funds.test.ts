@@ -71,7 +71,9 @@ describe.each(adapters)("desktop funds and labels (%s)", (_name, make) => {
     expect(await call(repos, "listProjects", { orgId })).toEqual([
       expect.objectContaining({ name: "Summer Meals", budget_cents: 50000 }),
     ]);
-    await expect(call(repos, "createFund", { orgId, name: "  building   fund " })).rejects.toThrow();
+    await expect(
+      call(repos, "createFund", { orgId, name: "  building   fund " }),
+    ).rejects.toThrow();
     expect(await call<unknown[]>(repos, "listFunds", { orgId })).toHaveLength(1);
   });
 
@@ -134,11 +136,9 @@ describe.each(adapters)("desktop funds and labels (%s)", (_name, make) => {
       note: null,
       idempotencyKey: "pledge-test-1",
     });
-    const [pledge] = await call<{ id: string; outstandingCents: number }[]>(
-      repos,
-      "listPledges",
-      { orgId },
-    );
+    const [pledge] = await call<{ id: string; outstandingCents: number }[]>(repos, "listPledges", {
+      orgId,
+    });
     expect(pledge!.outstandingCents).toBe(30000);
     const pay = {
       orgId,
@@ -159,6 +159,8 @@ describe.each(adapters)("desktop funds and labels (%s)", (_name, make) => {
       orgId,
     });
     expect(accts.find((a) => a.id === cash)?.balanceCents).toBe(30000);
-    await expect(call(repos, "settlePledgeFn", { ...pay, idempotencyKey: "pay-test-2" })).rejects.toThrow();
+    await expect(
+      call(repos, "settlePledgeFn", { ...pay, idempotencyKey: "pay-test-2" }),
+    ).rejects.toThrow();
   });
 });

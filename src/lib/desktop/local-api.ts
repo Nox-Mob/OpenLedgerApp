@@ -237,7 +237,13 @@ const HANDLERS: Record<string, Handler> = {
     catalog.setFundRestricted(repos, { ...d, userId: me }),
   releaseFromRestriction: async (
     repos,
-    d: OrgIn & { fundId: Id; amountCents: number; date: IsoDate; note?: string; idempotencyKey: string },
+    d: OrgIn & {
+      fundId: Id;
+      amountCents: number;
+      date: IsoDate;
+      note?: string;
+      idempotencyKey: string;
+    },
   ) =>
     funds.releaseFund(repos, {
       ...d,
