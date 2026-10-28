@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AppShell, OrgPending } from "@/components/AppShell";
 import { useOrgContext } from "@/hooks/use-org-context";
 import { budgetVsActual, saveBudget } from "@/lib/budgets.functions";
+import { listFunds, listProjects } from "@/lib/taxonomy.functions";
 import { periodStartFor, shiftPeriod, type BudgetPeriod } from "@/lib/domain/budgets";
 import { formatCents, parseToCents, todayISO } from "@/lib/money";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -52,11 +53,27 @@ function BudgetsPage() {
   });
   const start = starts[type];
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // "" = whole organization, "f:<id>" = one fund, "p:<id>" = one project.
+  const [scope, setScope] = useState("");
+  const fundId = scope.startsWith("f:") ? scope.slice(2) : null;
+  const projectId = scope.startsWith("p:") ? scope.slice(2) : null;
+  const funds = useQuery({
+    queryKey: ["funds", org?.id],
+    queryFn: () => listFunds({ data: { orgId: org!.id } }),
+    enabled: !!org,
+  });
+  const projects = useQuery({
+    queryKey: ["projects", org?.id],
+    queryFn: () => listProjects({ data: { orgId: org!.id } }),
+    enabled: !!org,
+  });
 
   const q = useQuery({
-    queryKey: ["budgets", org?.id, type, start],
+    queryKey: ["budgets", org?.id, type, start, scope],
     queryFn: () =>
-      budgetVsActual({ data: { orgId: org!.id, periodType: type, periodStart: start } }),
+      budgetVsActual({
+        data: { orgId: org!.id, periodType: type, periodStart: start, fundId, projectId },
+      }),
     enabled: !!org,
   });
   if (!org) return <OrgPending />;
@@ -82,6 +99,8 @@ function BudgetsPage() {
           periodType: type,
           periodStart: start,
           amountCents: cents,
+          fundId,
+          projectId,
         },
       });
       setDrafts(({ [accountId]: _, ...rest }) => rest);
@@ -120,6 +139,25 @@ function BudgetsPage() {
             </button>
           ))}
         </div>
+        <label className="text-sm">
+          <span className="sr-only">Budget for</span>
+          <select
+            value={scope}
+            onChange={(e) => {
+              setScope(e.target.value);
+              setDrafts({});
+            }}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="">Whole organization</option>
+            {(funds.data ?? []).map((f) => (
+              <option key={f.id} value={`f:${f.id}`}>Fund: {f.name}</option>
+            ))}
+            {(projects.data ?? []).map((p) => (
+              <option key={p.id} value={`p:${p.id}`}>Project: {p.name}</option>
+            ))}
+          </select>
+        </label>
         <div className="flex items-center gap-1">
           <button
             aria-label="Previous period"
