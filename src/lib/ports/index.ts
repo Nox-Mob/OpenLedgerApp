@@ -11,6 +11,10 @@ import type {
   AccountType,
   AuditEvent,
   AuditRecord,
+  CatalogItem,
+  CatalogKind,
+  Pledge,
+  PledgePayment,
   BankTransaction,
   Id,
   IsoDate,
@@ -246,6 +250,22 @@ export interface BudgetRepository {
   ): Promise<void>;
 }
 
+export interface CatalogRepository {
+  list(orgId: Id, kind: CatalogKind): Promise<CatalogItem[]>;
+  /** Insert with an app-generated id; caller checks name rules first. */
+  create(item: CatalogItem, audit?: AuditEvent): Promise<void>;
+  setRestricted(orgId: Id, fundId: Id, isRestricted: boolean, audit?: AuditEvent): Promise<void>;
+}
+
+export interface PledgeRepository {
+  list(orgId: Id): Promise<Pledge[]>;
+  get(orgId: Id, id: Id): Promise<Pledge | null>;
+  payments(orgId: Id): Promise<PledgePayment[]>;
+  create(p: Pledge, audit?: AuditEvent): Promise<void>;
+  /** Saves the payment and any status change together. */
+  addPayment(p: PledgePayment, newStatus: Pledge["status"] | null, audit?: AuditEvent): Promise<void>;
+}
+
 /** Everything a request needs, built per request by the active adapter. */
 export interface Repositories {
   orgs: OrgRepository;
@@ -258,4 +278,6 @@ export interface Repositories {
   audit: AuditRepository;
   templates: TemplateRepository;
   budgets: BudgetRepository;
+  catalog: CatalogRepository;
+  pledges: PledgeRepository;
 }
