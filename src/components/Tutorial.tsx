@@ -49,7 +49,7 @@ export function TutorialPanel({ orgId }: { orgId: string }) {
           <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
-              to={step.to}
+              to={step.to as "/ledger"}
               className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               {step.cta}

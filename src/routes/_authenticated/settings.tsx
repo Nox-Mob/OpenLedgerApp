@@ -22,6 +22,7 @@ const SECTIONS = [
   { to: "/settings/close", label: "Close the books", exact: false },
   { to: "/settings/exports", label: "Exports and backup", exact: false },
   { to: "/settings/history", label: "History", exact: false },
+  { to: "/settings/diagnostics", label: "Diagnostics", exact: false },
   { to: "/settings/preferences", label: "Your preferences", exact: false },
   { to: "/settings/security", label: "Security", exact: false },
 ] as const;
