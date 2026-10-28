@@ -130,4 +130,45 @@ CREATE UNIQUE INDEX budgets_scope ON budgets(org_id, account_id, period_type, pe
 CREATE TRIGGER occurrences_immutable BEFORE UPDATE ON recurring_occurrences BEGIN SELECT RAISE(ABORT, 'recurring history is immutable'); END;
 `,
   },
+  {
+    version: 4,
+    sql: `
+CREATE TABLE categories (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'expense' CHECK (type IN ('revenue','expense')), created_at TEXT NOT NULL
+);
+CREATE TABLE tags (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), name TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE funds (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), name TEXT NOT NULL,
+  is_restricted INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX categories_name ON categories(org_id, lower(trim(name)));
+CREATE UNIQUE INDEX tags_name ON tags(org_id, lower(trim(name)));
+CREATE UNIQUE INDEX funds_name ON funds(org_id, lower(trim(name)));
+CREATE UNIQUE INDEX projects_name ON projects(org_id, lower(trim(name)));
+CREATE TABLE pledges (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), donor_name TEXT NOT NULL,
+  fund_id TEXT REFERENCES funds(id), amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  pledge_date TEXT NOT NULL, expected_date TEXT, note TEXT,
+  transaction_id TEXT NOT NULL REFERENCES transactions(id),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','paid','written_off')),
+  created_by TEXT, created_at TEXT NOT NULL
+);
+CREATE TABLE pledge_payments (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), pledge_id TEXT NOT NULL REFERENCES pledges(id),
+  transaction_id TEXT NOT NULL REFERENCES transactions(id), kind TEXT NOT NULL CHECK (kind IN ('payment','write_off')),
+  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0), paid_date TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TRIGGER pledge_payments_immutable BEFORE UPDATE ON pledge_payments BEGIN SELECT RAISE(ABORT, 'pledge payments are immutable'); END;
+CREATE TRIGGER pledge_payments_no_delete BEFORE DELETE ON pledge_payments BEGIN SELECT RAISE(ABORT, 'pledge payments are immutable'); END;
+CREATE TRIGGER pledges_amount_locked BEFORE UPDATE ON pledges
+WHEN NEW.amount_cents IS NOT OLD.amount_cents OR NEW.transaction_id IS NOT OLD.transaction_id OR NEW.fund_id IS NOT OLD.fund_id
+BEGIN SELECT RAISE(ABORT, 'pledges are immutable'); END;
+CREATE TRIGGER funds_restriction_locked BEFORE UPDATE OF is_restricted ON funds
+WHEN EXISTS (SELECT 1 FROM entries e JOIN transactions t ON t.id = e.transaction_id WHERE e.fund_id = OLD.id AND t.status = 'posted')
+BEGIN SELECT RAISE(ABORT, 'a fund with transactions cannot change restriction'); END;
+`,
+  },
 ];
