@@ -5,6 +5,7 @@ import type {
   Account,
   AuditEvent,
   PeriodClose,
+  Pledge,
   ReconEntry,
   BankTransaction,
   Entry,
