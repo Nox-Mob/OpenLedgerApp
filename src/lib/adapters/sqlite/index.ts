@@ -37,11 +37,19 @@ export async function migrateSqlite(db: SqlDriver): Promise<number> {
   let applied = 0;
   for (const m of SQLITE_MIGRATIONS) {
     if (m.version <= current) continue;
-    for (const stmt of splitStatements(m.sql)) await db.execute(stmt);
-    await db.execute("INSERT INTO schema_version (version, applied_at) VALUES (?, ?)", [
-      m.version,
-      new Date().toISOString(),
-    ]);
+    // All or nothing: a half-applied upgrade would fail again on every start.
+    await db.execute("BEGIN");
+    try {
+      for (const stmt of splitStatements(m.sql)) await db.execute(stmt);
+      await db.execute("INSERT INTO schema_version (version, applied_at) VALUES (?, ?)", [
+        m.version,
+        new Date().toISOString(),
+      ]);
+      await db.execute("COMMIT");
+    } catch (e) {
+      await db.execute("ROLLBACK");
+      throw e;
+    }
     applied++;
   }
   return applied;

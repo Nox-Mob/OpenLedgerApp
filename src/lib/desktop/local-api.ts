@@ -428,8 +428,16 @@ const HANDLERS: Record<string, Handler> = {
 /** Names answered locally; everything else reports "not available on desktop yet". */
 export const LOCAL_FUNCTIONS = Object.keys(HANDLERS);
 
-export async function callLocal(name: string, data: unknown, repos?: Repositories) {
+// The local file has one connection, so a transaction started by one action must not
+// see statements from another. Actions run one at a time, in the order they were made.
+let queue: Promise<unknown> = Promise.resolve();
+
+export function callLocal(name: string, data: unknown, repos?: Repositories) {
   const handler = HANDLERS[name];
-  if (!handler) throw new DesktopUnavailableError();
-  return handler(repos ?? (await localRepos()), (data ?? {}) as never);
+  if (!handler) return Promise.reject(new DesktopUnavailableError());
+  const run = queue.then(async () =>
+    handler(repos ?? (await localRepos()), (data ?? {}) as never),
+  );
+  queue = run.catch(() => undefined);
+  return run;
 }
