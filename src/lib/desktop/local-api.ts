@@ -435,9 +435,7 @@ let queue: Promise<unknown> = Promise.resolve();
 export function callLocal(name: string, data: unknown, repos?: Repositories) {
   const handler = HANDLERS[name];
   if (!handler) return Promise.reject(new DesktopUnavailableError());
-  const run = queue.then(async () =>
-    handler(repos ?? (await localRepos()), (data ?? {}) as never),
-  );
+  const run = queue.then(async () => handler(repos ?? (await localRepos()), (data ?? {}) as never));
   queue = run.catch(() => undefined);
   return run;
 }

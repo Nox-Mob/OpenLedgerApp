@@ -163,4 +163,15 @@ describe.each(adapters)("desktop funds and labels (%s)", (_name, make) => {
       call(repos, "settlePledgeFn", { ...pay, idempotencyKey: "pay-test-2" }),
     ).rejects.toThrow();
   });
+
+  it("runs desktop actions one at a time, so two saves of the same name make one fund", async () => {
+    const repos = await make();
+    const { orgId } = await setup(repos);
+    const results = await Promise.allSettled([
+      call(repos, "createFund", { orgId, name: "Roof" }),
+      call(repos, "createFund", { orgId, name: "roof" }),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(["fulfilled", "rejected"]);
+    expect(await call<unknown[]>(repos, "listFunds", { orgId })).toHaveLength(1);
+  });
 });
