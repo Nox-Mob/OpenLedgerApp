@@ -7,7 +7,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "./permissions";
 import { createSupabaseRepositories } from "./adapters/supabase";
 import * as tpl from "./services/templates";
-import { diagnostics as runDiagnostics, getSetupProgress as setupProgressService } from "./services/diagnostics";
+import {
+  diagnostics as runDiagnostics,
+  getSetupProgress as setupProgressService,
+} from "./services/diagnostics";
 import { FREQUENCIES } from "./domain/templates";
 
 const uuid = z.string().uuid();

@@ -95,7 +95,9 @@ export async function listDue(repos: Repositories, orgId: Id, today: IsoDate) {
           templateName: t.name,
           description: t.description,
           dueDate: d,
-          totalCents: t.lines.filter((l) => l.amountCents > 0).reduce((a, l) => a + l.amountCents, 0),
+          totalCents: t.lines
+            .filter((l) => l.amountCents > 0)
+            .reduce((a, l) => a + l.amountCents, 0),
         });
   items.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   return { mode, items };

@@ -49,7 +49,7 @@ export function TutorialPanel({ orgId }: { orgId: string }) {
           <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
-              to={step.to}
+              to={step.to as "/ledger"}
               className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               {step.cta}
@@ -91,8 +91,8 @@ export function TutorialToggle({ orgId }: { orgId: string }) {
     <div className="rounded-lg border bg-card p-5">
       <h2 className="font-display text-lg font-semibold">Tutorial</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        A short guided tour: getting started (accounts, starting balances, first transaction,
-        bank file, statement check) and the routine after that (weekly, monthly, yearly).
+        A short guided tour: getting started (accounts, starting balances, first transaction, bank
+        file, statement check) and the routine after that (weekly, monthly, yearly).
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm">

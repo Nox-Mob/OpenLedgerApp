@@ -11,6 +11,8 @@ import {
   generalLedger,
 } from "@/lib/reports.functions";
 import { getFundActivity } from "@/lib/funds.functions";
+import { budgetVsActual } from "@/lib/budgets.functions";
+import { periodStartFor } from "@/lib/domain/budgets";
 import { fiscalYearStart } from "@/lib/dates";
 import { formatCents, todayISO } from "@/lib/money";
 import { Download } from "lucide-react";
@@ -220,6 +222,56 @@ function ReportsPage() {
       setExportingAll(false);
     }
   }
+  /** Board package: cover, income, balance, budget vs actual, fund activity, one PDF. */
+  async function boardPackage() {
+    if (!org) return;
+    setExportingAll(true);
+    try {
+      const orgId = org.id;
+      const nonprofit = org.orgType === "nonprofit";
+      const [inc, bal, bud, fa] = await Promise.all([
+        incomeStatement({ data: { orgId, from, to } }),
+        balanceSheet({ data: { orgId, asOf } }),
+        budgetVsActual({
+          data: {
+            orgId,
+            periodType: "year",
+            periodStart: periodStartFor("year", from, org.fiscalYearStartMonth),
+          },
+        }),
+        nonprofit ? getFundActivity({ data: { orgId, from, to } }).catch(() => null) : null,
+      ]);
+      const s = await import("@/lib/report-sheets");
+      const ex = await import("@/lib/export");
+      const pdf = await import("@/lib/report-pdf");
+      const body = [
+        s.incomeSheet(terms.incomeStatement, inc, terms),
+        s.balanceSheetSheet(terms.balanceSheet, bal, terms),
+        s.budgetSheet("Budget vs actual", bud.lines, terms),
+        ...(fa ? [s.fundActivitySheet(fa.funds, terms.fundActivity)] : []),
+      ];
+      const period = `${from} to ${to}, balances as of ${asOf}`;
+      await pdf.exportAllPdf({
+        org,
+        pref: terminology,
+        subtitle: `${period} · Cash basis`,
+        sheets: [
+          s.coverSheet(
+            org.name,
+            period,
+            body.map((b) => b.name),
+          ),
+          ...body,
+        ],
+        fileName: `${ex.safeFileName(`${org.name}-board-package-${from}-to-${to}`)}.pdf`,
+      });
+      toast.success("Board package created");
+    } catch (e) {
+      showError(e, "Could not create the board package", "No file was created.");
+    } finally {
+      setExportingAll(false);
+    }
+  }
   const sheetReady =
     tab === "income" ? !!income : tab === "balance" ? !!balance : !!trialQuery.data;
   const detail = tab === "ledger" || tab === "funds" || tab === "statement";
@@ -239,6 +291,15 @@ function ReportsPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-display text-2xl font-bold">Reports</h1>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={boardPackage}
+            disabled={exportingAll}
+            className={btn}
+            title="One PDF for your board: income, balance, budget vs actual and funds"
+          >
+            <Download className="h-4 w-4" />
+            {exportingAll ? "Preparing…" : "Board package (PDF)"}
+          </button>
           <button
             onClick={() => exportAll("xlsx")}
             disabled={exportingAll}

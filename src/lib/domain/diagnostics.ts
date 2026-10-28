@@ -4,7 +4,12 @@ import type { Id, IsoDate } from "./models";
 
 export interface DiagInput {
   accounts: { id: Id }[];
-  transactions: { id: Id; status: string; source: string; entries: { accountId: Id; amountCents: number }[] }[];
+  transactions: {
+    id: Id;
+    status: string;
+    source: string;
+    entries: { accountId: Id; amountCents: number }[];
+  }[];
   reconciliations: { status: string }[];
   booksLockedThrough: IsoDate | null;
 }
@@ -55,7 +60,9 @@ export function runChecks(d: DiagInput): DiagCheck[] {
       key: "books_locked",
       label: "Books closed through a date",
       ok: d.booksLockedThrough !== null,
-      detail: d.booksLockedThrough ? `Closed through ${d.booksLockedThrough}.` : "No month closed yet.",
+      detail: d.booksLockedThrough
+        ? `Closed through ${d.booksLockedThrough}.`
+        : "No month closed yet.",
     },
   ];
 }
@@ -71,7 +78,12 @@ export function setupProgress(d: DiagInput): SetupStep[] {
   const posted = d.transactions.filter((t) => t.status === "posted");
   return [
     { key: "org", label: "Set up your organization", done: true, to: "/settings" },
-    { key: "accounts", label: "Choose your accounts", done: d.accounts.length > 0, to: "/accounts" },
+    {
+      key: "accounts",
+      label: "Choose your accounts",
+      done: d.accounts.length > 0,
+      to: "/accounts",
+    },
     {
       key: "opening",
       label: "Add starting balances",

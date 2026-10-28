@@ -804,7 +804,18 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
              ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description,
                lines = excluded.lines, frequency = excluded.frequency, next_due = excluded.next_due,
                active = excluded.active, updated_at = excluded.updated_at`,
-            [t.id, t.orgId, t.name, t.description, JSON.stringify(t.lines), t.frequency, t.nextDue, t.active ? 1 : 0, ts, ts],
+            [
+              t.id,
+              t.orgId,
+              t.name,
+              t.description,
+              JSON.stringify(t.lines),
+              t.frequency,
+              t.nextDue,
+              t.active ? 1 : 0,
+              ts,
+              ts,
+            ],
           );
         });
       },
@@ -848,7 +859,10 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
       },
       async setMode(orgId, mode, audit) {
         await audited(audit, async () => {
-          await db.execute("UPDATE organizations SET recurring_mode = ? WHERE id = ?", [mode, orgId]);
+          await db.execute("UPDATE organizations SET recurring_mode = ? WHERE id = ?", [
+            mode,
+            orgId,
+          ]);
         });
       },
     },
@@ -874,7 +888,14 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
         await audited(audit, async () => {
           const where =
             "org_id = ? AND account_id = ? AND period_type = ? AND period_start = ? AND IFNULL(fund_id,'') = ? AND IFNULL(project_id,'') = ?";
-          const key = [b.orgId, b.accountId, b.periodType, b.periodStart, b.fundId ?? "", b.projectId ?? ""];
+          const key = [
+            b.orgId,
+            b.accountId,
+            b.periodType,
+            b.periodStart,
+            b.fundId ?? "",
+            b.projectId ?? "",
+          ];
           if (b.amountCents === null) {
             await db.execute(`DELETE FROM budgets WHERE ${where}`, key);
             return;
@@ -887,7 +908,18 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
             await db.execute(
               `INSERT INTO budgets (id, org_id, account_id, fund_id, project_id, period_type, period_start, amount_cents, created_at, updated_at)
                VALUES (?,?,?,?,?,?,?,?,?,?)`,
-              [b.id, b.orgId, b.accountId, b.fundId, b.projectId, b.periodType, b.periodStart, b.amountCents, now(), now()],
+              [
+                b.id,
+                b.orgId,
+                b.accountId,
+                b.fundId,
+                b.projectId,
+                b.periodType,
+                b.periodStart,
+                b.amountCents,
+                now(),
+                now(),
+              ],
             );
         });
       },

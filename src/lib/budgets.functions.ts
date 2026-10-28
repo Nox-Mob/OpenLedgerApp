@@ -4,7 +4,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "./permissions";
 import { createSupabaseRepositories } from "./adapters/supabase";
-import { budgetVsActual as budgetVsActualService, saveBudget as saveBudgetService } from "./services/budgets";
+import {
+  budgetVsActual as budgetVsActualService,
+  saveBudget as saveBudgetService,
+} from "./services/budgets";
 
 // Budgets for the whole organization, one fund or one project. Shared service, so the
 // desktop app answers the same calls from its local file.

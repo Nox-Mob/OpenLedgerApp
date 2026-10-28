@@ -2,7 +2,12 @@
 import type { Id, IsoDate } from "@/lib/domain/models";
 import type { Repositories } from "@/lib/ports";
 import { newId } from "@/lib/domain/ledger";
-import { actualFromLedger, assertBudgetAmount, periodRange, type BudgetPeriod } from "@/lib/domain/budgets";
+import {
+  actualFromLedger,
+  assertBudgetAmount,
+  periodRange,
+  type BudgetPeriod,
+} from "@/lib/domain/budgets";
 
 export interface BudgetScope {
   fundId?: Id | null | undefined;
