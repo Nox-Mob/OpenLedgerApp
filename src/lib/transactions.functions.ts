@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "./permissions";
 import { createSupabaseRepositories } from "./adapters/supabase";
+import { hasFilter, matchesFilter } from "./domain/search";
 import { postTransaction, voidTransaction as voidTransactionService } from "./services/ledger";
 
 const entrySchema = z.object({
@@ -35,6 +36,20 @@ const createSchema = z.object({
   idempotencyKey: z.string().min(8).max(120).optional(),
 });
 
+export const filterSchema = z.object({
+  q: z.string().max(200).optional(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  accountId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
+  fundId: z.string().uuid().optional(),
+  minCents: z.number().int().optional(),
+  maxCents: z.number().int().optional(),
+  status: z.enum(["posted", "void"]).optional(),
+  source: z.string().max(40).optional(),
+  reconciled: z.enum(["yes", "no"]).optional(),
+});
+
 const listTransactionsCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input) =>
@@ -43,19 +58,24 @@ const listTransactionsCloud = createServerFn({ method: "GET" })
         orgId: z.string().uuid(),
         accountId: z.string().uuid().optional(),
         limit: z.number().int().min(1).max(500).default(100),
+        filter: filterSchema.optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const query = context.supabase
+    const f = data.filter ?? {};
+    let query = context.supabase
       .from("transactions")
       .select(
-        "id, transaction_date, posted_date, description, source, status, created_at, entries(id, account_id, amount_cents, memo, accounts(name, type), categories(name), projects(name), funds(name))",
+        "id, transaction_date, posted_date, description, source, status, created_at, entries(id, account_id, amount_cents, memo, project_id, fund_id, reconciliation_id, accounts(name, type), categories(name), projects(name), funds(name))",
       )
       .eq("org_id", data.orgId)
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(data.limit);
+      .limit(hasFilter(f) ? 500 : data.limit);
+    if (f.from) query = query.gte("transaction_date", f.from);
+    if (f.to) query = query.lte("transaction_date", f.to);
+    if (f.status) query = query.eq("status", f.status);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -64,7 +84,7 @@ const listTransactionsCloud = createServerFn({ method: "GET" })
     if (data.accountId) {
       result = result.filter((t) => t.entries.some((e) => e.account_id === data.accountId));
     }
-    return result.map((t) => ({
+    const mapped = result.map((t) => ({
       id: t.id as string,
       transactionDate: t.transaction_date as string,
       postedDate: t.posted_date as string | null,
@@ -81,8 +101,12 @@ const listTransactionsCloud = createServerFn({ method: "GET" })
         categoryName: e.categories?.name ?? null,
         projectName: e.projects?.name ?? null,
         fundName: e.funds?.name ?? null,
+        projectId: (e.project_id as string | null) ?? null,
+        fundId: (e.fund_id as string | null) ?? null,
+        reconciled: !!e.reconciliation_id,
       })),
     }));
+    return mapped.filter((t) => matchesFilter(t, f)).slice(0, hasFilter(f) ? 500 : data.limit);
   });
 export const listTransactions = desktopAware("listTransactions", listTransactionsCloud);
 

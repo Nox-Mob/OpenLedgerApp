@@ -15,6 +15,7 @@ import type {
 } from "@/lib/domain/models";
 import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 import { SQLITE_MIGRATIONS } from "./schema";
+import type { TransactionTemplate } from "@/lib/domain/templates";
 
 export type SqlValue = string | number | null;
 
@@ -153,6 +154,17 @@ const toClose = (r: any): PeriodClose => ({
 });
 
 const qs = (n: number) => Array.from({ length: n }, () => "?").join(",");
+
+const toTemplate = (r: any): TransactionTemplate => ({
+  id: r.id,
+  orgId: r.org_id,
+  name: r.name,
+  description: r.description,
+  lines: JSON.parse(r.lines || "[]"),
+  frequency: r.frequency ?? null,
+  nextDue: r.next_due ?? null,
+  active: !!r.active,
+});
 
 export function createSqliteRepositories(db: SqlDriver): Repositories {
   async function hydrate(rows: any[]): Promise<Transaction[]> {
@@ -765,6 +777,119 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
           budgetCents: Number(r.budget_cents),
           status: r.status,
         }));
+      },
+    },
+
+    templates: {
+      async list(orgId) {
+        const rows = await db.select<any>(
+          "SELECT * FROM transaction_templates WHERE org_id = ? ORDER BY name",
+          [orgId],
+        );
+        return rows.map(toTemplate);
+      },
+      async get(orgId, id) {
+        const rows = await db.select<any>(
+          "SELECT * FROM transaction_templates WHERE org_id = ? AND id = ?",
+          [orgId, id],
+        );
+        return rows[0] ? toTemplate(rows[0]) : null;
+      },
+      async save(t, audit) {
+        await audited(audit, async () => {
+          const ts = now();
+          await db.execute(
+            `INSERT INTO transaction_templates (id, org_id, name, description, lines, frequency, next_due, active, created_at, updated_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?)
+             ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description,
+               lines = excluded.lines, frequency = excluded.frequency, next_due = excluded.next_due,
+               active = excluded.active, updated_at = excluded.updated_at`,
+            [t.id, t.orgId, t.name, t.description, JSON.stringify(t.lines), t.frequency, t.nextDue, t.active ? 1 : 0, ts, ts],
+          );
+        });
+      },
+      async occurrences(orgId) {
+        const rows = await db.select<any>(
+          "SELECT * FROM recurring_occurrences WHERE org_id = ? ORDER BY due_date",
+          [orgId],
+        );
+        return rows.map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          templateId: r.template_id,
+          dueDate: r.due_date,
+          status: r.status,
+          transactionId: r.transaction_id ?? null,
+        }));
+      },
+      async recordOccurrence(o, nextDue, audit) {
+        const run = async () => {
+          const r = await db.execute(
+            `INSERT INTO recurring_occurrences (id, org_id, template_id, due_date, status, transaction_id, created_at)
+             VALUES (?,?,?,?,?,?,?) ON CONFLICT(template_id, due_date) DO NOTHING`,
+            [o.id, o.orgId, o.templateId, o.dueDate, o.status, o.transactionId, now()],
+          );
+          if (r.rowsAffected === 0) return false;
+          await db.execute(
+            "UPDATE transaction_templates SET next_due = ?, updated_at = ? WHERE org_id = ? AND id = ?",
+            [nextDue, now(), o.orgId, o.templateId],
+          );
+          return true;
+        };
+        if (!audit) return run();
+        return audited(audit, run);
+      },
+      async getMode(orgId) {
+        const rows = await db.select<{ m: string }>(
+          "SELECT recurring_mode AS m FROM organizations WHERE id = ?",
+          [orgId],
+        );
+        return rows[0]?.m === "reminder" ? "reminder" : "drafts";
+      },
+      async setMode(orgId, mode, audit) {
+        await audited(audit, async () => {
+          await db.execute("UPDATE organizations SET recurring_mode = ? WHERE id = ?", [mode, orgId]);
+        });
+      },
+    },
+
+    budgets: {
+      async list(orgId, periodType, periodStart) {
+        const rows = await db.select<any>(
+          "SELECT * FROM budgets WHERE org_id = ? AND period_type = ? AND period_start = ?",
+          [orgId, periodType, periodStart],
+        );
+        return rows.map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          accountId: r.account_id,
+          fundId: r.fund_id ?? null,
+          projectId: r.project_id ?? null,
+          periodType: r.period_type,
+          periodStart: r.period_start,
+          amountCents: Number(r.amount_cents),
+        }));
+      },
+      async set(b, audit) {
+        await audited(audit, async () => {
+          const where =
+            "org_id = ? AND account_id = ? AND period_type = ? AND period_start = ? AND IFNULL(fund_id,'') = ? AND IFNULL(project_id,'') = ?";
+          const key = [b.orgId, b.accountId, b.periodType, b.periodStart, b.fundId ?? "", b.projectId ?? ""];
+          if (b.amountCents === null) {
+            await db.execute(`DELETE FROM budgets WHERE ${where}`, key);
+            return;
+          }
+          const upd = await db.execute(
+            `UPDATE budgets SET amount_cents = ?, updated_at = ? WHERE ${where}`,
+            [b.amountCents, now(), ...key],
+          );
+          if (upd.rowsAffected === 0)
+            await db.execute(
+              `INSERT INTO budgets (id, org_id, account_id, fund_id, project_id, period_type, period_start, amount_cents, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)`,
+              [b.id, b.orgId, b.accountId, b.fundId, b.projectId, b.periodType, b.periodStart, b.amountCents, now(), now()],
+            );
+        });
       },
     },
 

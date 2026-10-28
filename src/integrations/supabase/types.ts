@@ -225,30 +225,36 @@ export type Database = {
           account_id: string
           amount_cents: number
           created_at: string
+          fund_id: string | null
           id: string
           org_id: string
           period_start: string
           period_type: string
+          project_id: string | null
           updated_at: string
         }
         Insert: {
           account_id: string
           amount_cents: number
           created_at?: string
+          fund_id?: string | null
           id: string
           org_id: string
           period_start: string
           period_type: string
+          project_id?: string | null
           updated_at?: string
         }
         Update: {
           account_id?: string
           amount_cents?: number
           created_at?: string
+          fund_id?: string | null
           id?: string
           org_id?: string
           period_start?: string
           period_type?: string
+          project_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -260,10 +266,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "budgets_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "budgets_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -643,6 +663,7 @@ export type Database = {
           id: string
           name: string
           org_type: Database["public"]["Enums"]["org_type"]
+          recurring_mode: string
           require_mfa: boolean
           term_overrides: Json
           terminology: string
@@ -658,6 +679,7 @@ export type Database = {
           id?: string
           name: string
           org_type?: Database["public"]["Enums"]["org_type"]
+          recurring_mode?: string
           require_mfa?: boolean
           term_overrides?: Json
           terminology?: string
@@ -673,6 +695,7 @@ export type Database = {
           id?: string
           name?: string
           org_type?: Database["public"]["Enums"]["org_type"]
+          recurring_mode?: string
           require_mfa?: boolean
           term_overrides?: Json
           terminology?: string
@@ -982,6 +1005,58 @@ export type Database = {
           },
         ]
       }
+      recurring_occurrences: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          org_id: string
+          status: string
+          template_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id: string
+          org_id: string
+          status: string
+          template_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          org_id?: string
+          status?: string
+          template_id?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_occurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_occurrences_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_occurrences_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string
@@ -1037,6 +1112,53 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          frequency: string | null
+          id: string
+          lines: Json
+          name: string
+          next_due: string | null
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description: string
+          frequency?: string | null
+          id: string
+          lines?: Json
+          name: string
+          next_due?: string | null
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          frequency?: string | null
+          id?: string
+          lines?: Json
+          name?: string
+          next_due?: string | null
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

@@ -97,7 +97,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@lovable.dev/vite-tanstack-config": "2.25.3",
+    "@lovable.dev/vite-tanstack-config": "2.26.5",
     "@tauri-apps/cli": "2.12.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.3.0",

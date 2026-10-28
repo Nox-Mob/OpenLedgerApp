@@ -19,6 +19,7 @@ import type {
 } from "@/lib/domain/models";
 import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 import { newId } from "@/lib/domain/ledger";
+import type { TransactionTemplate } from "@/lib/domain/templates";
 
 type Db = SupabaseClient<Database>;
 
@@ -153,6 +154,25 @@ const toClose = (r: any): PeriodClose => ({
   netIncomeCents: Number(r.net_income_cents),
   closedBy: r.closed_by,
   createdAt: r.created_at,
+});
+
+const toTemplate = (r: any): TransactionTemplate => ({
+  id: r.id,
+  orgId: r.org_id,
+  name: r.name,
+  description: r.description,
+  lines: Array.isArray(r.lines) ? r.lines : [],
+  frequency: r.frequency ?? null,
+  nextDue: r.next_due ?? null,
+  active: !!r.active,
+});
+
+const templateAudit = (orgId: string, id: string): AuditEvent => ({
+  orgId,
+  userId: "",
+  action: "update",
+  entity: "template",
+  entityId: id,
 });
 
 export function createSupabaseRepositories(db: Db): Repositories {
@@ -814,6 +834,168 @@ export function createSupabaseRepositories(db: Db): Repositories {
           budgetCents: Number(r.budget_cents),
           status: r.status,
         }));
+      },
+    },
+
+    templates: {
+      async list(orgId) {
+        const { data, error } = await sb
+          .from("transaction_templates")
+          .select("*")
+          .eq("org_id", orgId)
+          .order("name");
+        fail(error);
+        return ((data ?? []) as any[]).map(toTemplate);
+      },
+      async get(orgId, id) {
+        const { data, error } = await sb
+          .from("transaction_templates")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("id", id)
+          .maybeSingle();
+        fail(error);
+        return data ? toTemplate(data) : null;
+      },
+      async save(t, audit) {
+        const { data: existing } = await sb
+          .from("transaction_templates")
+          .select("id")
+          .eq("org_id", t.orgId)
+          .eq("id", t.id)
+          .maybeSingle();
+        const values = {
+          name: t.name,
+          description: t.description,
+          lines: t.lines,
+          frequency: t.frequency,
+          next_due: t.nextDue,
+          active: t.active,
+        };
+        const op: WriteOp = existing
+          ? { table: "transaction_templates", op: "update", values, match: { id: t.id }, minRows: 1 }
+          : { table: "transaction_templates", op: "insert", values: { id: t.id, ...values } };
+        await auditedWrite(sb, t.orgId, [op], entryOf(audit ?? templateAudit(t.orgId, t.id)));
+      },
+      async occurrences(orgId) {
+        const { data, error } = await sb
+          .from("recurring_occurrences")
+          .select("id, org_id, template_id, due_date, status, transaction_id")
+          .eq("org_id", orgId)
+          .order("due_date");
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          templateId: r.template_id,
+          dueDate: r.due_date,
+          status: r.status,
+          transactionId: r.transaction_id ?? null,
+        }));
+      },
+      async recordOccurrence(o, nextDue, audit) {
+        const { data: prior } = await sb
+          .from("recurring_occurrences")
+          .select("id")
+          .eq("template_id", o.templateId)
+          .eq("due_date", o.dueDate)
+          .maybeSingle();
+        if (prior) return false;
+        await auditedWrite(
+          sb,
+          o.orgId,
+          [
+            {
+              table: "recurring_occurrences",
+              op: "insert",
+              values: {
+                id: o.id,
+                template_id: o.templateId,
+                due_date: o.dueDate,
+                status: o.status,
+                transaction_id: o.transactionId,
+              },
+            },
+            {
+              table: "transaction_templates",
+              op: "update",
+              values: { next_due: nextDue },
+              match: { id: o.templateId },
+              minRows: 1,
+            },
+          ],
+          entryOf(audit ?? templateAudit(o.orgId, o.templateId)),
+        );
+        return true;
+      },
+      async getMode(orgId) {
+        const { data, error } = await sb
+          .from("organizations")
+          .select("recurring_mode")
+          .eq("id", orgId)
+          .maybeSingle();
+        fail(error);
+        return (data as any)?.recurring_mode === "reminder" ? "reminder" : "drafts";
+      },
+      async setMode(orgId, mode, audit) {
+        await auditedWrite(
+          sb,
+          orgId,
+          [{ table: "organizations", op: "update", values: { recurring_mode: mode } }],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "organization", entityId: orgId }),
+        );
+      },
+    },
+
+    budgets: {
+      async list(orgId, periodType, periodStart) {
+        const { data, error } = await sb
+          .from("budgets")
+          .select("id, org_id, account_id, fund_id, project_id, period_type, period_start, amount_cents")
+          .eq("org_id", orgId)
+          .eq("period_type", periodType)
+          .eq("period_start", periodStart);
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          accountId: r.account_id,
+          fundId: r.fund_id ?? null,
+          projectId: r.project_id ?? null,
+          periodType: r.period_type,
+          periodStart: r.period_start,
+          amountCents: Number(r.amount_cents),
+        }));
+      },
+      async set(b, audit) {
+        const match = {
+          account_id: b.accountId,
+          fund_id: b.fundId,
+          project_id: b.projectId,
+          period_type: b.periodType,
+          period_start: b.periodStart,
+        };
+        const entry = entryOf(
+          audit ?? { orgId: b.orgId, userId: "", action: "budget.set", entity: "budget", entityId: b.accountId },
+        );
+        if (b.amountCents === null) {
+          await auditedWrite(sb, b.orgId, [{ table: "budgets", op: "delete", match }], entry);
+          return;
+        }
+        let q = sb.from("budgets").select("id").eq("org_id", b.orgId).eq("account_id", b.accountId).eq("period_type", b.periodType).eq("period_start", b.periodStart);
+        q = b.fundId ? q.eq("fund_id", b.fundId) : q.is("fund_id", null);
+        q = b.projectId ? q.eq("project_id", b.projectId) : q.is("project_id", null);
+        const { data: existing } = await q.maybeSingle();
+        await auditedWrite(
+          sb,
+          b.orgId,
+          [
+            existing
+              ? { table: "budgets", op: "update", values: { amount_cents: b.amountCents }, match: { id: (existing as any).id } }
+              : { table: "budgets", op: "insert", values: { id: b.id, ...match, amount_cents: b.amountCents } },
+          ],
+          entry,
+        );
       },
     },
 
