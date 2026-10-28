@@ -175,6 +175,27 @@ const templateAudit = (orgId: string, id: string): AuditEvent => ({
   entityId: id,
 });
 
+const CATALOG_TABLE = {
+  category: "categories",
+  tag: "tags",
+  fund: "funds",
+  project: "projects",
+} as const;
+
+const toPledgeRow = (r: any): Pledge => ({
+  id: r.id,
+  orgId: r.org_id,
+  donorName: r.donor_name,
+  fundId: r.fund_id ?? null,
+  amountCents: Number(r.amount_cents),
+  pledgeDate: r.pledge_date,
+  expectedDate: r.expected_date ?? null,
+  note: r.note ?? null,
+  transactionId: r.transaction_id,
+  status: r.status,
+  createdBy: r.created_by ?? null,
+});
+
 export function createSupabaseRepositories(db: Db): Repositories {
   const sb = db as any; // keep the adapter readable; mapping functions are the typed boundary
 
@@ -834,6 +855,145 @@ export function createSupabaseRepositories(db: Db): Repositories {
           budgetCents: Number(r.budget_cents),
           status: r.status,
         }));
+      },
+    },
+
+    catalog: {
+      async list(orgId, kind) {
+        const { data, error } = await sb
+          .from(CATALOG_TABLE[kind])
+          .select("*")
+          .eq("org_id", orgId)
+          .order("name");
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          kind,
+          name: r.name,
+          categoryType: kind === "category" ? r.type : null,
+          isRestricted: kind === "fund" ? !!r.is_restricted : false,
+          budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
+          status: r.status ?? "active",
+        }));
+      },
+      async create(item, audit) {
+        const values: Record<string, unknown> = { id: item.id, name: item.name };
+        if (item.kind === "category") values.type = item.categoryType ?? "expense";
+        if (item.kind === "fund") values.is_restricted = item.isRestricted;
+        if (item.kind === "project") values.budget_cents = item.budgetCents;
+        await auditedWrite(
+          sb,
+          item.orgId,
+          [{ table: CATALOG_TABLE[item.kind], op: "insert", values }],
+          entryOf(audit ?? { orgId: item.orgId, userId: null, action: "create", entity: item.kind, entityId: item.id }),
+        );
+      },
+      async setRestricted(orgId, fundId, isRestricted, audit) {
+        await auditedWrite(
+          sb,
+          orgId,
+          [
+            {
+              table: "funds",
+              op: "update",
+              values: { is_restricted: isRestricted },
+              match: { id: fundId },
+              minRows: 1,
+            },
+          ],
+          entryOf(audit ?? { orgId, userId: null, action: "update", entity: "fund", entityId: fundId }),
+        );
+      },
+    },
+
+    pledges: {
+      async list(orgId) {
+        const { data, error } = await sb
+          .from("pledges")
+          .select("*")
+          .eq("org_id", orgId)
+          .order("pledge_date", { ascending: false });
+        fail(error);
+        return ((data ?? []) as any[]).map(toPledgeRow);
+      },
+      async get(orgId, id) {
+        const { data, error } = await sb
+          .from("pledges")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("id", id)
+          .maybeSingle();
+        fail(error);
+        return data ? toPledgeRow(data) : null;
+      },
+      async payments(orgId) {
+        const { data, error } = await sb.from("pledge_payments").select("*").eq("org_id", orgId);
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          pledgeId: r.pledge_id,
+          transactionId: r.transaction_id,
+          kind: r.kind,
+          amountCents: Number(r.amount_cents),
+          paidDate: r.paid_date,
+        }));
+      },
+      async create(p, audit) {
+        await auditedWrite(
+          sb,
+          p.orgId,
+          [
+            {
+              table: "pledges",
+              op: "insert",
+              values: {
+                id: p.id,
+                donor_name: p.donorName,
+                fund_id: p.fundId,
+                amount_cents: p.amountCents,
+                pledge_date: p.pledgeDate,
+                expected_date: p.expectedDate,
+                note: p.note,
+                transaction_id: p.transactionId,
+                created_by: p.createdBy,
+              },
+            },
+          ],
+          entryOf(audit ?? { orgId: p.orgId, userId: p.createdBy, action: "create", entity: "pledge", entityId: p.id }),
+        );
+      },
+      async addPayment(p, newStatus, audit) {
+        await auditedWrite(
+          sb,
+          p.orgId,
+          [
+            {
+              table: "pledge_payments",
+              op: "insert",
+              values: {
+                id: p.id,
+                pledge_id: p.pledgeId,
+                transaction_id: p.transactionId,
+                kind: p.kind,
+                amount_cents: p.amountCents,
+                paid_date: p.paidDate,
+              },
+            },
+            ...(newStatus
+              ? [
+                  {
+                    table: "pledges",
+                    op: "update" as const,
+                    values: { status: newStatus },
+                    match: { id: p.pledgeId },
+                  },
+                ]
+              : []),
+          ],
+          entryOf(audit ?? { orgId: p.orgId, userId: null, action: "payment", entity: "pledge", entityId: p.pledgeId }),
+        );
       },
     },
 
