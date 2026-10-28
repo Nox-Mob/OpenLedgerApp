@@ -880,9 +880,9 @@ export function createSupabaseRepositories(db: Db): Repositories {
       },
       async create(item, audit) {
         const values: Record<string, unknown> = { id: item.id, name: item.name };
-        if (item.kind === "category") values.type = item.categoryType ?? "expense";
-        if (item.kind === "fund") values.is_restricted = item.isRestricted;
-        if (item.kind === "project") values.budget_cents = item.budgetCents;
+        if (item.kind === "category") values["type"] = item.categoryType ?? "expense";
+        if (item.kind === "fund") values["is_restricted"] = item.isRestricted;
+        if (item.kind === "project") values["budget_cents"] = item.budgetCents;
         await auditedWrite(
           sb,
           item.orgId,
