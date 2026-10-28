@@ -12,6 +12,7 @@ import type {
   Entry,
   Organization,
   PeriodClose,
+  Pledge,
   Reconciliation,
   ReconEntry,
   Role,
@@ -886,7 +887,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
           sb,
           item.orgId,
           [{ table: CATALOG_TABLE[item.kind], op: "insert", values }],
-          entryOf(audit ?? { orgId: item.orgId, userId: null, action: "create", entity: item.kind, entityId: item.id }),
+          entryOf(audit ?? { orgId: item.orgId, userId: "", action: "create", entity: item.kind, entityId: item.id }),
         );
       },
       async setRestricted(orgId, fundId, isRestricted, audit) {
@@ -902,7 +903,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
               minRows: 1,
             },
           ],
-          entryOf(audit ?? { orgId, userId: null, action: "update", entity: "fund", entityId: fundId }),
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "fund", entityId: fundId }),
         );
       },
     },
@@ -961,7 +962,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
               },
             },
           ],
-          entryOf(audit ?? { orgId: p.orgId, userId: p.createdBy, action: "create", entity: "pledge", entityId: p.id }),
+          entryOf(audit ?? { orgId: p.orgId, userId: "", action: "create", entity: "pledge", entityId: p.id }),
         );
       },
       async addPayment(p, newStatus, audit) {
@@ -992,7 +993,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
                 ]
               : []),
           ],
-          entryOf(audit ?? { orgId: p.orgId, userId: null, action: "payment", entity: "pledge", entityId: p.pledgeId }),
+          entryOf(audit ?? { orgId: p.orgId, userId: "", action: "payment", entity: "pledge", entityId: p.pledgeId }),
         );
       },
     },
