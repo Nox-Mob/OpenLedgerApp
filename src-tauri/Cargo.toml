@@ -24,3 +24,5 @@ log = "0.4"
 tauri = { version = "2.12.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-sql = { version = "2.5.0", features = ["sqlite"] }
+# Same sqlx the SQL plugin uses; needed to open the single-connection pool (see src/lib.rs).
+sqlx = { version = "0.8.6", default-features = false, features = ["sqlite", "runtime-tokio"] }

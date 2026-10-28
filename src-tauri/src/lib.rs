@@ -29,7 +29,7 @@ async fn use_single_connection(app: tauri::AppHandle, db: String) -> Result<(), 
         .map_err(|e| e.to_string())?;
     let instances = app.state::<DbInstances>();
     let mut map = instances.0.write().await;
-    if let Some(old) = map.insert(db, DbPool::Sqlite(pool)) {
+    if let Some(DbPool::Sqlite(old)) = map.insert(db, DbPool::Sqlite(pool)) {
         old.close().await;
     }
     Ok(())
