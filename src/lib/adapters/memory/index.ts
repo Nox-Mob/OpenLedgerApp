@@ -14,6 +14,8 @@ import type {
   Role,
   Transaction,
 } from "@/lib/domain/models";
+import type { Occurrence, RecurringMode, TransactionTemplate } from "@/lib/domain/templates";
+import type { Budget } from "@/lib/ports";
 import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 
 export interface MemoryStore {
@@ -29,6 +31,10 @@ export interface MemoryStore {
   periodCloses: Map<string, PeriodClose>;
   projects: Map<string, Project>;
   statements: (StatementInfo & { orgId: string; accountId: string })[];
+  templates: Map<string, TransactionTemplate>;
+  occurrences: Occurrence[];
+  budgets: Map<string, Budget>;
+  recurringModes: Map<string, RecurringMode>;
 }
 
 export function createMemoryStore(): MemoryStore {
@@ -43,6 +49,10 @@ export function createMemoryStore(): MemoryStore {
     periodCloses: new Map(),
     projects: new Map(),
     statements: [],
+    templates: new Map(),
+    occurrences: [],
+    budgets: new Map(),
+    recurringModes: new Map(),
   };
 }
 
@@ -447,6 +457,67 @@ export function createMemoryRepositories(s: MemoryStore = createMemoryStore()): 
         return [...s.projects.values()]
           .filter((p) => p.orgId === orgId)
           .sort((a, b) => a.name.localeCompare(b.name));
+      },
+    },
+    templates: {
+      async list(orgId) {
+        return [...s.templates.values()]
+          .filter((t) => t.orgId === orgId)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      },
+      async get(orgId, id) {
+        const t = s.templates.get(id);
+        return t && t.orgId === orgId ? t : null;
+      },
+      async save(t, audit) {
+        guardAudit(audit);
+        s.templates.set(t.id, { ...t, lines: t.lines.map((l) => ({ ...l })) });
+        afterAudit(audit);
+      },
+      async occurrences(orgId) {
+        return s.occurrences.filter((o) => o.orgId === orgId);
+      },
+      async recordOccurrence(o, nextDue, audit) {
+        if (s.occurrences.some((x) => x.templateId === o.templateId && x.dueDate === o.dueDate))
+          return false;
+        guardAudit(audit);
+        s.occurrences.push({ ...o });
+        const t = s.templates.get(o.templateId);
+        if (t) s.templates.set(t.id, { ...t, nextDue });
+        afterAudit(audit);
+        return true;
+      },
+      async getMode(orgId) {
+        return s.recurringModes.get(orgId) ?? "drafts";
+      },
+      async setMode(orgId, mode, audit) {
+        guardAudit(audit);
+        s.recurringModes.set(orgId, mode);
+        afterAudit(audit);
+      },
+    },
+    budgets: {
+      async list(orgId, periodType, periodStart) {
+        return [...s.budgets.values()].filter(
+          (b) => b.orgId === orgId && b.periodType === periodType && b.periodStart === periodStart,
+        );
+      },
+      async set(b, audit) {
+        guardAudit(audit);
+        const same = [...s.budgets.values()].find(
+          (x) =>
+            x.orgId === b.orgId &&
+            x.accountId === b.accountId &&
+            x.fundId === b.fundId &&
+            x.projectId === b.projectId &&
+            x.periodType === b.periodType &&
+            x.periodStart === b.periodStart,
+        );
+        if (b.amountCents === null) {
+          if (same) s.budgets.delete(same.id);
+        } else if (same) s.budgets.set(same.id, { ...same, amountCents: b.amountCents });
+        else s.budgets.set(b.id, { ...b, amountCents: b.amountCents });
+        afterAudit(audit);
       },
     },
     audit: {
