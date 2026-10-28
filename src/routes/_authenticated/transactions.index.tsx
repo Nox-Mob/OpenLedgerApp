@@ -53,7 +53,7 @@ function toFilter(s: ReturnType<typeof Route.useSearch>): TxFilter {
   const cents = (v?: string) => {
     if (!v) return undefined;
     const c = parseToCents(v);
-    return Number.isFinite(c) ? c : undefined;
+    return c ?? undefined;
   };
   const f: TxFilter = {
     q: s.q || undefined,
