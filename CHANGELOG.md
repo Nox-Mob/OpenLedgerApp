@@ -15,6 +15,7 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 - Diagnostics page for admins and treasurers: version, edition, book health checks, and a copyable report with no names or amounts.
 - Desktop: templates, recurring drafts, search, budgets, board package, checklist, tutorial and diagnostics all work from the local file (desktop database version 3).
 - Desktop: funds (restricted and unrestricted, releases), pledges and pledge payments, projects, categories and tags are now saved in the local file (desktop database version 4), so fund filters, fund budgets and the fund page in the board package work offline. Names stay unique, and a fund's restriction locks once it has transactions, same as the web.
+- Fixed (desktop): saves could show 'cannot rollback, no transaction is active' while still saving. The desktop file now uses a single connection and actions run one at a time, so each change and its history entry are saved together or not at all. Database upgrades are now all-or-nothing too.
 
 ## [0.1.0] - 2026-10-10
 
