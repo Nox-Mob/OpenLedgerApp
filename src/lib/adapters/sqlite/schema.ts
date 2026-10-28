@@ -105,4 +105,29 @@ WHEN OLD.status = 'completed'
 BEGIN SELECT RAISE(ABORT, 'finished statement checks cannot be deleted'); END;
 `,
   },
+  {
+    version: 3,
+    sql: `
+ALTER TABLE organizations ADD COLUMN recurring_mode TEXT NOT NULL DEFAULT 'drafts';
+CREATE TABLE transaction_templates (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), name TEXT NOT NULL,
+  description TEXT NOT NULL, lines TEXT NOT NULL, frequency TEXT CHECK (frequency IN ('weekly','monthly','quarterly','yearly')),
+  next_due TEXT, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE recurring_occurrences (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id),
+  template_id TEXT NOT NULL REFERENCES transaction_templates(id), due_date TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('posted','skipped')), transaction_id TEXT REFERENCES transactions(id),
+  created_at TEXT NOT NULL, UNIQUE (template_id, due_date)
+);
+CREATE TABLE budgets (
+  id TEXT PRIMARY KEY, org_id TEXT NOT NULL REFERENCES organizations(id), account_id TEXT NOT NULL REFERENCES accounts(id),
+  fund_id TEXT, project_id TEXT, period_type TEXT NOT NULL CHECK (period_type IN ('year','month')),
+  period_start TEXT NOT NULL, amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX budgets_scope ON budgets(org_id, account_id, period_type, period_start, IFNULL(fund_id,''), IFNULL(project_id,''));
+CREATE TRIGGER occurrences_immutable BEFORE UPDATE ON recurring_occurrences BEGIN SELECT RAISE(ABORT, 'recurring history is immutable'); END;
+`,
+  },
 ];
