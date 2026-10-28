@@ -1,4 +1,4 @@
-# v0.2 Everyday use, with desktop parity
+# v0.1.1 Everyday use, with desktop parity
 
 ## Step 0: Confirm the desktop code is here
 The copy I can see right now is at v0.0.7. It has no desktop files (no `src-tauri`, no `src/lib/desktop`, no `edition.ts`). You said branch v0.1.1 has the working desktop app, so before any building I'll check that the v0.1.1 code is actually in this workspace. If it isn't, I'll stop and ask you to sync it. Building on v0.0.7 would leave out the desktop work.
@@ -72,4 +72,4 @@ The desktop guard test is extended so that any server function without a desktop
 - Search runs on the server with indexed filters (description trigram or ILIKE in the cloud, LIKE on SQLite) and is paginated.
 - Board package reuses `report-pdf.ts` and `exportAllPdf` page logic.
 - Tests: schedule math, one-key-per-occurrence (no double post), the recurring mode setting, filter combinations, budget scoping, board package sections, checklist completion, diagnostics checks against a deliberately broken memory dataset, permissions table cells for the new actions, SQL safety tests for the new tables, and desktop handler coverage.
-- Version label: v0.2.0, bumped only after you confirm GitHub is green (two-step release).
+- Version label: v0.1.1, bumped only after you confirm GitHub is green (two-step release).
