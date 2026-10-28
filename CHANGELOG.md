@@ -4,6 +4,17 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 ## [Unreleased]
 
+### Added
+
+- Templates: save a transaction you repeat (name, accounts, amount). Templates can repeat weekly, monthly, every 3 months or yearly. Nothing posts by itself: each due date waits in a Ready to review list (post or skip), or, if the organization picks reminders, shows a notice. Posting the same due date twice still makes one transaction.
+- Transaction search and filters: description or note, dates, account, project, fund, amount range, status, source and checked against statement. Filters stay in the page address and results export to CSV.
+- Fund and project budgets: set budgets for the whole organization, one fund or one project, and compare to actuals for that scope only.
+- Board package: one PDF with a cover page, income statement, balance sheet, budget vs actual and (nonprofits) fund activity.
+- First-run checklist on the dashboard that ticks itself off and can be hidden.
+- Tutorial: an on/off guided tour (getting started and the weekly, monthly and yearly routine), switched in Settings, Your preferences.
+- Diagnostics page for admins and treasurers: version, edition, book health checks, and a copyable report with no names or amounts.
+- Desktop: templates, recurring drafts, search, budgets, board package, checklist, tutorial and diagnostics all work from the local file (desktop database version 3).
+
 ## [0.1.0] - 2026-10-10
 
 ### Added
