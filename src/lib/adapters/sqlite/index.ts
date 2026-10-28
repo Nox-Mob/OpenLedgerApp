@@ -845,7 +845,7 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
                 [item.id, item.orgId, item.name, item.budgetCents, item.status, now()],
               );
           } catch (e) {
-            if (isUnique(e)) throw new Error(`"${item.name}" already exists.`);
+            if (isUnique(e)) throw new Error(`"${item.name}" already exists.`, { cause: e });
             throw e;
           }
         });
