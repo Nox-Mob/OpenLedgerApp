@@ -9,7 +9,14 @@ export function localRepos(): Promise<Repositories> {
       import("@tauri-apps/plugin-sql"),
       import("@/lib/adapters/sqlite"),
     ]);
-    const raw = await Database.load("sqlite:openledgerapp.db");
+    const url = "sqlite:openledgerapp.db";
+    // Load once only: loading again would reopen the multi-connection pool.
+    const raw = await Database.load(url);
+    // Swap the plugin's multi-connection pool for one connection, so BEGIN/COMMIT wrap
+    // every statement in between (see src-tauri/src/lib.rs). Without it a "transaction"
+    // is not atomic and COMMIT/ROLLBACK fail with "no transaction is active".
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("use_single_connection", { db: url });
     const driver = {
       execute: (sql: string, p?: unknown[]) => raw.execute(sql, p),
       select: <T>(sql: string, p?: unknown[]) => raw.select<T[]>(sql, p),
@@ -17,5 +24,9 @@ export function localRepos(): Promise<Repositories> {
     await sqlite.migrateSqlite(driver as never);
     return sqlite.createSqliteRepositories(driver as never);
   })();
+  // A failed start (e.g. file locked) can be retried on the next call.
+  pending.catch(() => {
+    pending = null;
+  });
   return pending;
 }
