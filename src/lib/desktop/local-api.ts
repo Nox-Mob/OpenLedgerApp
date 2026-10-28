@@ -14,6 +14,10 @@ import * as reports from "@/lib/services/reports";
 import * as settings from "@/lib/services/settings";
 import * as periods from "@/lib/services/periods";
 import * as recon from "@/lib/services/reconciliation";
+import * as tpl from "@/lib/services/templates";
+import * as budgets from "@/lib/services/budgets";
+import { diagnostics, getSetupProgress } from "@/lib/services/diagnostics";
+import { hasFilter, matchesFilter, type TxFilter } from "@/lib/domain/search";
 import { createOrganizationWithAccounts } from "@/lib/services/organizations";
 
 export class DesktopUnavailableError extends Error {
@@ -197,16 +201,23 @@ const HANDLERS: Record<string, Handler> = {
     })),
 
   // ---------- Transactions ----------
-  listTransactions: async (repos, d: OrgIn & { accountId?: Id; limit?: number }) => {
+  listTransactions: async (
+    repos,
+    d: OrgIn & { accountId?: Id; limit?: number; filter?: TxFilter },
+  ) => {
+    const f = d.filter ?? {};
     const accounts = new Map(
       (await repos.accounts.list(d.orgId, { includeArchived: true })).map((a) => [a.id, a]),
     );
+    const projects = new Map((await repos.projects.list(d.orgId)).map((p) => [p.id, p.name]));
     const txs = await repos.transactions.list(d.orgId, {
       ...(d.accountId ? { accountId: d.accountId } : {}),
-      limit: d.limit ?? 100,
+      ...(f.from ? { from: f.from } : {}),
+      ...(f.to ? { to: f.to } : {}),
+      limit: hasFilter(f) ? 100000 : (d.limit ?? 100),
       includeVoid: true,
     });
-    return txs.map((t) => ({
+    const rows = txs.map((t) => ({
       id: t.id,
       transactionDate: t.transactionDate,
       postedDate: t.postedDate,
@@ -221,10 +232,14 @@ const HANDLERS: Record<string, Handler> = {
         amountCents: e.amountCents,
         memo: e.memo ?? null,
         categoryName: null,
-        projectName: null,
+        projectName: e.projectId ? (projects.get(e.projectId) ?? null) : null,
         fundName: null,
+        projectId: e.projectId ?? null,
+        fundId: e.fundId ?? null,
+        reconciled: !!e.reconciliationId,
       })),
     }));
+    return rows.filter((t) => matchesFilter(t, f)).slice(0, hasFilter(f) ? 500 : (d.limit ?? 100));
   },
   createTransaction: async (
     repos,
@@ -319,6 +334,32 @@ const HANDLERS: Record<string, Handler> = {
     recon.reopenReconciliation(repos, await recon.locateReconciliation(repos, d.id), me),
   discardReconciliation: async (repos, d: { id: Id }) =>
     recon.discardReconciliation(repos, await recon.locateReconciliation(repos, d.id), me),
+
+  // ---------- Templates and recurring drafts ----------
+  listTemplates: async (repos, d: OrgIn) => repos.templates.list(d.orgId),
+  saveTemplate: async (repos, d: Omit<tpl.SaveTemplateInput, "userId">) =>
+    tpl.saveTemplate(repos, { ...d, userId: me }),
+  archiveTemplate: async (repos, d: OrgIn & { id: Id }) =>
+    tpl.archiveTemplate(repos, d.orgId, me, d.id),
+  listDue: async (repos, d: OrgIn & { today: IsoDate }) => tpl.listDue(repos, d.orgId, d.today),
+  postDue: async (repos, d: OrgIn & { templateId: Id; dueDate: IsoDate }) =>
+    tpl.postDue(repos, { ...d, userId: me }),
+  skipDue: async (repos, d: OrgIn & { templateId: Id; dueDate: IsoDate }) =>
+    tpl.skipDue(repos, { ...d, userId: me }),
+  setRecurringMode: async (repos, d: OrgIn & { mode: "drafts" | "reminder" }) =>
+    tpl.setRecurringMode(repos, d.orgId, me, d.mode),
+
+  // ---------- Budgets ----------
+  budgetVsActual: async (
+    repos,
+    d: OrgIn & budgets.BudgetScope & { periodType: "year" | "month"; periodStart: IsoDate },
+  ) => budgets.budgetVsActual(repos, d.orgId, d.periodType, d.periodStart, d),
+  saveBudget: async (repos, d: Omit<Parameters<typeof budgets.saveBudget>[1], "userId">) =>
+    budgets.saveBudget(repos, { ...d, userId: me }),
+
+  // ---------- Diagnostics and first-run checklist ----------
+  getDiagnostics: async (repos, d: OrgIn) => diagnostics(repos, d.orgId),
+  getSetupProgress: async (repos, d: OrgIn) => getSetupProgress(repos, d.orgId),
 };
 
 /** Names answered locally; everything else reports "not available on desktop yet". */
