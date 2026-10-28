@@ -25,6 +25,9 @@ async function setup() {
     },
     repos,
   )) as { id: string };
+  await repos.accounts.create([
+    { id: "33333333-3333-4333-8333-333333333333", orgId, name: "Supplies", type: "expense", subtype: null, isActive: true },
+  ]);
   const accts = await repos.accounts.list(orgId);
   const cash = accts.find((a) => a.type === "asset")!;
   const expense = accts.find((a) => a.type === "expense")!;
