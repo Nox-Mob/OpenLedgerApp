@@ -9,6 +9,7 @@ import { listAccounts } from "@/lib/taxonomy.functions";
 import { listTransactions } from "@/lib/transactions.functions";
 import { incomeStatement } from "@/lib/reports.functions";
 import { CashChart } from "@/components/CashChart";
+import { DueDrafts, SetupChecklist } from "@/components/DashboardCards";
 import { setStoredOrgId } from "@/lib/current-org";
 import { formatCents, todayISO } from "@/lib/money";
 import { displayBalance } from "@/lib/terminology";
@@ -106,6 +107,9 @@ function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <SetupChecklist orgId={org.id} />
+      <DueDrafts orgId={org.id} timezone={org.timezone} canWrite={org.role !== "viewer"} />
 
       <CashChart orgId={org.id} currency={org.currency} />
 

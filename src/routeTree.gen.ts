@@ -34,6 +34,7 @@ import { Route as AuthenticatedReconcileIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountsRouteImport } from './routes/_authenticated/settings/accounts'
 import { Route as AuthenticatedSettingsCloseRouteImport } from './routes/_authenticated/settings/close'
+import { Route as AuthenticatedSettingsDiagnosticsRouteImport } from './routes/_authenticated/settings/diagnostics'
 import { Route as AuthenticatedSettingsExportsRouteImport } from './routes/_authenticated/settings/exports'
 import { Route as AuthenticatedSettingsHistoryRouteImport } from './routes/_authenticated/settings/history'
 import { Route as AuthenticatedSettingsMembersRouteImport } from './routes/_authenticated/settings/members'
@@ -171,6 +172,12 @@ const AuthenticatedSettingsCloseRoute =
     path: '/close',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsDiagnosticsRoute =
+  AuthenticatedSettingsDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsExportsRoute =
   AuthenticatedSettingsExportsRouteImport.update({
     id: '/exports',
@@ -237,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -269,6 +277,7 @@ export interface FileRoutesByTo {
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -304,6 +313,7 @@ export interface FileRoutesById {
   '/_authenticated/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/_authenticated/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/_authenticated/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/_authenticated/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/_authenticated/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/_authenticated/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/_authenticated/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/reconcile/$id'
     | '/settings/accounts'
     | '/settings/close'
+    | '/settings/diagnostics'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/reconcile/$id'
     | '/settings/accounts'
     | '/settings/close'
+    | '/settings/diagnostics'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -405,6 +417,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reconcile/$id'
     | '/_authenticated/settings/accounts'
     | '/_authenticated/settings/close'
+    | '/_authenticated/settings/diagnostics'
     | '/_authenticated/settings/exports'
     | '/_authenticated/settings/history'
     | '/_authenticated/settings/members'
@@ -606,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsCloseRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/diagnostics': {
+      id: '/_authenticated/settings/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/settings/diagnostics'
+      preLoaderRoute: typeof AuthenticatedSettingsDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/exports': {
       id: '/_authenticated/settings/exports'
       path: '/exports'
@@ -661,6 +681,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountsRoute: typeof AuthenticatedSettingsAccountsRoute
   AuthenticatedSettingsCloseRoute: typeof AuthenticatedSettingsCloseRoute
+  AuthenticatedSettingsDiagnosticsRoute: typeof AuthenticatedSettingsDiagnosticsRoute
   AuthenticatedSettingsExportsRoute: typeof AuthenticatedSettingsExportsRoute
   AuthenticatedSettingsHistoryRoute: typeof AuthenticatedSettingsHistoryRoute
   AuthenticatedSettingsMembersRoute: typeof AuthenticatedSettingsMembersRoute
@@ -672,6 +693,7 @@ interface AuthenticatedSettingsRouteChildren {
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountsRoute: AuthenticatedSettingsAccountsRoute,
   AuthenticatedSettingsCloseRoute: AuthenticatedSettingsCloseRoute,
+  AuthenticatedSettingsDiagnosticsRoute: AuthenticatedSettingsDiagnosticsRoute,
   AuthenticatedSettingsExportsRoute: AuthenticatedSettingsExportsRoute,
   AuthenticatedSettingsHistoryRoute: AuthenticatedSettingsHistoryRoute,
   AuthenticatedSettingsMembersRoute: AuthenticatedSettingsMembersRoute,
