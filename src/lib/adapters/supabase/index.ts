@@ -169,7 +169,7 @@ const toTemplate = (r: any): TransactionTemplate => ({
 
 const templateAudit = (orgId: string, id: string): AuditEvent => ({
   orgId,
-  userId: null,
+  userId: "",
   action: "update",
   entity: "template",
   entityId: id,
@@ -839,7 +839,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
 
     templates: {
       async list(orgId) {
-        const { data, error } = await untyped
+        const { data, error } = await sb
           .from("transaction_templates")
           .select("*")
           .eq("org_id", orgId)
@@ -848,7 +848,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         return ((data ?? []) as any[]).map(toTemplate);
       },
       async get(orgId, id) {
-        const { data, error } = await untyped
+        const { data, error } = await sb
           .from("transaction_templates")
           .select("*")
           .eq("org_id", orgId)
@@ -858,7 +858,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         return data ? toTemplate(data) : null;
       },
       async save(t, audit) {
-        const { data: existing } = await untyped
+        const { data: existing } = await sb
           .from("transaction_templates")
           .select("id")
           .eq("org_id", t.orgId)
@@ -878,7 +878,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         await auditedWrite(sb, t.orgId, [op], entryOf(audit ?? templateAudit(t.orgId, t.id)));
       },
       async occurrences(orgId) {
-        const { data, error } = await untyped
+        const { data, error } = await sb
           .from("recurring_occurrences")
           .select("id, org_id, template_id, due_date, status, transaction_id")
           .eq("org_id", orgId)
@@ -894,7 +894,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         }));
       },
       async recordOccurrence(o, nextDue, audit) {
-        const { data: prior } = await untyped
+        const { data: prior } = await sb
           .from("recurring_occurrences")
           .select("id")
           .eq("template_id", o.templateId)
@@ -929,7 +929,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         return true;
       },
       async getMode(orgId) {
-        const { data, error } = await untyped
+        const { data, error } = await sb
           .from("organizations")
           .select("recurring_mode")
           .eq("id", orgId)
@@ -942,14 +942,14 @@ export function createSupabaseRepositories(db: Db): Repositories {
           sb,
           orgId,
           [{ table: "organizations", op: "update", values: { recurring_mode: mode } }],
-          entryOf(audit ?? { orgId, userId: null, action: "update", entity: "organization", entityId: orgId }),
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "organization", entityId: orgId }),
         );
       },
     },
 
     budgets: {
       async list(orgId, periodType, periodStart) {
-        const { data, error } = await untyped
+        const { data, error } = await sb
           .from("budgets")
           .select("id, org_id, account_id, fund_id, project_id, period_type, period_start, amount_cents")
           .eq("org_id", orgId)
@@ -976,13 +976,13 @@ export function createSupabaseRepositories(db: Db): Repositories {
           period_start: b.periodStart,
         };
         const entry = entryOf(
-          audit ?? { orgId: b.orgId, userId: null, action: "budget.set", entity: "budget", entityId: b.accountId },
+          audit ?? { orgId: b.orgId, userId: "", action: "budget.set", entity: "budget", entityId: b.accountId },
         );
         if (b.amountCents === null) {
           await auditedWrite(sb, b.orgId, [{ table: "budgets", op: "delete", match }], entry);
           return;
         }
-        let q = untyped.from("budgets").select("id").eq("org_id", b.orgId).eq("account_id", b.accountId).eq("period_type", b.periodType).eq("period_start", b.periodStart);
+        let q = sb.from("budgets").select("id").eq("org_id", b.orgId).eq("account_id", b.accountId).eq("period_type", b.periodType).eq("period_start", b.periodStart);
         q = b.fundId ? q.eq("fund_id", b.fundId) : q.is("fund_id", null);
         q = b.projectId ? q.eq("project_id", b.projectId) : q.is("project_id", null);
         const { data: existing } = await q.maybeSingle();
