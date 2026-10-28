@@ -47,7 +47,15 @@ export const Route = createFileRoute("/_authenticated/transactions/")({
 
 const fCls =
   "rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring";
-const SOURCES = ["manual", "import", "opening_balance", "adjustment", "transfer", "release", "pledge"];
+const SOURCES = [
+  "manual",
+  "import",
+  "opening_balance",
+  "adjustment",
+  "transfer",
+  "release",
+  "pledge",
+];
 
 function toFilter(s: ReturnType<typeof Route.useSearch>): TxFilter {
   const cents = (v?: string) => {
@@ -113,9 +121,14 @@ function TransactionsPage() {
         t.description,
         t.source,
         t.status,
-        ex.centsToNumber(t.entries.filter((e) => e.amountCents > 0).reduce((a, e) => a + e.amountCents, 0)),
+        ex.centsToNumber(
+          t.entries.filter((e) => e.amountCents > 0).reduce((a, e) => a + e.amountCents, 0),
+        ),
       ]);
-    ex.downloadCsv({ name: "Transactions", rows }, ex.safeFileName(`${org.name}-transactions`) + ".csv");
+    ex.downloadCsv(
+      { name: "Transactions", rows },
+      ex.safeFileName(`${org.name}-transactions`) + ".csv",
+    );
   }
 
   async function handleVoid(id: string) {
@@ -160,28 +173,50 @@ function TransactionsPage() {
         </label>
         <label className="text-xs text-muted-foreground">
           From
-          <input type="date" className={`${fCls} block`} value={search.from ?? ""} onChange={(e) => setParam("from", e.target.value)} />
+          <input
+            type="date"
+            className={`${fCls} block`}
+            value={search.from ?? ""}
+            onChange={(e) => setParam("from", e.target.value)}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           To
-          <input type="date" className={`${fCls} block`} value={search.to ?? ""} onChange={(e) => setParam("to", e.target.value)} />
+          <input
+            type="date"
+            className={`${fCls} block`}
+            value={search.to ?? ""}
+            onChange={(e) => setParam("to", e.target.value)}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Account
-          <select className={`${fCls} block`} value={search.accountId ?? ""} onChange={(e) => setParam("accountId", e.target.value)}>
+          <select
+            className={`${fCls} block`}
+            value={search.accountId ?? ""}
+            onChange={(e) => setParam("accountId", e.target.value)}
+          >
             <option value="">Any</option>
             {(accountsQ.data ?? []).map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
             ))}
           </select>
         </label>
         {(projectsQ.data ?? []).length > 0 && (
           <label className="text-xs text-muted-foreground">
             Project
-            <select className={`${fCls} block`} value={search.projectId ?? ""} onChange={(e) => setParam("projectId", e.target.value)}>
+            <select
+              className={`${fCls} block`}
+              value={search.projectId ?? ""}
+              onChange={(e) => setParam("projectId", e.target.value)}
+            >
               <option value="">Any</option>
               {(projectsQ.data ?? []).map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </label>
@@ -189,25 +224,45 @@ function TransactionsPage() {
         {(fundsQ.data ?? []).length > 0 && (
           <label className="text-xs text-muted-foreground">
             Fund
-            <select className={`${fCls} block`} value={search.fundId ?? ""} onChange={(e) => setParam("fundId", e.target.value)}>
+            <select
+              className={`${fCls} block`}
+              value={search.fundId ?? ""}
+              onChange={(e) => setParam("fundId", e.target.value)}
+            >
               <option value="">Any</option>
               {(fundsQ.data ?? []).map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
               ))}
             </select>
           </label>
         )}
         <label className="text-xs text-muted-foreground">
           Min amount
-          <input inputMode="decimal" className={`${fCls} block w-24`} defaultValue={search.min ?? ""} onChange={(e) => setParam("min", e.target.value)} />
+          <input
+            inputMode="decimal"
+            className={`${fCls} block w-24`}
+            defaultValue={search.min ?? ""}
+            onChange={(e) => setParam("min", e.target.value)}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Max amount
-          <input inputMode="decimal" className={`${fCls} block w-24`} defaultValue={search.max ?? ""} onChange={(e) => setParam("max", e.target.value)} />
+          <input
+            inputMode="decimal"
+            className={`${fCls} block w-24`}
+            defaultValue={search.max ?? ""}
+            onChange={(e) => setParam("max", e.target.value)}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Status
-          <select className={`${fCls} block`} value={search.status ?? ""} onChange={(e) => setParam("status", e.target.value)}>
+          <select
+            className={`${fCls} block`}
+            value={search.status ?? ""}
+            onChange={(e) => setParam("status", e.target.value)}
+          >
             <option value="">Any</option>
             <option value="posted">Posted</option>
             <option value="void">Void</option>
@@ -215,16 +270,26 @@ function TransactionsPage() {
         </label>
         <label className="text-xs text-muted-foreground">
           Source
-          <select className={`${fCls} block`} value={search.source ?? ""} onChange={(e) => setParam("source", e.target.value)}>
+          <select
+            className={`${fCls} block`}
+            value={search.source ?? ""}
+            onChange={(e) => setParam("source", e.target.value)}
+          >
             <option value="">Any</option>
             {SOURCES.map((s) => (
-              <option key={s} value={s}>{s.replace("_", " ")}</option>
+              <option key={s} value={s}>
+                {s.replace("_", " ")}
+              </option>
             ))}
           </select>
         </label>
         <label className="text-xs text-muted-foreground">
           Checked against statement
-          <select className={`${fCls} block`} value={search.reconciled ?? ""} onChange={(e) => setParam("reconciled", e.target.value)}>
+          <select
+            className={`${fCls} block`}
+            value={search.reconciled ?? ""}
+            onChange={(e) => setParam("reconciled", e.target.value)}
+          >
             <option value="">Any</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
@@ -255,7 +320,10 @@ function TransactionsPage() {
         ) : txQuery.isError ? (
           <ErrorState message={errorMessage(txQuery.error)} onRetry={() => txQuery.refetch()} />
         ) : (txQuery.data ?? []).length === 0 && filtering ? (
-          <EmptyState title="No matches" description="Nothing matches these filters. Try clearing some." />
+          <EmptyState
+            title="No matches"
+            description="Nothing matches these filters. Try clearing some."
+          />
         ) : (txQuery.data ?? []).length === 0 ? (
           <EmptyState
             title="No transactions yet"

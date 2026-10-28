@@ -179,7 +179,12 @@ export function statementCheckSheet(
 /** Budget vs actual for the board package (money in and money out, with differences). */
 export function budgetSheet(
   title: string,
-  lines: { name: string; type: "revenue" | "expense"; budgetCents: number | null; actualCents: number }[],
+  lines: {
+    name: string;
+    type: "revenue" | "expense";
+    budgetCents: number | null;
+    actualCents: number;
+  }[],
   labels: { revenue: string; expenses: string },
 ): Sheet {
   return {

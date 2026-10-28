@@ -26,7 +26,14 @@ async function setup() {
     repos,
   )) as { id: string };
   await repos.accounts.create([
-    { id: "33333333-3333-4333-8333-333333333333", orgId, name: "Supplies", type: "expense", subtype: null, isActive: true },
+    {
+      id: "33333333-3333-4333-8333-333333333333",
+      orgId,
+      name: "Supplies",
+      type: "expense",
+      subtype: null,
+      isActive: true,
+    },
   ]);
   const accts = await repos.accounts.list(orgId);
   const cash = accts.find((a) => a.type === "asset")!;
@@ -137,7 +144,13 @@ describe("search and filters", () => {
     status: "posted",
     source: "manual",
     entries: [
-      { accountId: "exp", amountCents: 120000, memo: "October", projectId: "p1", reconciled: false },
+      {
+        accountId: "exp",
+        amountCents: 120000,
+        memo: "October",
+        projectId: "p1",
+        reconciled: false,
+      },
       { accountId: "cash", amountCents: -120000, memo: null, reconciled: true },
     ],
   };
@@ -175,7 +188,13 @@ describe("fund and project budgets", () => {
         { id: "e2", accountId: cash.id, amountCents: -7000 },
       ],
     });
-    const base = { orgId, userId: U, accountId: expense.id, periodType: "year" as const, periodStart: "2026-01-01" };
+    const base = {
+      orgId,
+      userId: U,
+      accountId: expense.id,
+      periodType: "year" as const,
+      periodStart: "2026-01-01",
+    };
     await saveBudget(repos, { ...base, amountCents: 100000 });
     await saveBudget(repos, { ...base, projectId: P, amountCents: 10000 });
     await saveBudget(repos, { ...base, projectId: P, amountCents: 12000 });
@@ -193,7 +212,15 @@ describe("diagnostics and first-run checklist", () => {
     const checks = runChecks({
       accounts: [{ id: "a" }],
       transactions: [
-        { id: "t", status: "posted", source: "manual", entries: [{ accountId: "a", amountCents: 5 }, { accountId: "gone", amountCents: -4 }] },
+        {
+          id: "t",
+          status: "posted",
+          source: "manual",
+          entries: [
+            { accountId: "a", amountCents: 5 },
+            { accountId: "gone", amountCents: -4 },
+          ],
+        },
       ],
       reconciliations: [{ status: "in_progress" }],
       booksLockedThrough: null,

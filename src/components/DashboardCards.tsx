@@ -51,7 +51,10 @@ export function SetupChecklist({ orgId }: { orgId: string }) {
             {s.done ? (
               <span className="text-muted-foreground line-through">{s.label}</span>
             ) : (
-              <Link to={s.to as "/ledger"} className="underline underline-offset-4 hover:text-primary">
+              <Link
+                to={s.to as "/ledger"}
+                className="underline underline-offset-4 hover:text-primary"
+              >
                 {s.label}
               </Link>
             )}
@@ -102,7 +105,10 @@ export function DueDrafts({
 
   if (mode === "reminder")
     return (
-      <div role="status" className="mt-6 flex items-center justify-between gap-3 rounded-lg border bg-card p-4">
+      <div
+        role="status"
+        className="mt-6 flex items-center justify-between gap-3 rounded-lg border bg-card p-4"
+      >
         <div className="flex items-center gap-2 text-sm">
           <Repeat className="h-4 w-4 text-primary" aria-hidden="true" />
           {items.length === 1
@@ -119,7 +125,10 @@ export function DueDrafts({
     );
 
   return (
-    <section aria-label="Ready to review" className="mt-6 overflow-hidden rounded-lg border bg-card">
+    <section
+      aria-label="Ready to review"
+      className="mt-6 overflow-hidden rounded-lg border bg-card"
+    >
       <h2 className="border-b bg-muted/50 px-4 py-2 text-sm font-semibold">
         Ready to review ({items.length})
       </h2>
@@ -127,7 +136,10 @@ export function DueDrafts({
         {items.map((d) => {
           const id = `${d.templateId}:${d.dueDate}`;
           return (
-            <li key={id} className="flex flex-wrap items-center gap-3 border-b px-4 py-2.5 text-sm last:border-0">
+            <li
+              key={id}
+              className="flex flex-wrap items-center gap-3 border-b px-4 py-2.5 text-sm last:border-0"
+            >
               <span className="tnum text-muted-foreground">{d.dueDate}</span>
               <span className="flex-1">{d.description}</span>
               <span className="tnum">{formatCents(d.totalCents)}</span>

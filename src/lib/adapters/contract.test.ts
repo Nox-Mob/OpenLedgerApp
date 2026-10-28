@@ -106,10 +106,20 @@ describe.each(adapters)("%s adapter", (name, make) => {
     await repos.templates.save({ ...tpl, name: "Office rent" });
     expect((await repos.templates.list(ORG)).map((t) => t.name)).toEqual(["Office rent"]);
     expect((await repos.templates.get(ORG, T))?.lines).toEqual(tpl.lines);
-    const occ = { id: "50000000-0000-4000-8000-000000000002", orgId: ORG, templateId: T, dueDate: "2026-01-01", status: "skipped" as const, transactionId: null };
+    const occ = {
+      id: "50000000-0000-4000-8000-000000000002",
+      orgId: ORG,
+      templateId: T,
+      dueDate: "2026-01-01",
+      status: "skipped" as const,
+      transactionId: null,
+    };
     expect(await repos.templates.recordOccurrence(occ, "2026-02-01")).toBe(true);
     expect(
-      await repos.templates.recordOccurrence({ ...occ, id: "50000000-0000-4000-8000-000000000003" }, "2026-03-01"),
+      await repos.templates.recordOccurrence(
+        { ...occ, id: "50000000-0000-4000-8000-000000000003" },
+        "2026-03-01",
+      ),
     ).toBe(false);
     expect((await repos.templates.get(ORG, T))?.nextDue).toBe("2026-02-01");
     expect(await repos.templates.occurrences(ORG)).toHaveLength(1);
@@ -120,12 +130,25 @@ describe.each(adapters)("%s adapter", (name, make) => {
   });
 
   it("budgets keep one row per account, period and scope, updated in place", async () => {
-    const b = { orgId: ORG, accountId: SALES, fundId: null, projectId: null, periodType: "year" as const, periodStart: "2026-01-01" };
+    const b = {
+      orgId: ORG,
+      accountId: SALES,
+      fundId: null,
+      projectId: null,
+      periodType: "year" as const,
+      periodStart: "2026-01-01",
+    };
     await repos.budgets.set({ ...b, id: "60000000-0000-4000-8000-000000000001", amountCents: 100 });
     await repos.budgets.set({ ...b, id: "60000000-0000-4000-8000-000000000002", amountCents: 250 });
     let rows = await repos.budgets.list(ORG, "year", "2026-01-01");
-    expect(rows).toEqual([expect.objectContaining({ id: "60000000-0000-4000-8000-000000000001", amountCents: 250 })]);
-    await repos.budgets.set({ ...b, id: "60000000-0000-4000-8000-000000000003", amountCents: null });
+    expect(rows).toEqual([
+      expect.objectContaining({ id: "60000000-0000-4000-8000-000000000001", amountCents: 250 }),
+    ]);
+    await repos.budgets.set({
+      ...b,
+      id: "60000000-0000-4000-8000-000000000003",
+      amountCents: null,
+    });
     rows = await repos.budgets.list(ORG, "year", "2026-01-01");
     expect(rows).toEqual([]);
   });

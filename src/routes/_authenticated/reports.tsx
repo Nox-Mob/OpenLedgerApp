@@ -255,7 +255,14 @@ function ReportsPage() {
         org,
         pref: terminology,
         subtitle: `${period} · Cash basis`,
-        sheets: [s.coverSheet(org.name, period, body.map((b) => b.name)), ...body],
+        sheets: [
+          s.coverSheet(
+            org.name,
+            period,
+            body.map((b) => b.name),
+          ),
+          ...body,
+        ],
         fileName: `${ex.safeFileName(`${org.name}-board-package-${from}-to-${to}`)}.pdf`,
       });
       toast.success("Board package created");

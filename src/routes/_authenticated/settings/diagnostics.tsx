@@ -40,9 +40,7 @@ function DiagnosticsPage() {
   if (!org) return <OrgPending inShell={false} />;
   if (!allowed)
     return (
-      <p className="text-sm text-muted-foreground">
-        Diagnostics are for admins and treasurers.
-      </p>
+      <p className="text-sm text-muted-foreground">Diagnostics are for admins and treasurers.</p>
     );
 
   const edition = isDesktop() ? "Desktop" : "Cloud or self-hosted";

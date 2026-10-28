@@ -151,10 +151,14 @@ function BudgetsPage() {
           >
             <option value="">Whole organization</option>
             {(funds.data ?? []).map((f) => (
-              <option key={f.id} value={`f:${f.id}`}>Fund: {f.name}</option>
+              <option key={f.id} value={`f:${f.id}`}>
+                Fund: {f.name}
+              </option>
             ))}
             {(projects.data ?? []).map((p) => (
-              <option key={p.id} value={`p:${p.id}`}>Project: {p.name}</option>
+              <option key={p.id} value={`p:${p.id}`}>
+                Project: {p.name}
+              </option>
             ))}
           </select>
         </label>

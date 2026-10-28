@@ -73,7 +73,9 @@ export function occurrenceKey(templateId: Id, dueDate: IsoDate) {
 }
 
 /** Checks a template before saving. Lines must balance like a real transaction. */
-export function templateProblem(t: Pick<TransactionTemplate, "name" | "description" | "lines" | "frequency" | "nextDue">): string | null {
+export function templateProblem(
+  t: Pick<TransactionTemplate, "name" | "description" | "lines" | "frequency" | "nextDue">,
+): string | null {
   if (!t.name.trim()) return "Give the template a name.";
   if (!t.description.trim()) return "Add a description.";
   if (t.lines.length < 2) return "A template needs at least two lines.";

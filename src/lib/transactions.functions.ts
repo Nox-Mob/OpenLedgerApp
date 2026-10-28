@@ -38,8 +38,14 @@ const createSchema = z.object({
 
 export const filterSchema = z.object({
   q: z.string().max(200).optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   accountId: z.string().uuid().optional(),
   projectId: z.string().uuid().optional(),
   fundId: z.string().uuid().optional(),

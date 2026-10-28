@@ -147,8 +147,8 @@ function TemplatesPage() {
     <AppShell>
       <h1 className="font-display text-2xl font-bold">Templates</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Save transactions you repeat, like rent or payroll. Recurring ones never post by
-        themselves: you review each one and post or skip it.
+        Save transactions you repeat, like rent or payroll. Recurring ones never post by themselves:
+        you review each one and post or skip it.
       </p>
 
       <DueDrafts orgId={org.id} timezone={org.timezone} canWrite={canWrite} />
@@ -187,22 +187,37 @@ function TemplatesPage() {
       )}
 
       {canWrite && (
-        <form onSubmit={create} className="mt-6 grid gap-3 rounded-lg border bg-card p-5 sm:grid-cols-2">
+        <form
+          onSubmit={create}
+          className="mt-6 grid gap-3 rounded-lg border bg-card p-5 sm:grid-cols-2"
+        >
           <h2 className="font-display text-lg font-semibold sm:col-span-2">New template</h2>
           <label className="text-sm">
             Name
-            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Rent" />
+            <input
+              className={inputCls}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Rent"
+            />
           </label>
           <label className="text-sm">
             Description on the transaction
-            <input className={inputCls} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Monthly rent" />
+            <input
+              className={inputCls}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Monthly rent"
+            />
           </label>
           <label className="text-sm">
             Money comes from
             <select className={inputCls} value={fromId} onChange={(e) => setFromId(e.target.value)}>
               <option value="">Choose an account</option>
               {(accounts.data ?? []).map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
               ))}
             </select>
           </label>
@@ -211,31 +226,53 @@ function TemplatesPage() {
             <select className={inputCls} value={toId} onChange={(e) => setToId(e.target.value)}>
               <option value="">Choose an account</option>
               {(accounts.data ?? []).map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
               ))}
             </select>
           </label>
           <label className="text-sm">
             Amount
-            <input className={inputCls} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+            <input
+              className={inputCls}
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
           </label>
           <label className="text-sm">
             Repeats
-            <select className={inputCls} value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency | "")}>
+            <select
+              className={inputCls}
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as Frequency | "")}
+            >
               <option value="">Doesn't repeat</option>
               {FREQUENCIES.map((f) => (
-                <option key={f} value={f}>{FREQ_LABEL[f]}</option>
+                <option key={f} value={f}>
+                  {FREQ_LABEL[f]}
+                </option>
               ))}
             </select>
           </label>
           {frequency && (
             <label className="text-sm">
               First due date
-              <input type="date" className={inputCls} value={nextDue} onChange={(e) => setNextDue(e.target.value)} />
+              <input
+                type="date"
+                className={inputCls}
+                value={nextDue}
+                onChange={(e) => setNextDue(e.target.value)}
+              />
             </label>
           )}
           <div className="sm:col-span-2">
-            <button disabled={busy} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+            <button
+              disabled={busy}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
               {busy ? "Saving…" : "Save template"}
             </button>
           </div>
@@ -248,7 +285,10 @@ function TemplatesPage() {
         ) : templates.isError ? (
           <ErrorState message={errorMessage(templates.error)} onRetry={() => templates.refetch()} />
         ) : active.length === 0 ? (
-          <EmptyState title="No templates yet" description="Save one above for anything you record again and again." />
+          <EmptyState
+            title="No templates yet"
+            description="Save one above for anything you record again and again."
+          />
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -271,11 +311,18 @@ function TemplatesPage() {
                   <td className="px-4 py-2.5">{t.frequency ? FREQ_LABEL[t.frequency] : "No"}</td>
                   <td className="tnum px-4 py-2.5">{t.nextDue ?? ""}</td>
                   <td className="tnum px-4 py-2.5 text-right">
-                    {formatCents(t.lines.filter((l) => l.amountCents > 0).reduce((a, l) => a + l.amountCents, 0))}
+                    {formatCents(
+                      t.lines
+                        .filter((l) => l.amountCents > 0)
+                        .reduce((a, l) => a + l.amountCents, 0),
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {canWrite && (
-                      <button onClick={() => archive(t.id)} className="text-xs text-muted-foreground hover:text-destructive">
+                      <button
+                        onClick={() => archive(t.id)}
+                        className="text-xs text-muted-foreground hover:text-destructive"
+                      >
                         Archive
                       </button>
                     )}
