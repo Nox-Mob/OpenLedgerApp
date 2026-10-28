@@ -4,7 +4,10 @@ import type {
   Account,
   AuditEvent,
   BankTransaction,
+  CatalogItem,
   JsonValue,
+  Pledge,
+  PledgePayment,
   Organization,
   PeriodClose,
   Project,
@@ -35,6 +38,9 @@ export interface MemoryStore {
   occurrences: Occurrence[];
   budgets: Map<string, Budget>;
   recurringModes: Map<string, RecurringMode>;
+  catalog: Map<string, CatalogItem>;
+  pledges: Map<string, Pledge>;
+  pledgePayments: PledgePayment[];
 }
 
 export function createMemoryStore(): MemoryStore {
@@ -53,6 +59,9 @@ export function createMemoryStore(): MemoryStore {
     occurrences: [],
     budgets: new Map(),
     recurringModes: new Map(),
+    catalog: new Map(),
+    pledges: new Map(),
+    pledgePayments: [],
   };
 }
 
@@ -457,6 +466,71 @@ export function createMemoryRepositories(s: MemoryStore = createMemoryStore()): 
         return [...s.projects.values()]
           .filter((p) => p.orgId === orgId)
           .sort((a, b) => a.name.localeCompare(b.name));
+      },
+    },
+    catalog: {
+      async list(orgId, kind) {
+        const own = [...s.catalog.values()].filter((c) => c.orgId === orgId && c.kind === kind);
+        if (kind === "project")
+          for (const p of s.projects.values())
+            if (p.orgId === orgId && !s.catalog.has(p.id))
+              own.push({
+                id: p.id,
+                orgId,
+                kind,
+                name: p.name,
+                categoryType: null,
+                isRestricted: false,
+                budgetCents: p.budgetCents,
+                status: p.status,
+              });
+        return own.sort((a, b) => a.name.localeCompare(b.name));
+      },
+      async create(item, audit) {
+        guardAudit(audit);
+        s.catalog.set(item.id, { ...item });
+        if (item.kind === "project")
+          s.projects.set(item.id, {
+            id: item.id,
+            orgId: item.orgId,
+            name: item.name,
+            budgetCents: item.budgetCents,
+            status: item.status,
+          });
+        afterAudit(audit);
+      },
+      async setRestricted(orgId, fundId, isRestricted, audit) {
+        const f = s.catalog.get(fundId);
+        if (!f || f.orgId !== orgId || f.kind !== "fund") throw new Error("Fund not found.");
+        guardAudit(audit);
+        s.catalog.set(fundId, { ...f, isRestricted });
+        afterAudit(audit);
+      },
+    },
+    pledges: {
+      async list(orgId) {
+        return [...s.pledges.values()]
+          .filter((p) => p.orgId === orgId)
+          .sort((a, b) => b.pledgeDate.localeCompare(a.pledgeDate));
+      },
+      async get(orgId, id) {
+        const p = s.pledges.get(id);
+        return p && p.orgId === orgId ? p : null;
+      },
+      async payments(orgId) {
+        return s.pledgePayments.filter((p) => p.orgId === orgId);
+      },
+      async create(p, audit) {
+        guardAudit(audit);
+        s.pledges.set(p.id, { ...p });
+        afterAudit(audit);
+      },
+      async addPayment(p, newStatus, audit) {
+        guardAudit(audit);
+        s.pledgePayments.push({ ...p });
+        const pl = s.pledges.get(p.pledgeId);
+        if (pl && newStatus) s.pledges.set(pl.id, { ...pl, status: newStatus });
+        afterAudit(audit);
       },
     },
     templates: {

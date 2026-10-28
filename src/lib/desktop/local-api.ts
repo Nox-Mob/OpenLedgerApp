@@ -16,6 +16,8 @@ import * as periods from "@/lib/services/periods";
 import * as recon from "@/lib/services/reconciliation";
 import * as tpl from "@/lib/services/templates";
 import * as budgets from "@/lib/services/budgets";
+import * as catalog from "@/lib/services/catalog";
+import * as funds from "@/lib/services/funds";
 import { diagnostics, getSetupProgress } from "@/lib/services/diagnostics";
 import { hasFilter, matchesFilter, type TxFilter } from "@/lib/domain/search";
 import { createOrganizationWithAccounts } from "@/lib/services/organizations";
@@ -187,18 +189,75 @@ const HANDLERS: Record<string, Handler> = {
     repos,
     d: OrgIn & { accountId: Id; equityAccountId: Id; amountCents: number; date: IsoDate },
   ) => ledger.postOpeningBalance(repos, { ...d, userId: me }),
-  // Categories, tags and funds are not stored locally yet; lists are empty.
-  listCategories: async () => [],
-  listTags: async () => [],
-  listFunds: async () => [],
+  // ---------- Categories, tags, funds and projects ----------
+  // Rows use the same field names the cloud lists return, so pages need no desktop branch.
+  listCategories: async (repos, d: OrgIn) =>
+    (await repos.catalog.list(d.orgId, "category")).map((c) => ({
+      id: c.id,
+      org_id: c.orgId,
+      name: c.name,
+      type: c.categoryType,
+    })),
+  listTags: async (repos, d: OrgIn) =>
+    (await repos.catalog.list(d.orgId, "tag")).map((c) => ({
+      id: c.id,
+      org_id: c.orgId,
+      name: c.name,
+    })),
+  listFunds: async (repos, d: OrgIn) =>
+    (await repos.catalog.list(d.orgId, "fund")).map((c) => ({
+      id: c.id,
+      org_id: c.orgId,
+      name: c.name,
+      is_restricted: c.isRestricted,
+    })),
   listProjects: async (repos, d: OrgIn) =>
-    (await repos.projects.list(d.orgId)).map((p) => ({
+    (await repos.catalog.list(d.orgId, "project")).map((p) => ({
       id: p.id,
       org_id: p.orgId,
       name: p.name,
       budget_cents: p.budgetCents,
       status: p.status,
     })),
+  createCategory: async (repos, d: OrgIn & { name: string; type?: "revenue" | "expense" }) =>
+    catalog.createCatalogItem(repos, { ...d, userId: me, kind: "category", categoryType: d.type }),
+  createTag: async (repos, d: OrgIn & { name: string }) =>
+    catalog.createCatalogItem(repos, { ...d, userId: me, kind: "tag" }),
+  createFund: async (repos, d: OrgIn & { name: string; isRestricted?: boolean }) =>
+    catalog.createCatalogItem(repos, { ...d, userId: me, kind: "fund" }),
+  createProject: async (repos, d: OrgIn & { name: string; budgetCents?: number }) =>
+    catalog.createCatalogItem(repos, { ...d, userId: me, kind: "project" }),
+
+  // ---------- Funds and pledges ----------
+  getFundSummary: async (repos, d: OrgIn) =>
+    funds.fundSummary(repos, d.orgId, await catalog.fundInfos(repos, d.orgId)),
+  getFundActivity: async (repos, d: OrgIn & { from: IsoDate; to: IsoDate }) =>
+    funds.fundActivity(repos, d.orgId, await catalog.fundInfos(repos, d.orgId), d.from, d.to),
+  setFundRestricted: async (repos, d: OrgIn & { fundId: Id; isRestricted: boolean }) =>
+    catalog.setFundRestricted(repos, { ...d, userId: me }),
+  releaseFromRestriction: async (
+    repos,
+    d: OrgIn & {
+      fundId: Id;
+      amountCents: number;
+      date: IsoDate;
+      note?: string;
+      idempotencyKey: string;
+    },
+  ) =>
+    funds.releaseFund(repos, {
+      ...d,
+      userId: me,
+      funds: await catalog.fundInfos(repos, d.orgId),
+      idempotencyKey: `release:${d.idempotencyKey}`,
+    }),
+  listPledges: async (repos, d: OrgIn) => funds.listPledgeSummaries(repos, d.orgId),
+  createPledge: async (repos, d: Omit<Parameters<typeof funds.recordPledge>[1], "userId">) =>
+    funds.recordPledge(repos, { ...d, userId: me }),
+  settlePledgeFn: async (
+    repos,
+    d: Omit<Parameters<typeof funds.recordPledgeSettlement>[1], "userId">,
+  ) => funds.recordPledgeSettlement(repos, { ...d, userId: me }),
 
   // ---------- Transactions ----------
   listTransactions: async (
@@ -210,6 +269,10 @@ const HANDLERS: Record<string, Handler> = {
       (await repos.accounts.list(d.orgId, { includeArchived: true })).map((a) => [a.id, a]),
     );
     const projects = new Map((await repos.projects.list(d.orgId)).map((p) => [p.id, p.name]));
+    const funds = new Map((await repos.catalog.list(d.orgId, "fund")).map((x) => [x.id, x.name]));
+    const cats = new Map(
+      (await repos.catalog.list(d.orgId, "category")).map((x) => [x.id, x.name]),
+    );
     const txs = await repos.transactions.list(d.orgId, {
       ...(d.accountId ? { accountId: d.accountId } : {}),
       ...(f.from ? { from: f.from } : {}),
@@ -231,9 +294,9 @@ const HANDLERS: Record<string, Handler> = {
         accountType: (accounts.get(e.accountId)?.type ?? "") as string,
         amountCents: e.amountCents,
         memo: e.memo ?? null,
-        categoryName: null,
+        categoryName: e.categoryId ? (cats.get(e.categoryId) ?? null) : null,
         projectName: e.projectId ? (projects.get(e.projectId) ?? null) : null,
-        fundName: null,
+        fundName: e.fundId ? (funds.get(e.fundId) ?? null) : null,
         projectId: e.projectId ?? null,
         fundId: e.fundId ?? null,
         reconciled: !!e.reconciliationId,

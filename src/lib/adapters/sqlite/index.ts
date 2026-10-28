@@ -5,6 +5,7 @@ import type {
   Account,
   AuditEvent,
   PeriodClose,
+  Pledge,
   ReconEntry,
   BankTransaction,
   Entry,
@@ -164,6 +165,27 @@ const toTemplate = (r: any): TransactionTemplate => ({
   frequency: r.frequency ?? null,
   nextDue: r.next_due ?? null,
   active: !!r.active,
+});
+
+const CATALOG_TABLE = {
+  category: "categories",
+  tag: "tags",
+  fund: "funds",
+  project: "projects",
+} as const;
+
+const toPledge = (r: any): Pledge => ({
+  id: r.id,
+  orgId: r.org_id,
+  donorName: r.donor_name,
+  fundId: r.fund_id ?? null,
+  amountCents: Number(r.amount_cents),
+  pledgeDate: r.pledge_date,
+  expectedDate: r.expected_date ?? null,
+  note: r.note ?? null,
+  transactionId: r.transaction_id,
+  status: r.status,
+  createdBy: r.created_by ?? null,
 });
 
 export function createSqliteRepositories(db: SqlDriver): Repositories {
@@ -777,6 +799,133 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
           budgetCents: Number(r.budget_cents),
           status: r.status,
         }));
+      },
+    },
+
+    catalog: {
+      async list(orgId, kind) {
+        const table = CATALOG_TABLE[kind];
+        const rows = await db.select<any>(`SELECT * FROM ${table} WHERE org_id = ? ORDER BY name`, [
+          orgId,
+        ]);
+        return rows.map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          kind,
+          name: r.name,
+          categoryType: kind === "category" ? r.type : null,
+          isRestricted: kind === "fund" ? !!r.is_restricted : false,
+          budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
+          status: r.status ?? "active",
+        }));
+      },
+      async create(item, audit) {
+        await audited(audit, async () => {
+          try {
+            if (item.kind === "category")
+              await db.execute(
+                "INSERT INTO categories (id, org_id, name, type, created_at) VALUES (?,?,?,?,?)",
+                [item.id, item.orgId, item.name, item.categoryType ?? "expense", now()],
+              );
+            else if (item.kind === "tag")
+              await db.execute("INSERT INTO tags (id, org_id, name, created_at) VALUES (?,?,?,?)", [
+                item.id,
+                item.orgId,
+                item.name,
+                now(),
+              ]);
+            else if (item.kind === "fund")
+              await db.execute(
+                "INSERT INTO funds (id, org_id, name, is_restricted, created_at) VALUES (?,?,?,?,?)",
+                [item.id, item.orgId, item.name, item.isRestricted ? 1 : 0, now()],
+              );
+            else
+              await db.execute(
+                "INSERT INTO projects (id, org_id, name, budget_cents, status, created_at) VALUES (?,?,?,?,?,?)",
+                [item.id, item.orgId, item.name, item.budgetCents, item.status, now()],
+              );
+          } catch (e) {
+            if (isUnique(e)) throw new Error(`"${item.name}" already exists.`, { cause: e });
+            throw e;
+          }
+        });
+      },
+      async setRestricted(orgId, fundId, isRestricted, audit) {
+        await audited(audit, async () => {
+          const r = await db.execute(
+            "UPDATE funds SET is_restricted = ? WHERE id = ? AND org_id = ?",
+            [isRestricted ? 1 : 0, fundId, orgId],
+          );
+          if (r.rowsAffected === 0) throw new Error("Fund not found.");
+        });
+      },
+    },
+
+    pledges: {
+      async list(orgId) {
+        const rows = await db.select<any>(
+          "SELECT * FROM pledges WHERE org_id = ? ORDER BY pledge_date DESC, created_at DESC",
+          [orgId],
+        );
+        return rows.map(toPledge);
+      },
+      async get(orgId, id) {
+        const [r] = await db.select<any>("SELECT * FROM pledges WHERE org_id = ? AND id = ?", [
+          orgId,
+          id,
+        ]);
+        return r ? toPledge(r) : null;
+      },
+      async payments(orgId) {
+        const rows = await db.select<any>("SELECT * FROM pledge_payments WHERE org_id = ?", [
+          orgId,
+        ]);
+        return rows.map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          pledgeId: r.pledge_id,
+          transactionId: r.transaction_id,
+          kind: r.kind,
+          amountCents: Number(r.amount_cents),
+          paidDate: r.paid_date,
+        }));
+      },
+      async create(p, audit) {
+        await audited(audit, async () => {
+          await db.execute(
+            `INSERT INTO pledges (id, org_id, donor_name, fund_id, amount_cents, pledge_date, expected_date, note, transaction_id, status, created_by, created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+              p.id,
+              p.orgId,
+              p.donorName,
+              p.fundId,
+              p.amountCents,
+              p.pledgeDate,
+              p.expectedDate,
+              p.note,
+              p.transactionId,
+              p.status,
+              p.createdBy,
+              now(),
+            ],
+          );
+        });
+      },
+      async addPayment(p, newStatus, audit) {
+        await audited(audit, async () => {
+          await db.execute(
+            `INSERT INTO pledge_payments (id, org_id, pledge_id, transaction_id, kind, amount_cents, paid_date, created_at)
+             VALUES (?,?,?,?,?,?,?,?)`,
+            [p.id, p.orgId, p.pledgeId, p.transactionId, p.kind, p.amountCents, p.paidDate, now()],
+          );
+          if (newStatus)
+            await db.execute("UPDATE pledges SET status = ? WHERE id = ? AND org_id = ?", [
+              newStatus,
+              p.pledgeId,
+              p.orgId,
+            ]);
+        });
       },
     },
 
