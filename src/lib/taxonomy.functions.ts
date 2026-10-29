@@ -128,7 +128,7 @@ type Kind = "category" | "tag" | "fund" | "project";
 
 /** Create through the shared service, which returns `archived` when the name is taken by an archived item. */
 function makeCreate(kind: Kind, extraSchema?: z.ZodRawShape) {
-  return createServerFn({ method: "POST" })
+  const create = createServerFn({ method: "POST" })
     .middleware([requireSupabaseAuth])
     .validator((input) =>
       z.object({ orgId: z.string().uuid(), name: nameField(), ...extraSchema }).parse(input),
@@ -152,6 +152,7 @@ function makeCreate(kind: Kind, extraSchema?: z.ZodRawShape) {
         budgetCents: d.budgetCents,
       });
     });
+  return create;
 }
 
 // Lists hide archived items unless asked, so pickers only offer what is in use.
