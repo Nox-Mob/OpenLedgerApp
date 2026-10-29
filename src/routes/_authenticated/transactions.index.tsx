@@ -101,13 +101,15 @@ function TransactionsPage() {
     enabled: !!org,
   });
   const projectsQ = useQuery({
-    queryKey: ["projects", org?.id],
-    queryFn: () => listProjects({ data: { orgId: org!.id } }),
+    // Filters include archived items so past transactions stay findable.
+    queryKey: ["projects", org?.id, "all"],
+    queryFn: () => listProjects({ data: { orgId: org!.id, includeArchived: true } }),
     enabled: !!org,
   });
   const fundsQ = useQuery({
-    queryKey: ["funds", org?.id],
-    queryFn: () => listFunds({ data: { orgId: org!.id } }),
+    // Filters include archived items so past transactions stay findable.
+    queryKey: ["funds", org?.id, "all"],
+    queryFn: () => listFunds({ data: { orgId: org!.id, includeArchived: true } }),
     enabled: !!org,
   });
 
