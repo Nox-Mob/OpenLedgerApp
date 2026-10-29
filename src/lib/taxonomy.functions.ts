@@ -126,34 +126,52 @@ export const setOpeningBalance = desktopAware("setOpeningBalance", setOpeningBal
 type CrudTable = "categories" | "tags" | "projects" | "funds";
 type Kind = "category" | "tag" | "fund" | "project";
 
+type CreateInput = {
+  orgId: string;
+  name: string;
+  type?: "revenue" | "expense";
+  isRestricted?: boolean;
+  budgetCents?: number;
+};
+
 /** Create through the shared service, which returns `archived` when the name is taken by an archived item. */
-function makeCreate(kind: Kind, extraSchema?: z.ZodRawShape) {
-  const create = createServerFn({ method: "POST" })
-    .middleware([requireSupabaseAuth])
-    .validator((input) =>
-      z.object({ orgId: z.string().uuid(), name: nameField(), ...extraSchema }).parse(input),
-    )
-    .handler(async ({ data, context }) => {
-      const d = data as {
-        orgId: string;
-        name: string;
-        type?: "revenue" | "expense";
-        isRestricted?: boolean;
-        budgetCents?: number;
-      };
-      await assertCan(context.supabase, context.userId, d.orgId, "write");
-      return createCatalogItem(createSupabaseRepositories(context.supabase), {
-        orgId: d.orgId,
-        userId: context.userId,
-        kind,
-        name: d.name,
-        categoryType: d.type,
-        isRestricted: d.isRestricted,
-        budgetCents: d.budgetCents,
-      });
-    });
-  return create;
+async function createItem(context: { supabase: Db; userId: string }, kind: Kind, d: CreateInput) {
+  await assertCan(context.supabase, context.userId, d.orgId, "write");
+  return createCatalogItem(createSupabaseRepositories(context.supabase), {
+    orgId: d.orgId,
+    userId: context.userId,
+    kind,
+    name: d.name,
+    categoryType: d.type,
+    isRestricted: d.isRestricted,
+    budgetCents: d.budgetCents,
+  });
 }
+
+const baseCreate = z.object({ orgId: z.string().uuid(), name: nameField() });
+
+const createCategoryCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ type: z.enum(["revenue", "expense"]).default("expense") }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "category", data));
+const createTagCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => baseCreate.parse(input))
+  .handler(async ({ data, context }) => createItem(context, "tag", data));
+const createFundCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ isRestricted: z.boolean().default(false) }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "fund", data));
+const createProjectCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ budgetCents: z.number().int().min(0).default(0) }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "project", data));
 
 // Lists hide archived items unless asked, so pickers only offer what is in use.
 const listCategoriesCloud = createServerFn({ method: "GET" })
@@ -198,22 +216,13 @@ const listProjectsCloud = createServerFn({ method: "GET" })
   });
 
 export const listCategories = desktopAware("listCategories", listCategoriesCloud);
-export const createCategory = desktopAware(
-  "createCategory",
-  makeCreate("category", { type: z.enum(["revenue", "expense"]).default("expense") }),
-);
+export const createCategory = desktopAware("createCategory", createCategoryCloud);
 export const listTags = desktopAware("listTags", listTagsCloud);
-export const createTag = desktopAware("createTag", makeCreate("tag"));
+export const createTag = desktopAware("createTag", createTagCloud);
 export const listProjects = desktopAware("listProjects", listProjectsCloud);
-export const createProject = desktopAware(
-  "createProject",
-  makeCreate("project", { budgetCents: z.number().int().min(0).default(0) }),
-);
+export const createProject = desktopAware("createProject", createProjectCloud);
 export const listFunds = desktopAware("listFunds", listFundsCloud);
-export const createFund = desktopAware(
-  "createFund",
-  makeCreate("fund", { isRestricted: z.boolean().default(false) }),
-);
+export const createFund = desktopAware("createFund", createFundCloud);
 
 const setCatalogActiveCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
