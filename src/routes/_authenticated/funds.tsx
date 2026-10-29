@@ -17,6 +17,11 @@ import { getFundSummary, releaseFromRestriction, setFundRestricted } from "@/lib
 import { formatCents, parseToCents, todayISO } from "@/lib/money";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useRestoreArchived,
+  toggleArchived,
+  type CreateResult,
+} from "@/components/RestoreArchivedDialog";
 
 export const Route = createFileRoute("/_authenticated/funds")({
   head: () => ({
@@ -45,15 +50,21 @@ function SimpleListManager({
   description,
   items,
   onAdd,
+  onArchive,
   placeholder,
 }: {
   title: string;
   description: string;
-  items: { id: string; name: string; type?: string }[];
-  onAdd: (name: string) => Promise<void>;
+  items: { id: string; name: string; type?: string | null; is_active?: boolean }[];
+  /** Resolves true when the name was saved (or handed to the restore prompt). */
+  onAdd: (name: string) => Promise<boolean>;
+  onArchive?: ((item: { id: string; name: string }, active: boolean) => void) | undefined;
   placeholder: string;
 }) {
   const [name, setName] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const active = items.filter((i) => i.is_active !== false);
+  const archived = items.filter((i) => i.is_active === false);
   return (
     <div className="rounded-lg border bg-card p-5">
       <h2 className="font-display text-lg font-semibold">{title}</h2>
@@ -61,8 +72,7 @@ function SimpleListManager({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          await onAdd(name);
-          setName("");
+          if (await onAdd(name)) setName("");
         }}
         className="mt-3 flex gap-2"
       >
@@ -78,17 +88,60 @@ function SimpleListManager({
         </button>
       </form>
       <ul className="mt-3 space-y-1">
-        {items.map((item) => (
+        {active.map((item) => (
           <li
             key={item.id}
-            className="flex items-center justify-between rounded bg-muted/50 px-3 py-1.5 text-sm"
+            className="flex items-center justify-between gap-2 rounded bg-muted/50 px-3 py-1.5 text-sm"
           >
-            <span>{item.name}</span>
+            <span className="flex-1">{item.name}</span>
             {item.type && <span className="text-xs text-muted-foreground">{item.type}</span>}
+            {onArchive && (
+              <button
+                type="button"
+                className="text-xs font-medium text-primary hover:underline"
+                aria-label={`Archive ${item.name}`}
+                onClick={() => onArchive(item, false)}
+              >
+                Archive
+              </button>
+            )}
           </li>
         ))}
-        {items.length === 0 && <li className="text-sm text-muted-foreground">None yet.</li>}
+        {active.length === 0 && <li className="text-sm text-muted-foreground">None yet.</li>}
       </ul>
+      {archived.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            {showArchived ? "Hide archived" : `Show archived (${archived.length})`}
+          </button>
+          {showArchived && (
+            <ul className="mt-2 space-y-1">
+              {archived.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-2 rounded border border-dashed px-3 py-1.5 text-sm"
+                >
+                  <span className="flex-1">{item.name}</span>
+                  {onArchive && (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-primary hover:underline"
+                      aria-label={`Restore ${item.name}`}
+                      onClick={() => onArchive(item, true)}
+                    >
+                      Restore
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -104,20 +157,23 @@ function FundsPage() {
     enabled: !!org,
   });
   const categoriesQuery = useQuery({
-    queryKey: ["categories", org?.id],
-    queryFn: () => listCategories({ data: { orgId: org!.id } }),
+    queryKey: ["categories", org?.id, "all"],
+    queryFn: () => listCategories({ data: { orgId: org!.id, includeArchived: true } }),
     enabled: !!org,
   });
   const tagsQuery = useQuery({
-    queryKey: ["tags", org?.id],
-    queryFn: () => listTags({ data: { orgId: org!.id } }),
+    queryKey: ["tags", org?.id, "all"],
+    queryFn: () => listTags({ data: { orgId: org!.id, includeArchived: true } }),
     enabled: !!org,
   });
-  // Keep the shared funds list fresh for the transaction form.
-  useQuery({
-    queryKey: ["funds", org?.id],
-    queryFn: () => listFunds({ data: { orgId: org!.id } }),
+  const allFundsQuery = useQuery({
+    queryKey: ["funds", org?.id, "all"],
+    queryFn: () => listFunds({ data: { orgId: org!.id, includeArchived: true } }),
     enabled: !!org,
+  });
+  const restorePrompt = useRestoreArchived(org?.id, () => {
+    for (const k of ["fund-summary", "funds", "categories", "tags"])
+      queryClient.invalidateQueries({ queryKey: [k] });
   });
 
   const [fundName, setFundName] = useState("");
@@ -130,7 +186,12 @@ function FundsPage() {
   const [releaseKey, setReleaseKey] = useState(() => crypto.randomUUID());
 
   if (!org) return <OrgPending />;
-  const funds = summaryQuery.data?.funds ?? [];
+  const archivedIds = new Set(
+    (allFundsQuery.data ?? []).filter((f) => f.is_active === false).map((f) => f.id),
+  );
+  const allFunds = summaryQuery.data?.funds ?? [];
+  const funds = allFunds.filter((f) => !archivedIds.has(f.id));
+  const archivedFunds = allFunds.filter((f) => archivedIds.has(f.id));
   const net = summaryQuery.data?.netAssets;
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["fund-summary"] });
@@ -140,9 +201,12 @@ function FundsPage() {
   async function addFund(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await createFund({ data: { orgId: org!.id, name: fundName, isRestricted: restricted } });
-      toast.success("Fund created");
+      const res = (await createFund({
+        data: { orgId: org!.id, name: fundName, isRestricted: restricted },
+      })) as CreateResult;
       setFundName("");
+      if (!restorePrompt.handle(res)) return;
+      toast.success("Fund created");
       refresh();
     } catch (err) {
       showError(err);
@@ -265,13 +329,29 @@ function FundsPage() {
                   <td className="py-2 text-right font-medium tabular-nums">
                     {formatCents(f.remainingCents)}
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="space-x-3 py-2 text-right whitespace-nowrap">
                     {canWrite && f.isRestricted && f.remainingCents > 0 && (
                       <button
                         className="text-xs font-medium text-primary hover:underline"
                         onClick={() => setReleaseFor(f.id)}
                       >
                         Release
+                      </button>
+                    )}
+                    {canWrite && (
+                      <button
+                        className="text-xs font-medium text-primary hover:underline"
+                        aria-label={`Archive ${f.name}`}
+                        onClick={() =>
+                          toggleArchived(
+                            org.id,
+                            { kind: "fund", id: f.id, name: f.name },
+                            false,
+                            refresh,
+                          )
+                        }
+                      >
+                        Archive
                       </button>
                     )}
                   </td>
@@ -287,6 +367,40 @@ function FundsPage() {
             </tbody>
           </table>
         </div>
+        {archivedFunds.length > 0 && (
+          <details className="mt-3 text-sm">
+            <summary className="cursor-pointer text-xs font-medium text-primary">
+              Archived funds ({archivedFunds.length})
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {archivedFunds.map((f) => (
+                <li
+                  key={f.id}
+                  className="flex items-center justify-between gap-2 rounded border border-dashed px-3 py-1.5"
+                >
+                  <span className="flex-1">{f.name}</span>
+                  <span className="tabular-nums">{formatCents(f.remainingCents)}</span>
+                  {canWrite && (
+                    <button
+                      className="text-xs font-medium text-primary hover:underline"
+                      aria-label={`Restore ${f.name}`}
+                      onClick={() =>
+                        toggleArchived(
+                          org.id,
+                          { kind: "fund", id: f.id, name: f.name },
+                          true,
+                          refresh,
+                        )
+                      }
+                    >
+                      Restore
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         {funds.some((f) => f.isRestricted && f.spentCents > f.releasedCents) && (
           <p className="mt-3 text-xs text-muted-foreground">
             Some restricted funds have more spent than released. Release the spent amount to move it
@@ -379,13 +493,27 @@ function FundsPage() {
           placeholder="e.g. Office Supplies"
           onAdd={async (name) => {
             try {
-              await createCategory({ data: { orgId: org.id, name, type: "expense" } });
-              toast.success("Category created");
-              queryClient.invalidateQueries({ queryKey: ["categories"] });
+              const res = (await createCategory({
+                data: { orgId: org.id, name, type: "expense" },
+              })) as CreateResult;
+              if (restorePrompt.handle(res)) {
+                toast.success("Category created");
+                queryClient.invalidateQueries({ queryKey: ["categories"] });
+              }
+              return true;
             } catch (err) {
               showError(err);
+              return false;
             }
           }}
+          onArchive={
+            canWrite
+              ? (item, active) =>
+                  toggleArchived(org.id, { kind: "category", ...item }, active, () =>
+                    queryClient.invalidateQueries({ queryKey: ["categories"] }),
+                  )
+              : undefined
+          }
         />
         <SimpleListManager
           title="Tags"
@@ -394,15 +522,28 @@ function FundsPage() {
           placeholder="e.g. annual-gala"
           onAdd={async (name) => {
             try {
-              await createTag({ data: { orgId: org.id, name } });
-              toast.success("Tag created");
-              queryClient.invalidateQueries({ queryKey: ["tags"] });
+              const res = (await createTag({ data: { orgId: org.id, name } })) as CreateResult;
+              if (restorePrompt.handle(res)) {
+                toast.success("Tag created");
+                queryClient.invalidateQueries({ queryKey: ["tags"] });
+              }
+              return true;
             } catch (err) {
               showError(err);
+              return false;
             }
           }}
+          onArchive={
+            canWrite
+              ? (item, active) =>
+                  toggleArchived(org.id, { kind: "tag", ...item }, active, () =>
+                    queryClient.invalidateQueries({ queryKey: ["tags"] }),
+                  )
+              : undefined
+          }
         />
       </div>
+      {restorePrompt.dialog}
     </AppShell>
   );
 }

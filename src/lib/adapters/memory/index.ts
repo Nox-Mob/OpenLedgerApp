@@ -4,7 +4,10 @@ import type {
   Account,
   AuditEvent,
   BankTransaction,
+  CatalogItem,
   JsonValue,
+  Pledge,
+  PledgePayment,
   Organization,
   PeriodClose,
   Project,
@@ -14,6 +17,8 @@ import type {
   Role,
   Transaction,
 } from "@/lib/domain/models";
+import type { Occurrence, RecurringMode, TransactionTemplate } from "@/lib/domain/templates";
+import type { Budget } from "@/lib/ports";
 import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 
 export interface MemoryStore {
@@ -29,6 +34,13 @@ export interface MemoryStore {
   periodCloses: Map<string, PeriodClose>;
   projects: Map<string, Project>;
   statements: (StatementInfo & { orgId: string; accountId: string })[];
+  templates: Map<string, TransactionTemplate>;
+  occurrences: Occurrence[];
+  budgets: Map<string, Budget>;
+  recurringModes: Map<string, RecurringMode>;
+  catalog: Map<string, CatalogItem>;
+  pledges: Map<string, Pledge>;
+  pledgePayments: PledgePayment[];
 }
 
 export function createMemoryStore(): MemoryStore {
@@ -43,6 +55,13 @@ export function createMemoryStore(): MemoryStore {
     periodCloses: new Map(),
     projects: new Map(),
     statements: [],
+    templates: new Map(),
+    occurrences: [],
+    budgets: new Map(),
+    recurringModes: new Map(),
+    catalog: new Map(),
+    pledges: new Map(),
+    pledgePayments: [],
   };
 }
 
@@ -447,6 +466,143 @@ export function createMemoryRepositories(s: MemoryStore = createMemoryStore()): 
         return [...s.projects.values()]
           .filter((p) => p.orgId === orgId)
           .sort((a, b) => a.name.localeCompare(b.name));
+      },
+    },
+    catalog: {
+      async list(orgId, kind) {
+        const own = [...s.catalog.values()].filter((c) => c.orgId === orgId && c.kind === kind);
+        if (kind === "project")
+          for (const p of s.projects.values())
+            if (p.orgId === orgId && !s.catalog.has(p.id))
+              own.push({
+                id: p.id,
+                orgId,
+                kind,
+                name: p.name,
+                categoryType: null,
+                isRestricted: false,
+                budgetCents: p.budgetCents,
+                status: p.status,
+              });
+        return own.sort((a, b) => a.name.localeCompare(b.name));
+      },
+      async create(item, audit) {
+        guardAudit(audit);
+        s.catalog.set(item.id, { ...item });
+        if (item.kind === "project")
+          s.projects.set(item.id, {
+            id: item.id,
+            orgId: item.orgId,
+            name: item.name,
+            budgetCents: item.budgetCents,
+            status: item.status,
+          });
+        afterAudit(audit);
+      },
+      async setRestricted(orgId, fundId, isRestricted, audit) {
+        const f = s.catalog.get(fundId);
+        if (!f || f.orgId !== orgId || f.kind !== "fund") throw new Error("Fund not found.");
+        guardAudit(audit);
+        s.catalog.set(fundId, { ...f, isRestricted });
+        afterAudit(audit);
+      },
+      async setActive(orgId, kind, id, active, audit) {
+        const all = await this.list(orgId, kind);
+        const item = all.find((c) => c.id === id);
+        if (!item) throw new Error("Not found.");
+        guardAudit(audit);
+        const status = active ? "active" : "archived";
+        s.catalog.set(id, { ...item, status });
+        const p = s.projects.get(id);
+        if (p) s.projects.set(id, { ...p, status });
+        afterAudit(audit);
+      },
+    },
+    pledges: {
+      async list(orgId) {
+        return [...s.pledges.values()]
+          .filter((p) => p.orgId === orgId)
+          .sort((a, b) => b.pledgeDate.localeCompare(a.pledgeDate));
+      },
+      async get(orgId, id) {
+        const p = s.pledges.get(id);
+        return p && p.orgId === orgId ? p : null;
+      },
+      async payments(orgId) {
+        return s.pledgePayments.filter((p) => p.orgId === orgId);
+      },
+      async create(p, audit) {
+        guardAudit(audit);
+        s.pledges.set(p.id, { ...p });
+        afterAudit(audit);
+      },
+      async addPayment(p, newStatus, audit) {
+        guardAudit(audit);
+        s.pledgePayments.push({ ...p });
+        const pl = s.pledges.get(p.pledgeId);
+        if (pl && newStatus) s.pledges.set(pl.id, { ...pl, status: newStatus });
+        afterAudit(audit);
+      },
+    },
+    templates: {
+      async list(orgId) {
+        return [...s.templates.values()]
+          .filter((t) => t.orgId === orgId)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      },
+      async get(orgId, id) {
+        const t = s.templates.get(id);
+        return t && t.orgId === orgId ? t : null;
+      },
+      async save(t, audit) {
+        guardAudit(audit);
+        s.templates.set(t.id, { ...t, lines: t.lines.map((l) => ({ ...l })) });
+        afterAudit(audit);
+      },
+      async occurrences(orgId) {
+        return s.occurrences.filter((o) => o.orgId === orgId);
+      },
+      async recordOccurrence(o, nextDue, audit) {
+        if (s.occurrences.some((x) => x.templateId === o.templateId && x.dueDate === o.dueDate))
+          return false;
+        guardAudit(audit);
+        s.occurrences.push({ ...o });
+        const t = s.templates.get(o.templateId);
+        if (t) s.templates.set(t.id, { ...t, nextDue });
+        afterAudit(audit);
+        return true;
+      },
+      async getMode(orgId) {
+        return s.recurringModes.get(orgId) ?? "drafts";
+      },
+      async setMode(orgId, mode, audit) {
+        guardAudit(audit);
+        s.recurringModes.set(orgId, mode);
+        afterAudit(audit);
+      },
+    },
+    budgets: {
+      async list(orgId, periodType, periodStart) {
+        return [...s.budgets.values()].filter(
+          (b) => b.orgId === orgId && b.periodType === periodType && b.periodStart === periodStart,
+        );
+      },
+      async set(b, audit) {
+        guardAudit(audit);
+        const same = [...s.budgets.values()].find(
+          (x) =>
+            x.orgId === b.orgId &&
+            x.accountId === b.accountId &&
+            x.fundId === b.fundId &&
+            x.projectId === b.projectId &&
+            x.periodType === b.periodType &&
+            x.periodStart === b.periodStart,
+        );
+        if (b.amountCents === null) {
+          if (same) s.budgets.delete(same.id);
+        } else if (same) s.budgets.set(same.id, { ...same, amountCents: b.amountCents });
+        else s.budgets.set(b.id, { ...b, amountCents: b.amountCents });
+        afterAudit(audit);
       },
     },
     audit: {

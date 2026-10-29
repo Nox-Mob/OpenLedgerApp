@@ -12,6 +12,7 @@ import type {
   Entry,
   Organization,
   PeriodClose,
+  Pledge,
   Reconciliation,
   ReconEntry,
   Role,
@@ -19,6 +20,7 @@ import type {
 } from "@/lib/domain/models";
 import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 import { newId } from "@/lib/domain/ledger";
+import type { TransactionTemplate } from "@/lib/domain/templates";
 
 type Db = SupabaseClient<Database>;
 
@@ -153,6 +155,46 @@ const toClose = (r: any): PeriodClose => ({
   netIncomeCents: Number(r.net_income_cents),
   closedBy: r.closed_by,
   createdAt: r.created_at,
+});
+
+const toTemplate = (r: any): TransactionTemplate => ({
+  id: r.id,
+  orgId: r.org_id,
+  name: r.name,
+  description: r.description,
+  lines: Array.isArray(r.lines) ? r.lines : [],
+  frequency: r.frequency ?? null,
+  nextDue: r.next_due ?? null,
+  active: !!r.active,
+});
+
+const templateAudit = (orgId: string, id: string): AuditEvent => ({
+  orgId,
+  userId: "",
+  action: "update",
+  entity: "template",
+  entityId: id,
+});
+
+const CATALOG_TABLE = {
+  category: "categories",
+  tag: "tags",
+  fund: "funds",
+  project: "projects",
+} as const;
+
+const toPledgeRow = (r: any): Pledge => ({
+  id: r.id,
+  orgId: r.org_id,
+  donorName: r.donor_name,
+  fundId: r.fund_id ?? null,
+  amountCents: Number(r.amount_cents),
+  pledgeDate: r.pledge_date,
+  expectedDate: r.expected_date ?? null,
+  note: r.note ?? null,
+  transactionId: r.transaction_id,
+  status: r.status,
+  createdBy: r.created_by ?? null,
 });
 
 export function createSupabaseRepositories(db: Db): Repositories {
@@ -814,6 +856,317 @@ export function createSupabaseRepositories(db: Db): Repositories {
           budgetCents: Number(r.budget_cents),
           status: r.status,
         }));
+      },
+    },
+
+    catalog: {
+      async list(orgId, kind) {
+        const { data, error } = await sb
+          .from(CATALOG_TABLE[kind])
+          .select("*")
+          .eq("org_id", orgId)
+          .order("name");
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          kind,
+          name: r.name,
+          categoryType: kind === "category" ? r.type : null,
+          isRestricted: kind === "fund" ? !!r.is_restricted : false,
+          budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
+          status: kind === "project" ? (r.status ?? "active") : Number(r.is_active ?? 1) ? "active" : "archived",
+        }));
+      },
+      async create(item, audit) {
+        const values: Record<string, unknown> = { id: item.id, name: item.name };
+        if (item.kind === "category") values["type"] = item.categoryType ?? "expense";
+        if (item.kind === "fund") values["is_restricted"] = item.isRestricted;
+        if (item.kind === "project") values["budget_cents"] = item.budgetCents;
+        await auditedWrite(
+          sb,
+          item.orgId,
+          [{ table: CATALOG_TABLE[item.kind], op: "insert", values }],
+          entryOf(audit ?? { orgId: item.orgId, userId: "", action: "create", entity: item.kind, entityId: item.id }),
+        );
+      },
+      async setRestricted(orgId, fundId, isRestricted, audit) {
+        await auditedWrite(
+          sb,
+          orgId,
+          [
+            {
+              table: "funds",
+              op: "update",
+              values: { is_restricted: isRestricted },
+              match: { id: fundId },
+              minRows: 1,
+            },
+          ],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "fund", entityId: fundId }),
+        );
+      },
+      async setActive(orgId, kind, id, active, audit) {
+        const values =
+          kind === "project" ? { status: active ? "active" : "archived" } : { is_active: active };
+        await auditedWrite(
+          sb,
+          orgId,
+          [{ table: CATALOG_TABLE[kind], op: "update", values, match: { id }, minRows: 1 }],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: kind, entityId: id }),
+        );
+      },
+    },
+
+    pledges: {
+      async list(orgId) {
+        const { data, error } = await sb
+          .from("pledges")
+          .select("*")
+          .eq("org_id", orgId)
+          .order("pledge_date", { ascending: false });
+        fail(error);
+        return ((data ?? []) as any[]).map(toPledgeRow);
+      },
+      async get(orgId, id) {
+        const { data, error } = await sb
+          .from("pledges")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("id", id)
+          .maybeSingle();
+        fail(error);
+        return data ? toPledgeRow(data) : null;
+      },
+      async payments(orgId) {
+        const { data, error } = await sb.from("pledge_payments").select("*").eq("org_id", orgId);
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          pledgeId: r.pledge_id,
+          transactionId: r.transaction_id,
+          kind: r.kind,
+          amountCents: Number(r.amount_cents),
+          paidDate: r.paid_date,
+        }));
+      },
+      async create(p, audit) {
+        await auditedWrite(
+          sb,
+          p.orgId,
+          [
+            {
+              table: "pledges",
+              op: "insert",
+              values: {
+                id: p.id,
+                donor_name: p.donorName,
+                fund_id: p.fundId,
+                amount_cents: p.amountCents,
+                pledge_date: p.pledgeDate,
+                expected_date: p.expectedDate,
+                note: p.note,
+                transaction_id: p.transactionId,
+                created_by: p.createdBy,
+              },
+            },
+          ],
+          entryOf(audit ?? { orgId: p.orgId, userId: "", action: "create", entity: "pledge", entityId: p.id }),
+        );
+      },
+      async addPayment(p, newStatus, audit) {
+        await auditedWrite(
+          sb,
+          p.orgId,
+          [
+            {
+              table: "pledge_payments",
+              op: "insert",
+              values: {
+                id: p.id,
+                pledge_id: p.pledgeId,
+                transaction_id: p.transactionId,
+                kind: p.kind,
+                amount_cents: p.amountCents,
+                paid_date: p.paidDate,
+              },
+            },
+            ...(newStatus
+              ? [
+                  {
+                    table: "pledges",
+                    op: "update" as const,
+                    values: { status: newStatus },
+                    match: { id: p.pledgeId },
+                  },
+                ]
+              : []),
+          ],
+          entryOf(audit ?? { orgId: p.orgId, userId: "", action: "payment", entity: "pledge", entityId: p.pledgeId }),
+        );
+      },
+    },
+
+    templates: {
+      async list(orgId) {
+        const { data, error } = await sb
+          .from("transaction_templates")
+          .select("*")
+          .eq("org_id", orgId)
+          .order("name");
+        fail(error);
+        return ((data ?? []) as any[]).map(toTemplate);
+      },
+      async get(orgId, id) {
+        const { data, error } = await sb
+          .from("transaction_templates")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("id", id)
+          .maybeSingle();
+        fail(error);
+        return data ? toTemplate(data) : null;
+      },
+      async save(t, audit) {
+        const { data: existing } = await sb
+          .from("transaction_templates")
+          .select("id")
+          .eq("org_id", t.orgId)
+          .eq("id", t.id)
+          .maybeSingle();
+        const values = {
+          name: t.name,
+          description: t.description,
+          lines: t.lines,
+          frequency: t.frequency,
+          next_due: t.nextDue,
+          active: t.active,
+        };
+        const op: WriteOp = existing
+          ? { table: "transaction_templates", op: "update", values, match: { id: t.id }, minRows: 1 }
+          : { table: "transaction_templates", op: "insert", values: { id: t.id, ...values } };
+        await auditedWrite(sb, t.orgId, [op], entryOf(audit ?? templateAudit(t.orgId, t.id)));
+      },
+      async occurrences(orgId) {
+        const { data, error } = await sb
+          .from("recurring_occurrences")
+          .select("id, org_id, template_id, due_date, status, transaction_id")
+          .eq("org_id", orgId)
+          .order("due_date");
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          templateId: r.template_id,
+          dueDate: r.due_date,
+          status: r.status,
+          transactionId: r.transaction_id ?? null,
+        }));
+      },
+      async recordOccurrence(o, nextDue, audit) {
+        const { data: prior } = await sb
+          .from("recurring_occurrences")
+          .select("id")
+          .eq("template_id", o.templateId)
+          .eq("due_date", o.dueDate)
+          .maybeSingle();
+        if (prior) return false;
+        await auditedWrite(
+          sb,
+          o.orgId,
+          [
+            {
+              table: "recurring_occurrences",
+              op: "insert",
+              values: {
+                id: o.id,
+                template_id: o.templateId,
+                due_date: o.dueDate,
+                status: o.status,
+                transaction_id: o.transactionId,
+              },
+            },
+            {
+              table: "transaction_templates",
+              op: "update",
+              values: { next_due: nextDue },
+              match: { id: o.templateId },
+              minRows: 1,
+            },
+          ],
+          entryOf(audit ?? templateAudit(o.orgId, o.templateId)),
+        );
+        return true;
+      },
+      async getMode(orgId) {
+        const { data, error } = await sb
+          .from("organizations")
+          .select("recurring_mode")
+          .eq("id", orgId)
+          .maybeSingle();
+        fail(error);
+        return (data as any)?.recurring_mode === "reminder" ? "reminder" : "drafts";
+      },
+      async setMode(orgId, mode, audit) {
+        await auditedWrite(
+          sb,
+          orgId,
+          [{ table: "organizations", op: "update", values: { recurring_mode: mode } }],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "organization", entityId: orgId }),
+        );
+      },
+    },
+
+    budgets: {
+      async list(orgId, periodType, periodStart) {
+        const { data, error } = await sb
+          .from("budgets")
+          .select("id, org_id, account_id, fund_id, project_id, period_type, period_start, amount_cents")
+          .eq("org_id", orgId)
+          .eq("period_type", periodType)
+          .eq("period_start", periodStart);
+        fail(error);
+        return ((data ?? []) as any[]).map((r) => ({
+          id: r.id,
+          orgId: r.org_id,
+          accountId: r.account_id,
+          fundId: r.fund_id ?? null,
+          projectId: r.project_id ?? null,
+          periodType: r.period_type,
+          periodStart: r.period_start,
+          amountCents: Number(r.amount_cents),
+        }));
+      },
+      async set(b, audit) {
+        const match = {
+          account_id: b.accountId,
+          fund_id: b.fundId,
+          project_id: b.projectId,
+          period_type: b.periodType,
+          period_start: b.periodStart,
+        };
+        const entry = entryOf(
+          audit ?? { orgId: b.orgId, userId: "", action: "budget.set", entity: "budget", entityId: b.accountId },
+        );
+        if (b.amountCents === null) {
+          await auditedWrite(sb, b.orgId, [{ table: "budgets", op: "delete", match }], entry);
+          return;
+        }
+        let q = sb.from("budgets").select("id").eq("org_id", b.orgId).eq("account_id", b.accountId).eq("period_type", b.periodType).eq("period_start", b.periodStart);
+        q = b.fundId ? q.eq("fund_id", b.fundId) : q.is("fund_id", null);
+        q = b.projectId ? q.eq("project_id", b.projectId) : q.is("project_id", null);
+        const { data: existing } = await q.maybeSingle();
+        await auditedWrite(
+          sb,
+          b.orgId,
+          [
+            existing
+              ? { table: "budgets", op: "update", values: { amount_cents: b.amountCents }, match: { id: (existing as any).id } }
+              : { table: "budgets", op: "insert", values: { id: b.id, ...match, amount_cents: b.amountCents } },
+          ],
+          entry,
+        );
       },
     },
 

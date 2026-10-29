@@ -5,13 +5,14 @@
 - v0.0.6 Safety, controls and reports (released 2026-10-08): MFA, delete my account, session safety, rollback tests, structural direct-write rule, .env check, full dependency audit, keyboard walk-through, release checklist, plus early items: general ledger, account activity, fund and statement check reports, drill-down, cash basis labels, 50k speed test, Export all (Excel and PDF), accounting-format Excel, plain report names, treasurer role, plain-language error pop-ups with on-screen and nothing-recorded tests.
 - v0.0.7 Concurrency and periods (released 2026-10-10): same request sent twice at once (double post, void, close, restore), month close with warnings, audited reopen with a reason (pulled in from v0.0.8).
 - v0.0.8 People checks (moved from v0.0.7): [ ] screen reader pass by a person, [ ] password reset email checked by hand
-- v0.0.9 Everyday use: [ ] templates and recurring drafts (never auto-posted), [ ] search and filters, [ ] fund and project budgets, [ ] board package (one PDF), [ ] first-run checklist, [ ] tutorial on/off switch: guided walkthrough for getting started (starting balances, setting up checking and other accounts, adding transactions, importing statements, checking them) and the ongoing routine (weekly entries, monthly statement check and month close, year-end), [ ] diagnostics page
+- v0.1.1 Everyday use (released 2026-10-28): [x] templates and recurring drafts, [x] search and filters, [x] fund and project budgets, [x] board package, [x] first-run checklist, [x] tutorial on/off switch, [x] diagnostics page, [x] all of the above on desktop, [x] desktop funds, pledges, releases, projects, categories and tags, [x] archive and restore for funds, categories, tags and projects, [x] app icon
+- v0.1.2 Desktop parity: [ ] history, exports, backups, bank import on desktop
 - v0.1 to v0.9 Hardening: [ ] self-hosted installer, [ ] upgrade tests, [ ] cross-version restore, [ ] user testing with non-accountants, [ ] disclosure policy and contact
 - v1.0 gates: accounting correctness, security tests, real-statement import, backup recovery, install and upgrade, non-accountant usability, support and disclosure pages. Desktop is a separate track.
 
 ## Released
 
-- v0.1.0 (2026-10-10), v0.0.7 (2026-10-10), v0.0.6 (2026-10-08), v0.0.5 (2026-10-08), v0.0.4 (2026-10-07), v0.0.3 (2026-10-07), v0.0.2, v0.0.1 (2026-10-01). Details in CHANGELOG.md.
+- v0.1.1 (2026-10-28), v0.1.0 (2026-10-10), v0.0.7 (2026-10-10), v0.0.6 (2026-10-08), v0.0.5 (2026-10-08), v0.0.4 (2026-10-07), v0.0.3 (2026-10-07), v0.0.2, v0.0.1 (2026-10-01). Details in CHANGELOG.md.
 
 ## Future (unscheduled, not assigned to a version)
 

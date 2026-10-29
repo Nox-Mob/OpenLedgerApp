@@ -28,12 +28,14 @@ import { Route as AuthenticatedPledgesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedReconcileIndexRouteImport } from './routes/_authenticated/reconcile.index'
 import { Route as AuthenticatedReconcileIdRouteImport } from './routes/_authenticated/reconcile.$id'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountsRouteImport } from './routes/_authenticated/settings/accounts'
 import { Route as AuthenticatedSettingsCloseRouteImport } from './routes/_authenticated/settings/close'
+import { Route as AuthenticatedSettingsDiagnosticsRouteImport } from './routes/_authenticated/settings/diagnostics'
 import { Route as AuthenticatedSettingsExportsRouteImport } from './routes/_authenticated/settings/exports'
 import { Route as AuthenticatedSettingsHistoryRouteImport } from './routes/_authenticated/settings/history'
 import { Route as AuthenticatedSettingsMembersRouteImport } from './routes/_authenticated/settings/members'
@@ -136,6 +138,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -169,6 +176,12 @@ const AuthenticatedSettingsCloseRoute =
   AuthenticatedSettingsCloseRouteImport.update({
     id: '/close',
     path: '/close',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsDiagnosticsRoute =
+  AuthenticatedSettingsDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsExportsRoute =
@@ -233,10 +246,12 @@ export interface FileRoutesByFullPath {
   '/projects': typeof AuthenticatedProjectsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/templates': typeof AuthenticatedTemplatesRoute
   '/invite/$token': typeof InviteTokenRoute
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -265,10 +280,12 @@ export interface FileRoutesByTo {
   '/pledges': typeof AuthenticatedPledgesRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
   '/invite/$token': typeof InviteTokenRoute
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -300,10 +317,12 @@ export interface FileRoutesById {
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_authenticated/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/_authenticated/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/_authenticated/settings/close': typeof AuthenticatedSettingsCloseRoute
+  '/_authenticated/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/_authenticated/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/_authenticated/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/_authenticated/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -335,10 +354,12 @@ export interface FileRouteTypes {
     | '/projects'
     | '/reports'
     | '/settings'
+    | '/templates'
     | '/invite/$token'
     | '/reconcile/$id'
     | '/settings/accounts'
     | '/settings/close'
+    | '/settings/diagnostics'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -367,10 +388,12 @@ export interface FileRouteTypes {
     | '/pledges'
     | '/projects'
     | '/reports'
+    | '/templates'
     | '/invite/$token'
     | '/reconcile/$id'
     | '/settings/accounts'
     | '/settings/close'
+    | '/settings/diagnostics'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -401,10 +424,12 @@ export interface FileRouteTypes {
     | '/_authenticated/projects'
     | '/_authenticated/reports'
     | '/_authenticated/settings'
+    | '/_authenticated/templates'
     | '/invite/$token'
     | '/_authenticated/reconcile/$id'
     | '/_authenticated/settings/accounts'
     | '/_authenticated/settings/close'
+    | '/_authenticated/settings/diagnostics'
     | '/_authenticated/settings/exports'
     | '/_authenticated/settings/history'
     | '/_authenticated/settings/members'
@@ -564,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -604,6 +636,13 @@ declare module '@tanstack/react-router' {
       path: '/close'
       fullPath: '/settings/close'
       preLoaderRoute: typeof AuthenticatedSettingsCloseRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/diagnostics': {
+      id: '/_authenticated/settings/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/settings/diagnostics'
+      preLoaderRoute: typeof AuthenticatedSettingsDiagnosticsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/exports': {
@@ -661,6 +700,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountsRoute: typeof AuthenticatedSettingsAccountsRoute
   AuthenticatedSettingsCloseRoute: typeof AuthenticatedSettingsCloseRoute
+  AuthenticatedSettingsDiagnosticsRoute: typeof AuthenticatedSettingsDiagnosticsRoute
   AuthenticatedSettingsExportsRoute: typeof AuthenticatedSettingsExportsRoute
   AuthenticatedSettingsHistoryRoute: typeof AuthenticatedSettingsHistoryRoute
   AuthenticatedSettingsMembersRoute: typeof AuthenticatedSettingsMembersRoute
@@ -672,6 +712,7 @@ interface AuthenticatedSettingsRouteChildren {
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountsRoute: AuthenticatedSettingsAccountsRoute,
   AuthenticatedSettingsCloseRoute: AuthenticatedSettingsCloseRoute,
+  AuthenticatedSettingsDiagnosticsRoute: AuthenticatedSettingsDiagnosticsRoute,
   AuthenticatedSettingsExportsRoute: AuthenticatedSettingsExportsRoute,
   AuthenticatedSettingsHistoryRoute: AuthenticatedSettingsHistoryRoute,
   AuthenticatedSettingsMembersRoute: AuthenticatedSettingsMembersRoute,
@@ -696,6 +737,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
   AuthenticatedReconcileIdRoute: typeof AuthenticatedReconcileIdRoute
   AuthenticatedTransactionsNewRoute: typeof AuthenticatedTransactionsNewRoute
   AuthenticatedReconcileIndexRoute: typeof AuthenticatedReconcileIndexRoute
@@ -713,6 +755,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
   AuthenticatedReconcileIdRoute: AuthenticatedReconcileIdRoute,
   AuthenticatedTransactionsNewRoute: AuthenticatedTransactionsNewRoute,
   AuthenticatedReconcileIndexRoute: AuthenticatedReconcileIndexRoute,

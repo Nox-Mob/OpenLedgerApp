@@ -12,6 +12,11 @@ import { projectSummary } from "@/lib/reports.functions";
 import { formatCents, parseToCents } from "@/lib/money";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useRestoreArchived,
+  toggleArchived,
+  type CreateResult,
+} from "@/components/RestoreArchivedDialog";
 
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({
@@ -42,6 +47,12 @@ function ProjectsPage() {
     enabled: !!org,
   });
 
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["project-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+  };
+  const restorePrompt = useRestoreArchived(org?.id, refresh);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!org) return;
@@ -54,14 +65,14 @@ function ProjectsPage() {
       budgetCents = b.value;
     }
     try {
-      await createProject({
+      const res = (await createProject({
         data: { orgId: org.id, name: n.value, budgetCents },
-      });
-      toast.success("Project created");
+      })) as CreateResult;
       setName("");
       setBudget("");
-      queryClient.invalidateQueries({ queryKey: ["project-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      if (!restorePrompt.handle(res)) return;
+      toast.success("Project created");
+      refresh();
     } catch (err) {
       showError(err, "Could not create project");
     }
@@ -131,6 +142,7 @@ function ProjectsPage() {
                 <th className="px-4 py-2 text-right">Spent</th>
                 <th className="px-4 py-2 text-right">Remaining</th>
                 <th className="px-4 py-2 w-48"></th>
+                <th className="px-4 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -141,7 +153,10 @@ function ProjectsPage() {
                     ? Math.min(100, Math.round((p.spentCents / p.budgetCents) * 100))
                     : 0;
                 return (
-                  <tr key={p.id} className="border-b last:border-0">
+                  <tr
+                    key={p.id}
+                    className={`border-b last:border-0 ${p.status === "archived" ? "opacity-70" : ""}`}
+                  >
                     <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{p.status}</td>
                     <td className="tnum px-4 py-3 text-right">{formatCents(p.budgetCents)}</td>
@@ -159,6 +174,22 @@ function ProjectsPage() {
                         />
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="text-xs font-medium text-primary hover:underline"
+                        aria-label={`${p.status === "archived" ? "Restore" : "Archive"} ${p.name}`}
+                        onClick={() =>
+                          toggleArchived(
+                            org.id,
+                            { kind: "project", id: p.id, name: p.name },
+                            p.status === "archived",
+                            refresh,
+                          )
+                        }
+                      >
+                        {p.status === "archived" ? "Restore" : "Archive"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -166,6 +197,7 @@ function ProjectsPage() {
           </table>
         )}
       </div>
+      {restorePrompt.dialog}
     </AppShell>
   );
 }

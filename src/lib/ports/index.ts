@@ -11,6 +11,10 @@ import type {
   AccountType,
   AuditEvent,
   AuditRecord,
+  CatalogItem,
+  CatalogKind,
+  Pledge,
+  PledgePayment,
   BankTransaction,
   Id,
   IsoDate,
@@ -26,6 +30,7 @@ import type {
   StatementInfo,
   TransactionSource,
 } from "../domain/models";
+import type { Occurrence, RecurringMode, TransactionTemplate } from "../domain/templates";
 
 export class DuplicateKeyError extends Error {
   constructor(message = "Duplicate key") {
@@ -210,6 +215,69 @@ export interface AuditRepository {
   listFor(orgId: Id, entity: string, entityId: Id, limit?: number): Promise<AuditRecord[]>;
 }
 
+export interface TemplateRepository {
+  list(orgId: Id): Promise<TransactionTemplate[]>;
+  get(orgId: Id, id: Id): Promise<TransactionTemplate | null>;
+  /** Insert or update by id (app-generated, stable). */
+  save(t: TransactionTemplate, audit?: AuditEvent): Promise<void>;
+  occurrences(orgId: Id): Promise<Occurrence[]>;
+  /**
+   * Records one due date as posted/skipped and moves the template's next due date, in one step.
+   * Returns false when that due date was already recorded (no change, no history).
+   */
+  recordOccurrence(o: Occurrence, nextDue: IsoDate | null, audit?: AuditEvent): Promise<boolean>;
+  getMode(orgId: Id): Promise<RecurringMode>;
+  setMode(orgId: Id, mode: RecurringMode, audit?: AuditEvent): Promise<void>;
+}
+
+export interface Budget {
+  id: Id;
+  orgId: Id;
+  accountId: Id;
+  fundId: Id | null;
+  projectId: Id | null;
+  periodType: "year" | "month";
+  periodStart: IsoDate;
+  amountCents: number;
+}
+
+export interface BudgetRepository {
+  list(orgId: Id, periodType: Budget["periodType"], periodStart: IsoDate): Promise<Budget[]>;
+  /** Updates the matching row in place (same id) or inserts it; null amount removes it. */
+  set(
+    b: Omit<Budget, "amountCents" | "id"> & { id: Id; amountCents: number | null },
+    audit?: AuditEvent,
+  ): Promise<void>;
+}
+
+export interface CatalogRepository {
+  list(orgId: Id, kind: CatalogKind): Promise<CatalogItem[]>;
+  /** Insert with an app-generated id; caller checks name rules first. */
+  create(item: CatalogItem, audit?: AuditEvent): Promise<void>;
+  setRestricted(orgId: Id, fundId: Id, isRestricted: boolean, audit?: AuditEvent): Promise<void>;
+  /** Archive (hide from pickers, keep history) or restore one item. */
+  setActive(
+    orgId: Id,
+    kind: CatalogKind,
+    id: Id,
+    active: boolean,
+    audit?: AuditEvent,
+  ): Promise<void>;
+}
+
+export interface PledgeRepository {
+  list(orgId: Id): Promise<Pledge[]>;
+  get(orgId: Id, id: Id): Promise<Pledge | null>;
+  payments(orgId: Id): Promise<PledgePayment[]>;
+  create(p: Pledge, audit?: AuditEvent): Promise<void>;
+  /** Saves the payment and any status change together. */
+  addPayment(
+    p: PledgePayment,
+    newStatus: Pledge["status"] | null,
+    audit?: AuditEvent,
+  ): Promise<void>;
+}
+
 /** Everything a request needs, built per request by the active adapter. */
 export interface Repositories {
   orgs: OrgRepository;
@@ -220,4 +288,8 @@ export interface Repositories {
   periodCloses: PeriodCloseRepository;
   projects: ProjectRepository;
   audit: AuditRepository;
+  templates: TemplateRepository;
+  budgets: BudgetRepository;
+  catalog: CatalogRepository;
+  pledges: PledgeRepository;
 }

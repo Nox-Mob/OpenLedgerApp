@@ -1,6 +1,6 @@
 # OpenLedgerApp architecture
 
-Current as of v0.1.0. One accounting application, several storage deployments. Keep it boring: a single app plus Postgres (cloud, self-hosted) or SQLite (desktop, future). No microservices, queues, caches or extra infrastructure.
+Current as of v0.1.1. One accounting application, several storage deployments. Keep it boring: a single app plus Postgres (cloud, self-hosted) or SQLite (desktop, future). No microservices, queues, caches or extra infrastructure.
 
 ```text
 React screens (src/routes, src/components)
@@ -40,7 +40,8 @@ Status labels used below: **Implemented and tested**, **Implemented, partly veri
 | Delete my account; organization delete in one step                                                     | Implemented and tested                                                                                                   |
 | Architecture boundaries (no direct table writes, admin client allowlist)                               | Enforced by src/lib/architecture.test.ts in CI                                                                           |
 | Signed backups and restore into a new organization                                                     | Implemented and tested (memory adapter roundtrip, tamper rejection)                                                      |
-| Budgets, exports, history viewer                                                                       | Implemented, cloud-only (no port yet)                                                                                    |
+| Budgets, templates, funds, pledges, categories, tags, projects (with archive)                          | Implemented and tested on cloud and desktop (memory and SQLite contract tests)                                           |
+| Exports, history viewer, backups, bank import on desktop                                               | Cloud only for now (desktop says so and records nothing)                                                                 |
 | SQLite adapter                                                                                         | Implemented, partly verified (sql.js only, not a native desktop driver)                                                  |
 | Desktop start flow (no website or sign-in; setup or ledger from the local file)                        | Implemented, run in a native Tauri build on Linux                                                                        |
 | Desktop edition (Tauri), offline use                                                                   | Preview: core books work offline; Linux install checked in CI; draft installers per release                              |

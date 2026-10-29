@@ -135,6 +135,7 @@ export interface Project {
   orgId: Id;
   name: string;
   budgetCents: number;
+  /** "archived" hides the item from pickers; projects may also be "completed". */
   status: string;
 }
 
@@ -164,4 +165,45 @@ export interface AuditRecord {
   action: string;
   at: IsoTimestamp;
   after: JsonValue;
+}
+
+/** Labels used to sort and group entries. Names are unique per organization and kind. */
+export type CatalogKind = "category" | "tag" | "fund" | "project";
+
+export interface CatalogItem {
+  id: Id;
+  orgId: Id;
+  kind: CatalogKind;
+  name: string;
+  /** Categories only. */
+  categoryType: "revenue" | "expense" | null;
+  /** Funds only. */
+  isRestricted: boolean;
+  /** Projects only. */
+  budgetCents: number;
+  status: string;
+}
+
+export interface Pledge {
+  id: Id;
+  orgId: Id;
+  donorName: string;
+  fundId: Id | null;
+  amountCents: number;
+  pledgeDate: IsoDate;
+  expectedDate: IsoDate | null;
+  note: string | null;
+  transactionId: Id;
+  status: "open" | "paid" | "written_off";
+  createdBy: Id | null;
+}
+
+export interface PledgePayment {
+  id: Id;
+  orgId: Id;
+  pledgeId: Id;
+  transactionId: Id;
+  kind: "payment" | "write_off";
+  amountCents: number;
+  paidDate: IsoDate;
 }

@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { TutorialToggle } from "@/components/Tutorial";
 import { TermSliders } from "@/components/TermSliders";
 import { setMyTermOverrides } from "@/lib/org.functions";
 import type { TermOverrides } from "@/lib/terminology";
@@ -56,6 +57,7 @@ function PreferencesSettings() {
 
   return (
     <div className="max-w-2xl space-y-4">
+      <TutorialToggle orgId={org.id} />
       <div className="rounded-lg border bg-card p-5">
         <h2 className="font-display text-lg font-semibold">Your preferences</h2>
         <p className="mt-1 text-sm text-muted-foreground">

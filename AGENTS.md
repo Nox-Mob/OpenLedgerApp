@@ -20,6 +20,7 @@
 - Audit rows: change + history in one DB transaction: post/void_transaction_atomic RPCs, else audited_write (src/lib/audited-write.ts). writeAudit() only for event-only history (e.g. backup export). Users can't INSERT audit_log.
 - Org data: requireSupabaseAuth + assertCan + member RLS; settings/accounts admin-only.
 - Terminology is presentation-only; reports/PDFs use org level only.
+- Catalog archive: categories/tags/funds archive via is_active, projects via status='archived'; names stay unique across archived rows, so create returns {ok:false, archived} (UI offers restore) instead of a duplicate; restricted funds with money left can't be archived.
 - Accounts: catalog-based; delete only if never used (domain/accounts.ts + DB trigger), otherwise archive. Names unique per org ignoring case/spaces (DB trigger backs it up).
 - Dates YYYY-MM-DD in org.timezone; never toISOString.
 - Reports: pure math; retained earnings derived; year-end close is virtual (no closing tx; legacy source='closing' excluded).
@@ -35,12 +36,12 @@
 
 - Domain rules: accounting invariants live in pure src/lib/domain/ (no storage imports) and run before every write; DB triggers are a backup, so a future SQLite edition gets the same guarantees.
 - IDs: every new record gets an app-generated UUID (newId()), never a DB default, so identity survives future offline sync.
-- Desktop/SQLite/backup rules: src/lib/adapters/AGENTS.md, src/lib/domain/AGENTS.md.
+- Desktop/SQLite/backup: see src/lib/adapters, src/lib/domain AGENTS.md.
 - Storage ports: data access goes through interfaces in src/lib/ports/ using models from src/lib/domain/models.ts (no DB types); adapters implement them so cloud and desktop share app code.
 - Adapters/services: workflows live in src/lib/services/ (ports only); server functions do auth + assertCan, then call a service with createSupabaseRepositories(context.supabase). src/lib/adapters/memory is the reference adapter for tests and future SQLite parity.
 - Funds: balances/restricted split derived from fund-tagged rows (domain/funds.ts); releases are balanced Net Assets to Net Assets (source 'release') so equity never changes.
 - Members: organizations.created_by is the owner; invite links store only a SHA-256 hash of the token and are claimed atomically before the role is granted.
-- Budgets/exports/history: cloud-only server functions (no port yet); one budget row per account+period, updated in place; exports escape formula-like text via src/lib/export.ts.
+- Budgets/templates use ports; one budget row per account+period+scope, updated in place; recurring never auto-posts (key recurring:<tpl>:<date>). Exports/history cloud-only; exports escape formulas (src/lib/export.ts).
 - Org delete needs deferrable "no action" FKs and a balance trigger skipping deleted transactions; keep new FKs deferrable.
 - Package manager: npm only (package-lock.json, installed with npm ci); no bun.lock, so every install resolves the same tree.
 - Permissions: CAPABILITIES in src/lib/permissions.ts is the only role table; permissions.test.ts pins every cell so changes are deliberate.

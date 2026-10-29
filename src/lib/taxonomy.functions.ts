@@ -2,6 +2,7 @@ import { desktopAware } from "@/lib/desktop/bridge";
 import { newId } from "./domain/ledger";
 import { createSupabaseRepositories } from "./adapters/supabase";
 import { postOpeningBalance } from "./services/ledger";
+import { createCatalogItem, setCatalogActive } from "./services/catalog";
 import { auditedWrite } from "./audited-write";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -10,7 +11,6 @@ import { assertCan } from "./permissions";
 import type { Db } from "./db";
 import { nameField } from "./validation";
 import { duplicateName } from "./domain/accounts";
-import { toColumns } from "./columns";
 
 /** Names are unique per organization, ignoring case and extra spaces. */
 async function assertNameAvailable(
@@ -124,100 +124,123 @@ const setOpeningBalanceCloud = createServerFn({ method: "POST" })
 export const setOpeningBalance = desktopAware("setOpeningBalance", setOpeningBalanceCloud);
 
 type CrudTable = "categories" | "tags" | "projects" | "funds";
+type Kind = "category" | "tag" | "fund" | "project";
 
-function makeCrud(table: CrudTable, extraSchema?: z.ZodRawShape) {
-  const create = createServerFn({ method: "POST" })
-    .middleware([requireSupabaseAuth])
-    .validator((input) =>
-      z.object({ orgId: z.string().uuid(), name: nameField(), ...extraSchema }).parse(input),
-    )
-    .handler(async ({ data, context }) => {
-      const { orgId, name, ...rest } = data as { orgId: string; name: string } & Record<
-        string,
-        unknown
-      >;
-      await assertNameAvailable(context.supabase, table, orgId, name);
-      await assertCan(context.supabase, context.userId, orgId, "write");
-      const id = newId();
-      await auditedWrite(
-        context.supabase,
-        orgId,
-        [{ table, op: "insert", values: { id, name: name.trim(), ...toColumns(rest) } }],
-        {
-          action: "create",
-          entity: table.replace(/s$/, "").replace(/ie$/, "y"),
-          entityId: id,
-          after: { name },
-        },
-      );
-      return { ok: true };
-    });
+type CreateInput = {
+  orgId: string;
+  name: string;
+  type?: "revenue" | "expense";
+  isRestricted?: boolean;
+  budgetCents?: number;
+};
 
-  return { create };
+/** Create through the shared service, which returns `archived` when the name is taken by an archived item. */
+async function createItem(context: { supabase: Db; userId: string }, kind: Kind, d: CreateInput) {
+  await assertCan(context.supabase, context.userId, d.orgId, "write");
+  return createCatalogItem(createSupabaseRepositories(context.supabase), {
+    orgId: d.orgId,
+    userId: context.userId,
+    kind,
+    name: d.name,
+    categoryType: d.type,
+    isRestricted: d.isRestricted,
+    budgetCents: d.budgetCents,
+  });
 }
 
-const categories = makeCrud("categories", {
-  type: z.enum(["revenue", "expense"]).default("expense"),
-});
+const baseCreate = z.object({ orgId: z.string().uuid(), name: nameField() });
+
+const createCategoryCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ type: z.enum(["revenue", "expense"]).default("expense") }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "category", data));
+const createTagCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => baseCreate.parse(input))
+  .handler(async ({ data, context }) => createItem(context, "tag", data));
+const createFundCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ isRestricted: z.boolean().default(false) }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "fund", data));
+const createProjectCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    baseCreate.extend({ budgetCents: z.number().int().min(0).default(0) }).parse(input),
+  )
+  .handler(async ({ data, context }) => createItem(context, "project", data));
+
+// Lists hide archived items unless asked, so pickers only offer what is in use.
 const listCategoriesCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("categories")
-      .select("*")
-      .eq("org_id", data.orgId)
-      .order("name");
+    let q = context.supabase.from("categories").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
-export const listCategories = desktopAware("listCategories", listCategoriesCloud);
-export const createCategory = desktopAware("createCategory", categories.create);
-
-const tags = makeCrud("tags");
 const listTagsCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("tags")
-      .select("*")
-      .eq("org_id", data.orgId)
-      .order("name");
+    let q = context.supabase.from("tags").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
-export const listTags = desktopAware("listTags", listTagsCloud);
-export const createTag = desktopAware("createTag", tags.create);
-
-const projects = makeCrud("projects", { budgetCents: z.number().int().min(0).default(0) });
-const listProjectsCloud = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input) => orgInput.parse(input))
-  .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("projects")
-      .select("*")
-      .eq("org_id", data.orgId)
-      .order("name");
-    if (error) throw new Error(error.message);
-    return rows ?? [];
-  });
-export const listProjects = desktopAware("listProjects", listProjectsCloud);
-export const createProject = desktopAware("createProject", projects.create);
-
-const funds = makeCrud("funds", { isRestricted: z.boolean().default(false) });
 const listFundsCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("funds")
-      .select("*")
-      .eq("org_id", data.orgId)
-      .order("name");
+    let q = context.supabase.from("funds").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+const listProjectsCloud = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("projects").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.neq("status", "archived");
+    const { data: rows, error } = await q.order("name");
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({ ...r, is_active: r.status !== "archived" }));
+  });
+
+export const listCategories = desktopAware("listCategories", listCategoriesCloud);
+export const createCategory = desktopAware("createCategory", createCategoryCloud);
+export const listTags = desktopAware("listTags", listTagsCloud);
+export const createTag = desktopAware("createTag", createTagCloud);
+export const listProjects = desktopAware("listProjects", listProjectsCloud);
+export const createProject = desktopAware("createProject", createProjectCloud);
 export const listFunds = desktopAware("listFunds", listFundsCloud);
-export const createFund = desktopAware("createFund", funds.create);
+export const createFund = desktopAware("createFund", createFundCloud);
+
+const setCatalogActiveCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z
+      .object({
+        orgId: z.string().uuid(),
+        kind: z.enum(["category", "tag", "fund", "project"]),
+        id: z.string().uuid(),
+        active: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, context.userId, data.orgId, "write");
+    return setCatalogActive(createSupabaseRepositories(context.supabase), {
+      ...data,
+      userId: context.userId,
+    });
+  });
+export const setCatalogActiveFn = desktopAware("setCatalogActive", setCatalogActiveCloud);

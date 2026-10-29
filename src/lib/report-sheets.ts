@@ -175,3 +175,43 @@ export function statementCheckSheet(
     ],
   };
 }
+
+/** Budget vs actual for the board package (money in and money out, with differences). */
+export function budgetSheet(
+  title: string,
+  lines: {
+    name: string;
+    type: "revenue" | "expense";
+    budgetCents: number | null;
+    actualCents: number;
+  }[],
+  labels: { revenue: string; expenses: string },
+): Sheet {
+  return {
+    name: title,
+    rows: [
+      ["Section", "Account", "Budget", "Actual", "Difference"],
+      ...lines
+        .filter((l) => l.budgetCents !== null || l.actualCents !== 0)
+        .map((l) => {
+          const b = l.budgetCents ?? 0;
+          const diff = l.type === "revenue" ? l.actualCents - b : b - l.actualCents;
+          return [
+            l.type === "revenue" ? labels.revenue : labels.expenses,
+            l.name,
+            n(b),
+            n(l.actualCents),
+            n(diff),
+          ];
+        }),
+    ],
+  };
+}
+
+/** Cover page listing what's in the board package. */
+export function coverSheet(orgName: string, period: string, sections: string[]): Sheet {
+  return {
+    name: "Board package",
+    rows: [["Contents"], [orgName], [period], ...sections.map((s, i) => [`${i + 1}. ${s}`])],
+  };
+}

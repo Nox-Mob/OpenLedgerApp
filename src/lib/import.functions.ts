@@ -426,7 +426,7 @@ const extractPdfStatementCloud = createServerFn({ method: "POST" })
           .min(1)
           .max(PDF_LIMITS.maxBytes, "PDFs over 10 MB aren't supported"),
         acknowledged: z.literal(true, {
-          errorMap: () => ({ message: "Please confirm the AI notice first" }),
+          error: "Please confirm the AI notice first",
         }),
       })
       .parse(input),

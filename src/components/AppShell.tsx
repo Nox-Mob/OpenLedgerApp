@@ -7,6 +7,7 @@ import {
   Landmark,
   Upload,
   ListChecks,
+  Repeat,
   FolderKanban,
   Target,
   PiggyBank,
@@ -27,11 +28,13 @@ import { useOrgContext } from "@/hooks/use-org-context";
 import { ErrorState, LoadingState } from "@/components/PageStates";
 import { errorMessage } from "@/lib/errors";
 import { isDesktop } from "@/lib/edition";
+import { TutorialPanel } from "@/components/Tutorial";
 
 const NAV = [
   { to: "/ledger", label: "Dashboard", icon: LayoutDashboard },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/transactions/new", label: "New Transaction", icon: PlusCircle, write: true },
+  { to: "/templates", label: "Templates", icon: Repeat },
   { to: "/accounts", label: "Accounts", icon: Landmark },
   { to: "/import", label: "Import Bank File", icon: Upload, write: true },
   { to: "/reconcile", label: "Reconcile", icon: ListChecks },
@@ -170,6 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           children
         )}
       </main>
+      {org && <TutorialPanel orgId={org.id} />}
     </div>
   );
 }
