@@ -824,7 +824,12 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
           categoryType: kind === "category" ? r.type : null,
           isRestricted: kind === "fund" ? !!r.is_restricted : false,
           budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
-          status: kind === "project" ? (r.status ?? "active") : Number(r.is_active ?? 1) ? "active" : "archived",
+          status:
+            kind === "project"
+              ? (r.status ?? "active")
+              : Number(r.is_active ?? 1)
+                ? "active"
+                : "archived",
         }));
       },
       async create(item, audit) {

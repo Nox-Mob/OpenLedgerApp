@@ -12,7 +12,11 @@ import { projectSummary } from "@/lib/reports.functions";
 import { formatCents, parseToCents } from "@/lib/money";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useRestoreArchived, toggleArchived, type CreateResult } from "@/components/RestoreArchivedDialog";
+import {
+  useRestoreArchived,
+  toggleArchived,
+  type CreateResult,
+} from "@/components/RestoreArchivedDialog";
 
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({

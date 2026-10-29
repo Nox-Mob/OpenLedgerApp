@@ -17,7 +17,11 @@ import { getFundSummary, releaseFromRestriction, setFundRestricted } from "@/lib
 import { formatCents, parseToCents, todayISO } from "@/lib/money";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useRestoreArchived, toggleArchived, type CreateResult } from "@/components/RestoreArchivedDialog";
+import {
+  useRestoreArchived,
+  toggleArchived,
+  type CreateResult,
+} from "@/components/RestoreArchivedDialog";
 
 export const Route = createFileRoute("/_authenticated/funds")({
   head: () => ({
@@ -339,7 +343,12 @@ function FundsPage() {
                         className="text-xs font-medium text-primary hover:underline"
                         aria-label={`Archive ${f.name}`}
                         onClick={() =>
-                          toggleArchived(org.id, { kind: "fund", id: f.id, name: f.name }, false, refresh)
+                          toggleArchived(
+                            org.id,
+                            { kind: "fund", id: f.id, name: f.name },
+                            false,
+                            refresh,
+                          )
                         }
                       >
                         Archive
@@ -376,7 +385,12 @@ function FundsPage() {
                       className="text-xs font-medium text-primary hover:underline"
                       aria-label={`Restore ${f.name}`}
                       onClick={() =>
-                        toggleArchived(org.id, { kind: "fund", id: f.id, name: f.name }, true, refresh)
+                        toggleArchived(
+                          org.id,
+                          { kind: "fund", id: f.id, name: f.name },
+                          true,
+                          refresh,
+                        )
                       }
                     >
                       Restore
