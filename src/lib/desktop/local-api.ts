@@ -34,6 +34,15 @@ const me = LOCAL_USER_ID;
 
 type OrgIn = { orgId: Id };
 
+async function catalogRows(
+  repos: Repositories,
+  d: OrgIn & { includeArchived?: boolean },
+  kind: "category" | "tag" | "fund" | "project",
+) {
+  const rows = await repos.catalog.list(d.orgId, kind);
+  return d.includeArchived ? rows : rows.filter((c) => !catalog.isArchived(c));
+}
+
 async function orgOf(repos: Repositories, orgId: Id) {
   const org = await repos.orgs.get(orgId);
   if (!org) throw new Error("Organization not found.");
