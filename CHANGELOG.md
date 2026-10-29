@@ -3,9 +3,11 @@
 Notable changes to OpenLedgerApp are recorded here. This project follows the structure of Keep a Changelog. Pre-1.0 software remains under active development.
 
 ## [Unreleased]
-- Funds, categories, tags and projects can be archived and restored, on the web and desktop. Typing an archived name offers to restore it instead of making a duplicate.
 
 ### Added
+
+- Funds, categories, tags and projects can be archived and restored, on the web and desktop. Typing an archived name offers to restore it instead of making a duplicate. A restricted fund that still holds money can't be archived (desktop database version 5).
+- New app icon: the open-book logo is now the browser tab icon, the phone home-screen icon and the desktop app icon on Linux, Windows and macOS.
 
 - Templates: save a transaction you repeat (name, accounts, amount). Templates can repeat weekly, monthly, every 3 months or yearly. Nothing posts by itself: each due date waits in a Ready to review list (post or skip), or, if the organization picks reminders, shows a notice. Posting the same due date twice still makes one transaction.
 - Transaction search and filters: description or note, dates, account, project, fund, amount range, status, source and checked against statement. Filters stay in the page address and results export to CSV.
@@ -16,7 +18,15 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 - Diagnostics page for admins and treasurers: version, edition, book health checks, and a copyable report with no names or amounts.
 - Desktop: templates, recurring drafts, search, budgets, board package, checklist, tutorial and diagnostics all work from the local file (desktop database version 3).
 - Desktop: funds (restricted and unrestricted, releases), pledges and pledge payments, projects, categories and tags are now saved in the local file (desktop database version 4), so fund filters, fund budgets and the fund page in the board package work offline. Names stay unique, and a fund's restriction locks once it has transactions, same as the web.
-- Fixed (desktop): saves could show 'cannot rollback, no transaction is active' while still saving. The desktop file now uses a single connection and actions run one at a time, so each change and its history entry are saved together or not at all. Database upgrades are now all-or-nothing too.
+
+### Changed
+
+- Desktop program renamed from `app` to `openledgerapp`, and it now reports its app ID on Linux, so KDE and other Linux desktops show the OpenLedgerApp name and icon instead of matching another app (such as KDE Connect). Windows and macOS are unaffected.
+- Dependencies: Vite 8.3.5, Zod 4, DOMPurify 3.4.17 and Seroval 1.7.3 to clear every `npm audit` finding. The stray Bun lock file was removed and the npm lock file regenerated so `npm ci` passes.
+
+### Fixed
+
+- Desktop: saves could show 'cannot rollback, no transaction is active' while still saving. The desktop file now uses a single connection and actions run one at a time, so each change and its history entry are saved together or not at all. Database upgrades are now all-or-nothing too.
 
 ## [0.1.0] - 2026-10-10
 
