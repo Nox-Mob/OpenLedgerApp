@@ -256,7 +256,13 @@ export interface CatalogRepository {
   create(item: CatalogItem, audit?: AuditEvent): Promise<void>;
   setRestricted(orgId: Id, fundId: Id, isRestricted: boolean, audit?: AuditEvent): Promise<void>;
   /** Archive (hide from pickers, keep history) or restore one item. */
-  setActive(orgId: Id, kind: CatalogKind, id: Id, active: boolean, audit?: AuditEvent): Promise<void>;
+  setActive(
+    orgId: Id,
+    kind: CatalogKind,
+    id: Id,
+    active: boolean,
+    audit?: AuditEvent,
+  ): Promise<void>;
 }
 
 export interface PledgeRepository {

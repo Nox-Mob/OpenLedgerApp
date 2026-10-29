@@ -24,7 +24,8 @@ export const isArchived = (item: Pick<CatalogItem, "status">) => item.status ===
  * archived items, so the page offers to restore the archived one instead.
  */
 export type CreateCatalogResult =
-  { ok: true; id: Id } | { ok: false; archived: { id: Id; name: string; kind: CatalogKind } };
+  | { ok: true; id: Id }
+  | { ok: false; archived: { id: Id; name: string; kind: CatalogKind } };
 
 export async function createCatalogItem(
   repos: Repositories,
