@@ -1,6 +1,6 @@
 # OpenLedgerApp architecture
 
-Current as of v0.1.0. One accounting application, several storage deployments. Keep it boring: a single app plus Postgres (cloud, self-hosted) or SQLite (desktop, future). No microservices, queues, caches or extra infrastructure.
+Current as of v0.1.1. One accounting application, several storage deployments. Keep it boring: a single app plus Postgres (cloud, self-hosted) or SQLite (desktop, future). No microservices, queues, caches or extra infrastructure.
 
 ```text
 React screens (src/routes, src/components)
