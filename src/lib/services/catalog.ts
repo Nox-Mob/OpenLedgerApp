@@ -3,7 +3,9 @@
 import type { CatalogItem, CatalogKind, Id } from "@/lib/domain/models";
 import type { Repositories } from "@/lib/ports";
 import { newId } from "@/lib/domain/ledger";
-import { duplicateName } from "@/lib/domain/accounts";
+import { duplicateNameMessage, sameName } from "@/lib/validation";
+import { formatCents } from "@/lib/money";
+import { fundSummary } from "./funds";
 
 export interface CreateCatalogInput {
   orgId: Id;
@@ -15,11 +17,28 @@ export interface CreateCatalogInput {
   budgetCents?: number | undefined;
 }
 
-export async function createCatalogItem(repos: Repositories, input: CreateCatalogInput) {
+export const isArchived = (item: Pick<CatalogItem, "status">) => item.status === "archived";
+
+/**
+ * Saved, or the name belongs to an archived item. Names stay unique across active and
+ * archived items, so the page offers to restore the archived one instead.
+ */
+export type CreateCatalogResult =
+  | { ok: true; id: Id }
+  | { ok: false; archived: { id: Id; name: string; kind: CatalogKind } };
+
+export async function createCatalogItem(
+  repos: Repositories,
+  input: CreateCatalogInput,
+): Promise<CreateCatalogResult> {
   const name = input.name.trim();
   if (!name) throw new Error("Enter a name. Nothing was saved.");
-  const dup = duplicateName(name, await repos.catalog.list(input.orgId, input.kind));
-  if (dup) throw new Error(dup);
+  const match = (await repos.catalog.list(input.orgId, input.kind)).find((c) =>
+    sameName(c.name, name),
+  );
+  if (match && isArchived(match))
+    return { ok: false, archived: { id: match.id, name: match.name, kind: input.kind } };
+  if (match) throw new Error(duplicateNameMessage(name));
   const budget = input.budgetCents ?? 0;
   if (!Number.isInteger(budget) || budget < 0) throw new Error("Budget can't be negative.");
   const item: CatalogItem = {
@@ -72,4 +91,35 @@ export async function fundInfos(repos: Repositories, orgId: Id) {
     name: f.name,
     isRestricted: f.isRestricted,
   }));
+}
+
+/**
+ * Archive hides an item from pickers but keeps it on past records; restore brings it back.
+ * A restricted fund with money left must be released first so restricted net assets
+ * never sit in a fund nobody can see.
+ */
+export async function setCatalogActive(
+  repos: Repositories,
+  input: { orgId: Id; userId: Id; kind: CatalogKind; id: Id; active: boolean },
+) {
+  const item = (await repos.catalog.list(input.orgId, input.kind)).find((c) => c.id === input.id);
+  if (!item) throw new Error("Not found. It may have been removed.");
+  if (input.active === !isArchived(item)) return { ok: true };
+  if (!input.active && input.kind === "fund" && item.isRestricted) {
+    const { funds } = await fundSummary(repos, input.orgId, await fundInfos(repos, input.orgId));
+    const left = funds.find((f) => f.id === input.id)?.remainingCents ?? 0;
+    if (left !== 0)
+      throw new Error(
+        `${item.name} still holds ${formatCents(left)}. Release it before archiving the fund.`,
+      );
+  }
+  await repos.catalog.setActive(input.orgId, input.kind, input.id, input.active, {
+    orgId: input.orgId,
+    userId: input.userId,
+    action: input.active ? "restore" : "archive",
+    entity: input.kind,
+    entityId: input.id,
+    after: { name: item.name, active: input.active },
+  });
+  return { ok: true };
 }
