@@ -154,37 +154,61 @@ function makeCreate(kind: Kind, extraSchema?: z.ZodRawShape) {
     });
 }
 
-/** Lists hide archived items unless asked, so pickers only offer what is in use. */
-function makeList(table: CrudTable) {
-  return createServerFn({ method: "GET" })
-    .middleware([requireSupabaseAuth])
-    .validator((input) => orgInput.parse(input))
-    .handler(async ({ data, context }) => {
-      let q = context.supabase.from(table).select("*").eq("org_id", data.orgId).order("name");
-      if (!data.includeArchived)
-        q = table === "projects" ? q.neq("status", "archived") : q.eq("is_active", true);
-      const { data: rows, error } = await q;
-      if (error) throw new Error(error.message);
-      return (rows ?? []).map((r) => ({
-        ...r,
-        is_active: "is_active" in r ? (r.is_active as boolean) : r.status !== "archived",
-      }));
-    });
-}
+// Lists hide archived items unless asked, so pickers only offer what is in use.
+const listCategoriesCloud = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("categories").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+const listTagsCloud = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("tags").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+const listFundsCloud = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("funds").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.eq("is_active", true);
+    const { data: rows, error } = await q.order("name");
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+const listProjectsCloud = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("projects").select("*").eq("org_id", data.orgId);
+    if (!data.includeArchived) q = q.neq("status", "archived");
+    const { data: rows, error } = await q.order("name");
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({ ...r, is_active: r.status !== "archived" }));
+  });
 
-export const listCategories = desktopAware("listCategories", makeList("categories"));
+export const listCategories = desktopAware("listCategories", listCategoriesCloud);
 export const createCategory = desktopAware(
   "createCategory",
   makeCreate("category", { type: z.enum(["revenue", "expense"]).default("expense") }),
 );
-export const listTags = desktopAware("listTags", makeList("tags"));
+export const listTags = desktopAware("listTags", listTagsCloud);
 export const createTag = desktopAware("createTag", makeCreate("tag"));
-export const listProjects = desktopAware("listProjects", makeList("projects"));
+export const listProjects = desktopAware("listProjects", listProjectsCloud);
 export const createProject = desktopAware(
   "createProject",
   makeCreate("project", { budgetCents: z.number().int().min(0).default(0) }),
 );
-export const listFunds = desktopAware("listFunds", makeList("funds"));
+export const listFunds = desktopAware("listFunds", listFundsCloud);
 export const createFund = desktopAware(
   "createFund",
   makeCreate("fund", { isRestricted: z.boolean().default(false) }),
