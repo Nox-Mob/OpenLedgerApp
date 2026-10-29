@@ -292,6 +292,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           org_id: string
           type: Database["public"]["Enums"]["account_type"]
@@ -299,6 +300,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           org_id: string
           type?: Database["public"]["Enums"]["account_type"]
@@ -306,6 +308,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           org_id?: string
           type?: Database["public"]["Enums"]["account_type"]
@@ -430,6 +433,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           is_restricted: boolean
           name: string
           org_id: string
@@ -437,6 +441,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           is_restricted?: boolean
           name: string
           org_id: string
@@ -444,6 +449,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           is_restricted?: boolean
           name?: string
           org_id?: string
@@ -1061,18 +1067,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           org_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           org_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           org_id?: string
         }
