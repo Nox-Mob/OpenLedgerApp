@@ -135,6 +135,7 @@ export interface Project {
   orgId: Id;
   name: string;
   budgetCents: number;
+  /** "archived" hides the item from pickers; projects may also be "completed". */
   status: string;
 }
 

@@ -875,7 +875,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
           categoryType: kind === "category" ? r.type : null,
           isRestricted: kind === "fund" ? !!r.is_restricted : false,
           budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
-          status: r.status ?? "active",
+          status: kind === "project" ? (r.status ?? "active") : Number(r.is_active ?? 1) ? "active" : "archived",
         }));
       },
       async create(item, audit) {
@@ -904,6 +904,16 @@ export function createSupabaseRepositories(db: Db): Repositories {
             },
           ],
           entryOf(audit ?? { orgId, userId: "", action: "update", entity: "fund", entityId: fundId }),
+        );
+      },
+      async setActive(orgId, kind, id, active, audit) {
+        const values =
+          kind === "project" ? { status: active ? "active" : "archived" } : { is_active: active };
+        await auditedWrite(
+          sb,
+          orgId,
+          [{ table: CATALOG_TABLE[kind], op: "update", values, match: { id }, minRows: 1 }],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: kind, entityId: id }),
         );
       },
     },

@@ -171,4 +171,12 @@ WHEN EXISTS (SELECT 1 FROM entries e JOIN transactions t ON t.id = e.transaction
 BEGIN SELECT RAISE(ABORT, 'a fund with transactions cannot change restriction'); END;
 `,
   },
+  {
+    version: 5,
+    sql: `
+ALTER TABLE categories ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE tags ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE funds ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;
+`,
+  },
 ];
