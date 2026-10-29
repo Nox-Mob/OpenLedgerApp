@@ -1,6 +1,9 @@
 # OpenLedgerApp
+
 #### !! OpenLedgerApp is Pre-Release Software. OpenLedgerApp is Partially AI-Generated Software !!
+
 ---
+
 Open-source, self-hostable double-entry accounting for very small businesses and nonprofits.
 
 - Double-entry is enforced twice: in the app and again by a database trigger (every posted transaction needs at least 2 entries that sum to zero, with at least one debit and one credit).
