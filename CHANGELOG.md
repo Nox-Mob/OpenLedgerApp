@@ -3,6 +3,7 @@
 Notable changes to OpenLedgerApp are recorded here. This project follows the structure of Keep a Changelog. Pre-1.0 software remains under active development.
 
 ## [Unreleased]
+- Funds, categories, tags and projects can be archived and restored, on the web and desktop. Typing an archived name offers to restore it instead of making a duplicate.
 
 ### Added
 
