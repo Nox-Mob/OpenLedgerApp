@@ -11,7 +11,6 @@ import { assertCan } from "./permissions";
 import type { Db } from "./db";
 import { nameField } from "./validation";
 import { duplicateName } from "./domain/accounts";
-import { toColumns } from "./columns";
 
 /** Names are unique per organization, ignoring case and extra spaces. */
 async function assertNameAvailable(
