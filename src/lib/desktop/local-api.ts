@@ -34,6 +34,15 @@ const me = LOCAL_USER_ID;
 
 type OrgIn = { orgId: Id };
 
+async function catalogRows(
+  repos: Repositories,
+  d: OrgIn & { includeArchived?: boolean },
+  kind: "category" | "tag" | "fund" | "project",
+) {
+  const rows = await repos.catalog.list(d.orgId, kind);
+  return d.includeArchived ? rows : rows.filter((c) => !catalog.isArchived(c));
+}
+
 async function orgOf(repos: Repositories, orgId: Id) {
   const org = await repos.orgs.get(orgId);
   if (!org) throw new Error("Organization not found.");
@@ -191,34 +200,42 @@ const HANDLERS: Record<string, Handler> = {
   ) => ledger.postOpeningBalance(repos, { ...d, userId: me }),
   // ---------- Categories, tags, funds and projects ----------
   // Rows use the same field names the cloud lists return, so pages need no desktop branch.
-  listCategories: async (repos, d: OrgIn) =>
-    (await repos.catalog.list(d.orgId, "category")).map((c) => ({
+  listCategories: async (repos, d: OrgIn & { includeArchived?: boolean }) =>
+    (await catalogRows(repos, d, "category")).map((c) => ({
       id: c.id,
       org_id: c.orgId,
       name: c.name,
       type: c.categoryType,
+      is_active: c.status !== "archived",
     })),
-  listTags: async (repos, d: OrgIn) =>
-    (await repos.catalog.list(d.orgId, "tag")).map((c) => ({
+  listTags: async (repos, d: OrgIn & { includeArchived?: boolean }) =>
+    (await catalogRows(repos, d, "tag")).map((c) => ({
       id: c.id,
       org_id: c.orgId,
       name: c.name,
+      is_active: c.status !== "archived",
     })),
-  listFunds: async (repos, d: OrgIn) =>
-    (await repos.catalog.list(d.orgId, "fund")).map((c) => ({
+  listFunds: async (repos, d: OrgIn & { includeArchived?: boolean }) =>
+    (await catalogRows(repos, d, "fund")).map((c) => ({
       id: c.id,
       org_id: c.orgId,
       name: c.name,
       is_restricted: c.isRestricted,
+      is_active: c.status !== "archived",
     })),
-  listProjects: async (repos, d: OrgIn) =>
-    (await repos.catalog.list(d.orgId, "project")).map((p) => ({
+  listProjects: async (repos, d: OrgIn & { includeArchived?: boolean }) =>
+    (await catalogRows(repos, d, "project")).map((p) => ({
       id: p.id,
       org_id: p.orgId,
       name: p.name,
       budget_cents: p.budgetCents,
       status: p.status,
+      is_active: p.status !== "archived",
     })),
+  setCatalogActive: async (
+    repos,
+    d: OrgIn & { kind: "category" | "tag" | "fund" | "project"; id: Id; active: boolean },
+  ) => catalog.setCatalogActive(repos, { ...d, userId: me }),
   createCategory: async (repos, d: OrgIn & { name: string; type?: "revenue" | "expense" }) =>
     catalog.createCatalogItem(repos, { ...d, userId: me, kind: "category", categoryType: d.type }),
   createTag: async (repos, d: OrgIn & { name: string }) =>

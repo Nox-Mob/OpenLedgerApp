@@ -20,6 +20,7 @@
 - Audit rows: change + history in one DB transaction: post/void_transaction_atomic RPCs, else audited_write (src/lib/audited-write.ts). writeAudit() only for event-only history (e.g. backup export). Users can't INSERT audit_log.
 - Org data: requireSupabaseAuth + assertCan + member RLS; settings/accounts admin-only.
 - Terminology is presentation-only; reports/PDFs use org level only.
+- Catalog archive: categories/tags/funds archive via is_active, projects via status='archived'; names stay unique across archived rows, so create returns {ok:false, archived} (UI offers restore) instead of a duplicate; restricted funds with money left can't be archived.
 - Accounts: catalog-based; delete only if never used (domain/accounts.ts + DB trigger), otherwise archive. Names unique per org ignoring case/spaces (DB trigger backs it up).
 - Dates YYYY-MM-DD in org.timezone; never toISOString.
 - Reports: pure math; retained earnings derived; year-end close is virtual (no closing tx; legacy source='closing' excluded).

@@ -113,6 +113,13 @@
       "when": 1793148233767,
       "tag": "0015_templates_recurring_budget_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793233242558,
+      "tag": "0016_catalog_archive_flags",
+      "breakpoints": true
     }
   ]
 }

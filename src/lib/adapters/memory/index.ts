@@ -506,6 +506,17 @@ export function createMemoryRepositories(s: MemoryStore = createMemoryStore()): 
         s.catalog.set(fundId, { ...f, isRestricted });
         afterAudit(audit);
       },
+      async setActive(orgId, kind, id, active, audit) {
+        const all = await this.list(orgId, kind);
+        const item = all.find((c) => c.id === id);
+        if (!item) throw new Error("Not found.");
+        guardAudit(audit);
+        const status = active ? "active" : "archived";
+        s.catalog.set(id, { ...item, status });
+        const p = s.projects.get(id);
+        if (p) s.projects.set(id, { ...p, status });
+        afterAudit(audit);
+      },
     },
     pledges: {
       async list(orgId) {

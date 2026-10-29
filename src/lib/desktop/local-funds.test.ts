@@ -77,6 +77,72 @@ describe.each(adapters)("desktop funds and labels (%s)", (_name, make) => {
     expect(await call<unknown[]>(repos, "listFunds", { orgId })).toHaveLength(1);
   });
 
+  it.each([
+    ["category", "Category", "Categories"],
+    ["tag", "Tag", "Tags"],
+    ["fund", "Fund", "Funds"],
+    ["project", "Project", "Projects"],
+  ])(
+    "archives a %s, hides it, and offers to restore it when the name is re-entered",
+    async (kind, one, many) => {
+      const repos = await make();
+      const { orgId } = await setup(repos);
+      const created = await call<{ ok: true; id: string }>(repos, `create${one}`, {
+        orgId,
+        name: "Old Label",
+      });
+      await call(repos, "setCatalogActive", { orgId, kind, id: created.id, active: false });
+      expect(await call<unknown[]>(repos, `list${many}`, { orgId })).toHaveLength(0);
+      expect(await call<unknown[]>(repos, `list${many}`, { orgId, includeArchived: true })).toEqual(
+        [expect.objectContaining({ name: "Old Label", is_active: false })],
+      );
+
+      // Same name, different case and spacing: nothing new is saved, the archived one is offered.
+      const again = await call<{ ok: boolean; archived?: { id: string } }>(repos, `create${one}`, {
+        orgId,
+        name: "  old   label ",
+      });
+      expect(again).toEqual({
+        ok: false,
+        archived: expect.objectContaining({ id: created.id, kind }),
+      });
+      expect(
+        await call<unknown[]>(repos, `list${many}`, { orgId, includeArchived: true }),
+      ).toHaveLength(1);
+
+      await call(repos, "setCatalogActive", { orgId, kind, id: created.id, active: true });
+      expect(await call(repos, `list${many}`, { orgId })).toEqual([
+        expect.objectContaining({ id: created.id, is_active: true }),
+      ]);
+      // An active name is still a plain duplicate.
+      await expect(call(repos, `create${one}`, { orgId, name: "Old Label" })).rejects.toThrow();
+    },
+  );
+
+  it("won't archive a restricted fund that still holds money", async () => {
+    const repos = await make();
+    const { orgId, cash, gifts } = await setup(repos);
+    const { id } = await call<{ id: string }>(repos, "createFund", {
+      orgId,
+      name: "Roof Fund",
+      isRestricted: true,
+    });
+    await call(repos, "createTransaction", {
+      orgId,
+      transactionDate: "2026-10-01",
+      description: "Roof gift",
+      source: "manual",
+      idempotencyKey: "roof-1",
+      entries: [
+        { accountId: cash, amountCents: 2500 },
+        { accountId: gifts, amountCents: -2500, fundId: id },
+      ],
+    });
+    await expect(
+      call(repos, "setCatalogActive", { orgId, kind: "fund", id, active: false }),
+    ).rejects.toThrow(/still holds/);
+  });
+
   it("tags transactions with funds, filters by fund and locks restriction once used", async () => {
     const repos = await make();
     const { orgId, cash, gifts } = await setup(repos);

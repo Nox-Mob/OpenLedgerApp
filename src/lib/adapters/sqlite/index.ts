@@ -824,7 +824,12 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
           categoryType: kind === "category" ? r.type : null,
           isRestricted: kind === "fund" ? !!r.is_restricted : false,
           budgetCents: kind === "project" ? Number(r.budget_cents) : 0,
-          status: r.status ?? "active",
+          status:
+            kind === "project"
+              ? (r.status ?? "active")
+              : Number(r.is_active ?? 1)
+                ? "active"
+                : "archived",
         }));
       },
       async create(item, audit) {
@@ -865,6 +870,22 @@ export function createSqliteRepositories(db: SqlDriver): Repositories {
             [isRestricted ? 1 : 0, fundId, orgId],
           );
           if (r.rowsAffected === 0) throw new Error("Fund not found.");
+        });
+      },
+      async setActive(orgId, kind, id, active, audit) {
+        await audited(audit, async () => {
+          const r =
+            kind === "project"
+              ? await db.execute("UPDATE projects SET status = ? WHERE id = ? AND org_id = ?", [
+                  active ? "active" : "archived",
+                  id,
+                  orgId,
+                ])
+              : await db.execute(
+                  `UPDATE ${CATALOG_TABLE[kind]} SET is_active = ? WHERE id = ? AND org_id = ?`,
+                  [active ? 1 : 0, id, orgId],
+                );
+          if (!r.rowsAffected) throw new Error("Not found.");
         });
       },
     },
