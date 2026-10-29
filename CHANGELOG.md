@@ -4,6 +4,8 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-28
+
 ### Added
 
 - Funds, categories, tags and projects can be archived and restored, on the web and desktop. Typing an archived name offers to restore it instead of making a duplicate. A restricted fund that still holds money can't be archived (desktop database version 5).
