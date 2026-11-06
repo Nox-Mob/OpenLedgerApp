@@ -3,6 +3,7 @@ import { BookOpen, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LEGAL_CONFIG } from "@/lib/legal";
 
 export function WebsiteShell({ children }: { children: ReactNode }) {
   return (
@@ -40,7 +41,7 @@ export function WebsiteShell({ children }: { children: ReactNode }) {
               <BookOpen className="h-4 w-4 text-primary" />
               OpenLedgerApp
             </p>
-            <p className="mt-2 text-muted-foreground">A project by Alex Weeks Home Lab.</p>
+            <p className="mt-2 text-muted-foreground">A project by {LEGAL_CONFIG.operatorName}.</p>
           </div>
           <div className="flex flex-wrap items-start gap-x-5 gap-y-3 text-muted-foreground">
             <Link to="/terms" className="hover:text-foreground">

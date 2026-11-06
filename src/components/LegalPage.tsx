@@ -25,7 +25,12 @@ export function LegalPage({
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-5 py-12">
-        <p className="text-sm font-medium text-primary">Effective {LEGAL_CONFIG.effectiveDate}</p>
+        <p className="text-sm font-medium text-primary">
+          Effective {LEGAL_CONFIG.effectiveDate} · Last updated {LEGAL_CONFIG.lastUpdatedDate}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Operating organization: {LEGAL_CONFIG.operatorName}
+        </p>
         <h1 className="mt-2 font-display text-4xl font-bold">{title}</h1>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">{summary}</p>
         <div className="mt-10 space-y-9 text-[15px] leading-7 text-foreground [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mt-2">

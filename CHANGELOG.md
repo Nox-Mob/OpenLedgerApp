@@ -4,6 +4,10 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 ## [Unreleased]
 
+### Changed
+
+- New Terms of Service and Privacy Policy, effective November 6, 2026. OpenLedgerApp is now operated by OpenAppHub. Signed-in users are asked to accept the new versions once.
+
 ## [0.1.1] - 2026-10-28
 
 ### Added
