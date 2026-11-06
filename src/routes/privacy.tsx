@@ -90,8 +90,8 @@ function PrivacyPage() {
         </p>
         <p>
           Customer Organizations may maintain separate privacy policies or notices governing their
-          own organizational activities. Users should consult their organization regarding
-          questions about the collection or use of organizational information.
+          own organizational activities. Users should consult their organization regarding questions
+          about the collection or use of organizational information.
         </p>
       </section>
 
@@ -122,7 +122,9 @@ function PrivacyPage() {
             reconciliations, budgets, funds, projects, pledges, templates, reports, and audit
             history.
           </li>
-          <li>Documents, files, attachments, and other information submitted by authorized Users.</li>
+          <li>
+            Documents, files, attachments, and other information submitted by authorized Users.
+          </li>
         </ul>
         <h3>3.3 User-Provided Information</h3>
         <ul>
@@ -243,8 +245,8 @@ function PrivacyPage() {
         <p>
           We may update or replace service providers as operational needs change. Material changes
           to our information-processing practices will be reflected in this Policy where
-          appropriate. A current list of relevant service providers and their processing purposes
-          is available on request where required by applicable law or agreement.
+          appropriate. A current list of relevant service providers and their processing purposes is
+          available on request where required by applicable law or agreement.
         </p>
         <h3>Optional AI-assisted PDF reading</h3>
         <p>
@@ -272,7 +274,9 @@ function PrivacyPage() {
           We do not use cookies for advertising, targeted advertising, cross-site advertising
           tracking, or the sale of Personal Information.
         </p>
-        <p>We do not authorize advertising networks to place tracking cookies within the Application.</p>
+        <p>
+          We do not authorize advertising networks to place tracking cookies within the Application.
+        </p>
         <p>
           Where applicable law requires consent for non-essential cookies or similar technologies,
           we will obtain that consent before using them.
@@ -355,7 +359,10 @@ function PrivacyPage() {
           and functionality, safeguards may include:
         </p>
         <ul>
-          <li>Authentication and authorization controls, including optional multi-factor authentication.</li>
+          <li>
+            Authentication and authorization controls, including optional multi-factor
+            authentication.
+          </li>
           <li>Role-based access restrictions.</li>
           <li>Secure communication and data transmission.</li>
           <li>Database access controls and organization-level data separation.</li>
@@ -411,7 +418,9 @@ function PrivacyPage() {
           Authorized Users and Customer Organizations may request the deletion of information
           associated with their accounts, subject to applicable permissions and legal requirements.
         </p>
-        <p>Account closure or a valid deletion request will initiate the applicable deletion process.</p>
+        <p>
+          Account closure or a valid deletion request will initiate the applicable deletion process.
+        </p>
         <p>
           We will take reasonable steps to remove the requested information from active production
           systems in accordance with our established deletion procedures.
@@ -581,8 +590,8 @@ function PrivacyPage() {
           </li>
         </ul>
         <p>
-          For privacy requests, please include your organization name, relevant account
-          information, and a description of your request.
+          For privacy requests, please include your organization name, relevant account information,
+          and a description of your request.
         </p>
         <p>
           We may request additional information to verify your identity or authority before acting

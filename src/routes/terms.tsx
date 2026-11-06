@@ -127,8 +127,8 @@ function TermsPage() {
           accessed without authorization.
         </p>
         <p>
-          Customer Organizations are responsible for determining which individuals are authorized
-          to access their organizational information and for assigning appropriate permissions.
+          Customer Organizations are responsible for determining which individuals are authorized to
+          access their organizational information and for assigning appropriate permissions.
         </p>
         <p>
           We may restrict, suspend, or revoke access when reasonably necessary to protect the
@@ -155,8 +155,7 @@ function TermsPage() {
         </p>
         <p>
           Our role is limited to providing the technical infrastructure and services necessary to
-          store, maintain, process, secure, and make that information available to authorized
-          Users.
+          store, maintain, process, secure, and make that information available to authorized Users.
         </p>
         <p>
           We do not acquire independent rights to exploit, commercialize, publish, sell, or
@@ -165,8 +164,8 @@ function TermsPage() {
           applicable law.
         </p>
         <p>
-          Users and Customer Organizations are responsible for ensuring that they have the
-          necessary rights and permissions to submit information to the Application.
+          Users and Customer Organizations are responsible for ensuring that they have the necessary
+          rights and permissions to submit information to the Application.
         </p>
         <p>
           Nothing in these Terms transfers intellectual property ownership in User Content or
@@ -183,7 +182,9 @@ function TermsPage() {
         </p>
         <ul>
           <li>Provide the features and functionality of the Application.</li>
-          <li>Make information available to authorized Users within the appropriate organization.</li>
+          <li>
+            Make information available to authorized Users within the appropriate organization.
+          </li>
           <li>Maintain, troubleshoot, support, and secure the Application.</li>
           <li>Create and maintain backups and operational records as reasonably necessary.</li>
           <li>Comply with applicable legal obligations.</li>
@@ -212,10 +213,10 @@ function TermsPage() {
           <li>
             Use the Application to harass, threaten, defraud, or otherwise harm another person.
           </li>
+          <li>Attempt to circumvent authentication, authorization, or other security controls.</li>
           <li>
-            Attempt to circumvent authentication, authorization, or other security controls.
+            Access, collect, or disclose another organization's information without authorization.
           </li>
-          <li>Access, collect, or disclose another organization's information without authorization.</li>
           <li>
             Reverse engineer, exploit, or interfere with the Application except where such
             restrictions are prohibited by applicable law or permitted by the open-source license.
@@ -313,9 +314,7 @@ function TermsPage() {
         </p>
         <p>We may preserve, access, use, or disclose information when reasonably necessary to:</p>
         <ul>
-          <li>
-            Comply with applicable laws, regulations, and legally enforceable obligations.
-          </li>
+          <li>Comply with applicable laws, regulations, and legally enforceable obligations.</li>
           <li>
             Respond to valid subpoenas, warrants, court orders, or other lawful governmental
             demands.
@@ -358,7 +357,9 @@ function TermsPage() {
           We may modify, update, or discontinue portions of the Application as necessary for
           operational, technical, security, or legal reasons.
         </p>
-        <p>We will make reasonable efforts to provide notice of material changes when practicable.</p>
+        <p>
+          We will make reasonable efforts to provide notice of material changes when practicable.
+        </p>
       </section>
 
       <section>
@@ -411,8 +412,8 @@ function TermsPage() {
       <section>
         <h2>15. Data Deletion and Retention</h2>
         <p>
-          Customer Organizations and authorized Users may request deletion of information
-          associated with their accounts, subject to their permissions and applicable law.
+          Customer Organizations and authorized Users may request deletion of information associated
+          with their accounts, subject to their permissions and applicable law.
         </p>
         <p>
           When an account is closed or deletion is requested, we will take reasonable steps to
