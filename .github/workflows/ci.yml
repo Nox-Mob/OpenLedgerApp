@@ -29,8 +29,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: .env holds public keys only
-        # .env is tracked on purpose (Lovable needs it). It may only contain publishable values.
+      - name: Env files untracked and free of private values
+        # Only .env.example (placeholders) and .env.desktop (public build flag) may be tracked.
         run: node scripts/ci/check-env.mjs
       - name: Direct database writes (server functions must use shared code)
         # Tracked on its own so a new direct write shows up as a named failure.

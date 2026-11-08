@@ -31,7 +31,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files (never commit real values)
+# Environment files (never commit real values; SHARED-SPEC §7.1)
+.env
 .env.*
 !.env.example
 !.env.desktop

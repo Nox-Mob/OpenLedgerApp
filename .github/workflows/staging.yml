@@ -1,0 +1,54 @@
+# Staging deploy (docs/SHARED-SPEC.md §10.2): every push to main migrates and seeds the
+# staging database, then deploys the Worker to ledger-staging.openapphub.org.
+# Production never deploys from here; see release.yml (owner-triggered).
+# Until staging exists and Ledger runs on the ledger schema, this job skips with a notice.
+name: Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate, seed and deploy staging
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      HAS_DB: ${{ secrets.STAGING_DATABASE_URL != '' }}
+      HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preflight
+        id: preflight
+        run: bash scripts/deploy/preflight.sh staging
+      - uses: actions/setup-node@v4
+        if: steps.preflight.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.preflight.outputs.ready == 'true'
+        run: npm ci
+      - name: Migrate staging (with demo seed)
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: node scripts/migrate.mjs --seed
+      - name: Build for staging
+        if: steps.preflight.outputs.ready == 'true'
+        run: |
+          node scripts/deploy/build-env.mjs staging >> "$GITHUB_ENV"
+          npm run build
+      - name: Deploy Worker (staging)
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.151.2 deploy --config wrangler.jsonc --env staging

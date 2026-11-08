@@ -1,0 +1,59 @@
+// OpenLedgerApp Worker (docs/SHARED-SPEC.md §10). Deployed only by the workflows:
+//   staging    — .github/workflows/staging.yml on push to main  → ledger-staging.openapphub.org
+//   production — .github/workflows/release.yml, owner-triggered → ledger.openapphub.org
+// `vars` are PUBLIC (VITE_* are also baked into the browser bundle at build time by
+// scripts/deploy/build-env.mjs). Secrets are Worker secrets, never here:
+//   npx wrangler secret put BACKUP_SIGNING_SEED --config wrangler.jsonc --env <staging|production>
+// Hosted Ledger has no service-role key (SHARED-SPEC §7.2).
+{
+  "name": "openledgerapp",
+  // The build (nitro, cloudflare preset) writes the bundled Worker to .output/. It also writes a
+  // redirected config, but wrangler rejects that when it has envs, so the workflows always pass
+  // `--config wrangler.jsonc`. no_bundle + rules match what nitro generates.
+  "main": ".output/server/index.mjs",
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.mjs", "**/*.js"] }],
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".output/public", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  // No top-level vars: wrangler doesn't inherit them into envs, so each env lists everything.
+  "env": {
+    "staging": {
+      "name": "openledgerapp-staging",
+      "routes": [{ "pattern": "ledger-staging.openapphub.org", "custom_domain": true }],
+      "vars": {
+        "VITE_SUPABASE_URL": "https://dnsqxiiexkdokgebysrt.supabase.co",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "<staging publishable key: Supabase → Project Settings → API Keys>",
+        "VITE_SUPABASE_PROJECT_ID": "dnsqxiiexkdokgebysrt",
+        "SUPABASE_URL": "https://dnsqxiiexkdokgebysrt.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "<staging publishable key: Supabase → Project Settings → API Keys>",
+        "VITE_HOSTED": "true",
+        "VITE_APP_ID": "ledger",
+        "VITE_APP_SCHEMA": "ledger",
+        "VITE_HUB_URL": "https://staging.openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://charter-staging.openapphub.org\",\"board\":\"https://board-staging.openapphub.org\",\"ledger\":\"https://ledger-staging.openapphub.org\"}",
+        "VITE_DOCS_URL": "https://docs.openapphub.org"
+      }
+    },
+    "production": {
+      "name": "openledgerapp-production",
+      "routes": [{ "pattern": "ledger.openapphub.org", "custom_domain": true }],
+      "vars": {
+        "VITE_SUPABASE_URL": "https://nxungwtxnctcqolfshcr.supabase.co",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "<production publishable key: Supabase → Project Settings → API Keys>",
+        "VITE_SUPABASE_PROJECT_ID": "nxungwtxnctcqolfshcr",
+        "SUPABASE_URL": "https://nxungwtxnctcqolfshcr.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "<production publishable key: Supabase → Project Settings → API Keys>",
+        "VITE_HOSTED": "true",
+        "VITE_APP_ID": "ledger",
+        "VITE_APP_SCHEMA": "ledger",
+        "VITE_HUB_URL": "https://openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_SUITE_URLS": "{\"hub\":\"https://openapphub.org\",\"charter\":\"https://charter.openapphub.org\",\"board\":\"https://board.openapphub.org\",\"ledger\":\"https://ledger.openapphub.org\"}",
+        "VITE_DOCS_URL": "https://docs.openapphub.org"
+      }
+    }
+  }
+}

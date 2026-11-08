@@ -211,6 +211,10 @@ The app is server-rendered: pages **and** server functions run on the server, so
 4. Leave `VITE_ALLOW_DEMO_LOGIN` unset.
 5. Run the release checklist below.
 
+### Hosted edition (OpenAppHub)
+
+The hosted edition at `ledger.openapphub.org` runs as a Cloudflare Worker configured by `wrangler.jsonc` and shares one Supabase project with the other OpenAppHub apps (see `docs/SHARED-SPEC.md` and `docs/MIGRATION-NOTES.md`). Pushing to `main` deploys **staging** (`.github/workflows/staging.yml`); **production** deploys only when the owner runs the **Release** workflow, which applies migrations first and stops if they fail. Both refuse to deploy until the move to the shared database is finished. Self-hosters can ignore this section.
+
 ### Option A — a single server (small office, home lab)
 
 One Linux VM (1 vCPU / 1 GB RAM is enough for a handful of users) plus a hosted Supabase project.
