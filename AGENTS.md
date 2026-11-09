@@ -11,7 +11,87 @@
 
 <!-- LOVABLE:END -->
 
-# AGENTS.md — OpenLedgerApp
+# AGENTS.md — OpenLedgerApp (Nox-Mob/OpenLedgerApp)
+
+## Suite migration (v2)
+
+**Read `docs/SHARED-SPEC.md` (v2) first.** Your step plan, inventory and status are `docs/MIGRATION-NOTES.md` (§7 is the plan; §7.1 lists which codebase rules below are replaced and in which step). This section gives the owner's answers and the changes v2 makes to the plan.
+
+App ID `ledger` · schema `ledger` · hosted at `ledger.openapphub.org` (staging `ledger-staging.openapphub.org`) · package manager **npm**.
+
+Ledger's backend today is the Lovable Cloud project `pzzmmltmghmgfwhgzlvl`. It's built fresh in the shared project; nothing is copied. The Lovable project is retired at the end.
+
+The **desktop edition** (Tauri + SQLite) keeps working throughout and stays free for one person ("Ledger Solo"); it's unaffected by the schema move except for keeping its schema in parity (D13).
+
+---
+
+### Owner answers to your notes (§6)
+
+| Your item | Answer |
+|---|---|
+| D1 inputs | Spec §0.1 is filled in. **Design is a full refresh** for every app (spec §9): Ledger isn't a reference app; restyle in step 14 once the hub's direction is approved. |
+| D2 hosting, service role | **Workers** (spec §10). Service-role use in hosted mode: **none** (spec §7.2). Invites, org deletion and account deletion move to the hub; history writes go fully through `ledger.audited_write`; restore creates the org with `public.create_organization()` as the caller. Self-hosted-only features may keep the service role behind `VITE_HOSTED=false`. |
+| D3 treasurer | `ledger.member_roles` overlay, as proposed (spec §3.5). |
+| D4 MFA | Keep `ledger.mfa_ok` in Ledger's policies, as proposed. |
+| D5 sessions | As proposed: shared cookie client in the browser; server functions keep the bearer token. |
+| D6 deletion | Hosted: org and account deletion in the hub. Self-hosted: keep Ledger's, built on `public.delete_organization`; `deleted_organizations` self-hosted only. |
+| D7 legal | Hosted: the hub records acceptance; Ledger keeps `ledger.legal_acceptances` for self-hosted and Ledger-specific consent. |
+| D8 AI PDF import | **Turn it off** (hide the option, refuse on the server) until the owner picks a provider. Then add it with a server-only key. Google sign-in: plain Supabase OAuth (self-hosted), the hub (hosted). |
+| D9–D13 | Accepted as proposed. |
+| Invitations | **Core, handled by the hub** (spec §4.3). `org_invites` isn't recreated. Ledger keeps an `/invite/<token>` page on `shared/ui/InvitationPage` and adds `ledger.on_invitation_accepted(p_invitation_id)` to set the treasurer overlay from `app_payload`. Expiry becomes the core 14 days (it was 7). |
+| Ownership | **Core, transferred in the hub** (spec §4.4). `organizations.created_by` ownership is replaced by the core owner. Self-hosted: Ledger's transfer screen calls `public.transfer_ownership`. |
+| Demo | **Staging only** (spec §11). Port `supabase/seed/demo.sql` to `db/seed/0001_ledger_demo.sql`, keeping its refusal to run on real data; demo addresses on `@demo.openapphub.org`. |
+
+### Changes to your plan (§7)
+
+- **Step 3 (hygiene):** also add `staging.yml` and `release.yml` (spec §10.2) and switch off any build that deploys production from `main`.
+- **Step 4 (vendor):** retire the old migration paths and point `check-migrations.mjs` at `db/` (spec §3.3), in the same PR.
+- **Step 5 (baseline):** write helpers always include `public.can_write(org_id,'ledger')` and `ledger.mfa_ok(org_id)`; `ledger.org_settings`, `ledger.user_preferences`, `ledger.member_roles`; `ledger.on_invitation_accepted`. If Ledger ever stores files, the bucket is `ledger-files`.
+- **Step 10 (hosted vs self-hosted):** hosted links out to the hub for sign-in, org creation and deletion, core roles, invitations, ownership and account deletion. The treasurer overlay stays in Ledger. Hosted `/` → `/ledger`.
+- **Step 14 (design):** adopt the new shared design in the web **and** desktop builds. Separate PRs, before/after screenshots, behaviour and visible text unchanged unless the owner approves.
+
+### Phase 5 — Documentation (steps 15–16)
+
+Docs live in `Nox-Mob/OpenAppHub-docs` under `src/content/docs/ledger/` (spec §12).
+
+15. **Help links** (`src/config/help.ts`). In the desktop edition, links open in the system browser.
+
+    | Screen | Docs path |
+    |---|---|
+    | User menu → Help | `ledger/` |
+    | Onboarding | `ledger/start/setting-up/` |
+    | Wording setting | `ledger/start/wording/` |
+    | Import | `ledger/everyday/importing/` |
+    | Statement check | `ledger/everyday/statement-checks/` |
+    | Settings → Close the books | `ledger/reports/closing/` |
+    | Settings → Exports (backup and restore) | `ledger/admin/backups-and-exports/` |
+    | Settings → Security | `ledger/admin/security/` |
+    | Settings → Users & roles | `ledger/admin/members-and-roles/` |
+    | Desktop "isn't available in the desktop app yet" messages | `ledger/start/desktop-app/` |
+
+16. **Docs PR:**
+    - `ledger/admin/members-and-roles.md`: core roles plus Treasurer; invitations (14 days) and ownership in the hub when hosted.
+    - `ledger/everyday/importing.md`, `ledger/help/troubleshooting.md`, `known-limits.md`, `faq.md`: **PDF statement import is off** until a provider is chosen.
+    - `ledger/start/editions.md` and `ledger/index.md`: hosted status; Ledger Solo is the free desktop edition.
+    - `ledger/admin/security.md`: account deletion in the hub when hosted.
+    - `ledger/help/self-hosting.md`: new setup; remove `LOVABLE_API_KEY`.
+    - Any screen renamed or moved by the restyle.
+
+From then on, every step toward desktop parity updates `ledger/start/desktop-app.md` and `ledger/help/known-limits.md`.
+
+### Rules for this repo
+
+- Never write to `public`, `billing`, `hub`, `ops` or another app's schema.
+- Financial calculations in SQL or integer arithmetic. Never sum floats.
+- Posted entries stay immutable; corrections are voids and reversals.
+
+### Done when
+
+SHARED-SPEC §13 is satisfied; Ledger runs on the shared project; a hub sign-in carries over to `ledger.openapphub.org` in the same org; the desktop edition still passes its tests; and a self-hosted build runs on an empty database with only Ledger's migrations and `db/core`.
+
+---
+
+## Codebase rules (in force until `docs/MIGRATION-NOTES.md` §7.1 says a step replaces one)
 
 - Double-entry: ≥2 entries, sum=0, both signs (deferred trigger; void exempt). amount_cents >0 debit, <0 credit.
 - DB-enforced immutability: transactions only posted→void; entries only reconciliation_id; bank rows are evidence (FITID/hash+row_seq; link must match amount/account).
