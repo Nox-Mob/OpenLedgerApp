@@ -29,6 +29,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Vendored shared code matches OpenAppHub
+        run: node scripts/check-shared.mjs
       - name: .env holds public keys only
         # .env is tracked on purpose (Lovable needs it). It may only contain publishable values.
         run: node scripts/ci/check-env.mjs

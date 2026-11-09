@@ -1,0 +1,37 @@
+# shared/
+
+Canonical shared code for the OpenAppHub suite (SHARED-SPEC §8). Apps vendor a read-only copy;
+never edit it in an app repo. Change it here, bump `VERSION`, then sync it into each app
+(`scripts/sync-shared.mjs`, step 8).
+
+| Path                  | What                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `design/`             | Tokens, Tailwind mapping and preset, `DESIGN.md` (read it first)                                                                                                   |
+| `ui/`                 | `AppShell`, `SuiteSwitcher`, `OrgSwitcher`, `BillingBanner`, `HelpLink`, `InvitationPage`, `ThemeToggle`, `CookieConsent`, `CookieTable` (import from `shared/ui`) |
+| `format.ts`           | The suite's money and date formats: use these, never local helpers                                                                                                 |
+| `theme.ts`            | Light / dark / system, shared across the suite (saved only with consent)                                                                                           |
+| `consent.ts`          | Cookie consent: categories, the catalogue of every cookie, `hasConsent()`, `openCookieSettings()`                                                                  |
+| `supabase/client.ts`  | Cookie-session browser client (§4.1)                                                                                                                               |
+| `supabase/hosted.ts`  | `isHosted()`, `hubUrl()`, `loginRedirect()`, `suiteUrls()`, cookie domain                                                                                          |
+| `supabase/org.ts`     | Current organization (`oah_org` cookie), `listMyOrgs()`                                                                                                            |
+| `supabase/billing.ts` | `getOrgBilling()` (feature-detected), access rule, banner wording                                                                                                  |
+| `docs.ts`             | Links into docs.openapphub.org                                                                                                                                     |
+| `apps.ts`             | App names, taglines and marks                                                                                                                                      |
+
+## Requirements in an app
+
+- React 19, Tailwind v4 with `design/tailwind.css` imported (see `DESIGN.md`), so Tailwind scans
+  `shared/` for classes.
+- `@supabase/supabase-js` and `@supabase/ssr`.
+- No icon library, no Radix: shared UI uses inline icons and plain elements, so it doesn't
+  depend on the apps' versions of those.
+- Everything renders under SSR (no `window` during render); `shared/ui/ssr.test.tsx` checks it.
+
+## Versions
+
+- `1.0.0`: design system, shared UI and helpers complete (AGENTS step 7).
+- `1.1.0`: cookie consent (banner, settings, cookie catalogue); the theme is saved only with consent.
+- `1.1.1`: migration runner comment only (the hub's billing migration is `0002_billing`).
+- `1.2.0`: core `0004_core_org_settings.sql` (organization time zone and currency; ownership
+  transfer only to active members, confirmed by typing their name); `getOrgPreferences()` in
+  `shared/supabase/org.ts`.
