@@ -1,0 +1,59 @@
+// OpenLedgerApp as a Cloudflare Worker: the OpenAppHub HOSTED edition only
+// (docs/SHARED-SPEC.md §10). Self-hosters don't need this file: see the README.
+//
+// The top level is PRODUCTION (ledger.openapphub.org). Cloudflare's Git integration
+// builds `main` with `npm run build:hosted` and deploys with
+// `npx wrangler deploy --config wrangler.jsonc`. Staging is `env.staging`
+// (`npm run build:hosted:staging`, `npx wrangler deploy --config wrangler.jsonc --env staging`).
+//
+// `vars` are PUBLIC: the VITE_* values are also built into the browser bundle
+// (scripts/deploy/build-env.mjs). Publishable keys are public by design.
+// Secrets are Worker secrets, never here: BACKUP_SIGNING_SEED.
+// Hosted Ledger has no service-role key (SHARED-SPEC §7.2).
+{
+  "name": "openledgerapp",
+  // The build (nitro, cloudflare preset) writes the bundled Worker to .output/.
+  "main": ".output/server/index.mjs",
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.mjs", "**/*.js"] }],
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".output/public", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "routes": [{ "pattern": "ledger.openapphub.org", "custom_domain": true }],
+  "vars": {
+    "VITE_SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EbrHHQxIvTGPgEgjEkkpDQ_FROfdRln",
+    "VITE_SUPABASE_PROJECT_ID": "ymlesgadawnjupnvgokd",
+    "SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EbrHHQxIvTGPgEgjEkkpDQ_FROfdRln",
+    "VITE_HOSTED": "true",
+    "VITE_APP_ID": "ledger",
+    "VITE_APP_SCHEMA": "ledger",
+    "VITE_HUB_URL": "https://openapphub.org",
+    "VITE_COOKIE_DOMAIN": ".openapphub.org",
+    "VITE_SUITE_URLS": "{\"hub\":\"https://openapphub.org\",\"charter\":\"https://charter.openapphub.org\",\"board\":\"https://board.openapphub.org\",\"ledger\":\"https://ledger.openapphub.org\"}",
+    "VITE_DOCS_URL": "https://docs.openapphub.org"
+  },
+  // Wrangler doesn't inherit top-level vars into an env, so staging lists everything.
+  "env": {
+    "staging": {
+      "name": "openledgerapp-staging",
+      "routes": [{ "pattern": "ledger-staging.openapphub.org", "custom_domain": true }],
+      "vars": {
+        "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+        "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
+        "VITE_SUPABASE_PROJECT_ID": "mbloxixlykmbuuoaprnx",
+        "SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
+        "VITE_HOSTED": "true",
+        "VITE_APP_ID": "ledger",
+        "VITE_APP_SCHEMA": "ledger",
+        "VITE_HUB_URL": "https://staging.openapphub.org",
+        "VITE_COOKIE_DOMAIN": ".openapphub.org",
+        "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://charter-staging.openapphub.org\",\"board\":\"https://board-staging.openapphub.org\",\"ledger\":\"https://ledger-staging.openapphub.org\"}",
+        "VITE_DOCS_URL": "https://docs.openapphub.org"
+      }
+    }
+  }
+}

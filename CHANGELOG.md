@@ -4,6 +4,16 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 ## [Unreleased]
 
+### Security
+
+- Every page and server response now carries security headers (content security policy limited to the app and its database, no framing, no content sniffing, strict referrer).
+
+### Changed
+
+- Deployment: the app is set up to run as a Cloudflare Worker for the OpenAppHub hosted edition (`wrangler.jsonc`, `npm run build:hosted`). Self-hosting is unchanged: `npm run build` with your own `.env`.
+- `.env` is no longer tracked. Copy `.env.example` to `.env` or `.env.local` and fill it in.
+- Installs no longer depend on Lovable's private package cache.
+
 ## [0.1.1] - 2026-10-28
 
 ### Added
