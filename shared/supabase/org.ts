@@ -78,3 +78,31 @@ export async function listMyOrgs(client: SupabaseClient): Promise<MyOrg[]> {
     .map((r) => ({ ...r.organizations!, role: r.role }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+export type OrgPreferences = { timeZone: string; currency: string };
+export const DEFAULT_ORG_PREFERENCES: OrgPreferences = { timeZone: "UTC", currency: "USD" };
+
+/**
+ * The org's time zone and currency (core 0004), for shared/format.ts. Falls back
+ * to UTC / USD when the columns aren't there yet (an older core) or on any error.
+ */
+export async function getOrgPreferences(
+  client: SupabaseClient,
+  orgId: string,
+): Promise<OrgPreferences> {
+  try {
+    const { data, error } = await client
+      .from("organizations")
+      .select("time_zone, currency")
+      .eq("id", orgId)
+      .maybeSingle();
+    const row = data as { time_zone?: unknown; currency?: unknown } | null;
+    if (error || !row) return DEFAULT_ORG_PREFERENCES;
+    return {
+      timeZone: typeof row.time_zone === "string" && row.time_zone ? row.time_zone : "UTC",
+      currency: typeof row.currency === "string" && row.currency ? row.currency : "USD",
+    };
+  } catch {
+    return DEFAULT_ORG_PREFERENCES;
+  }
+}

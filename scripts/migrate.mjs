@@ -12,7 +12,7 @@
 //   5. Skips recorded files; fails loudly if a recorded file's checksum changed.
 //   6. --seed also runs db/seed/*.sql (staging only; recorded under "<repo>:seed").
 //      --dry-run prints the plan. --skip <name> skips a migration by file name,
-//      with or without ".sql" (e.g. --skip 0001_billing for self-hosters).
+//      with or without ".sql" (e.g. --skip 0002_billing for self-hosters).
 //
 // The repo key defaults to package.json "name".
 

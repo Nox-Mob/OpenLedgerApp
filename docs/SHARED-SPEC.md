@@ -203,6 +203,16 @@ RLS on all of them.
 
 Also in 0002: `drop trigger if exists on_auth_user_created on auth.users;` then recreate it.
 
+**`0004_core_org_settings.sql`** (shared 1.2.0)
+
+| Item | Behaviour |
+|---|---|
+| `organizations.time_zone` (default `UTC`), `organizations.currency` (default `USD`, `^[A-Z]{3}$`) | The org's time zone and currency. Every app passes them to `shared/format.ts` (`getOrgPreferences()` in `shared/supabase/org.ts`, which falls back to UTC / USD) |
+| `set_organization_preferences(p_org, p_time_zone, p_currency)` | owner/admin; time zone must be in `pg_timezone_names`; currency upper-cased, three letters |
+| `ownership_transfer_candidates(p_org)` | now only **active** members: email confirmed and not banned |
+| `transfer_ownership(p_org, p_new_owner)` | now also requires an active new owner |
+| `transfer_ownership(p_org, p_new_owner, p_confirm)` | the form the hub uses: `p_confirm` must be the new owner's display name, or their email when they have none, ignoring case and surrounding spaces |
+
 **`0003_core_policies.sql`** (drop-if-exists, then create)
 
 | Table | select | insert | update | delete |
@@ -365,7 +375,7 @@ Owned by the hub, schema `billing` (not exposed).
 - **Trial:** an `after insert` trigger on `public.organizations` (in the hub's billing migration) creates a trialing subscription for all apps, 30 days. One trial per user: if `created_by` already had a trial, the new org starts `expired`.
 - **Member limit:** a trigger on `public.memberships` insert rejects inserts beyond `max_members` when billing is on. **It counts core memberships only**, so Charter portal members never count (§4.5).
 - `public.get_org_billing(p_org)`: definer RPC, requires `is_member(p_org)` **or** `charter.is_portal_member(p_org, null)` (resolved at run time), returns plan, status, dates and apps.
-- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0001_billing`).
+- The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0002_billing`). (The hub's own schema is `db/migrations/0001_hub.sql`, which applies first.)
 
 ---
 

@@ -31,3 +31,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
 
 - `1.0.0`: design system, shared UI and helpers complete (AGENTS step 7).
 - `1.1.0`: cookie consent (banner, settings, cookie catalogue); the theme is saved only with consent.
+- `1.1.1`: migration runner comment only (the hub's billing migration is `0002_billing`).
+- `1.2.0`: core `0004_core_org_settings.sql` (organization time zone and currency; ownership
+  transfer only to active members, confirmed by typing their name); `getOrgPreferences()` in
+  `shared/supabase/org.ts`.
