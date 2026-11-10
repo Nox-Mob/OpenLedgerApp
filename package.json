@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:hosted": "node scripts/deploy/build-env.mjs production > .env.production.local && vite build",
+    "build:hosted": "node scripts/deploy/build-env.mjs auto > .env.production.local && vite build",
     "build:hosted:staging": "node scripts/deploy/build-env.mjs staging > .env.production.local && vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",

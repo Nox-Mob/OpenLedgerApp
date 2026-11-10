@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain .mjs script without types
-import { buildEnv, stripJsonc } from "./build-env.mjs";
+import { resolveTarget, buildEnv, stripJsonc } from "./build-env.mjs";
 
 describe("deploy build env", () => {
   it("strips comments and trailing commas but keeps URLs inside strings", () => {
@@ -35,7 +35,11 @@ describe("deploy build env", () => {
     expect(JSON.parse(prod.vars.VITE_SUITE_URLS).ledger).toBe("https://ledger.openapphub.org");
     expect(JSON.parse(staging.vars.VITE_SUITE_URLS).hub).toBe("https://staging.openapphub.org");
     expect(prod.routes[0].pattern).toBe("ledger.openapphub.org");
-    expect(staging.routes[0].pattern).toBe("ledger-staging.openapphub.org");
+    // Staging is the production Worker's preview of the `staging` branch, not its own route.
+    expect(staging.routes).toBeUndefined();
+    expect(JSON.parse(staging.vars.VITE_SUITE_URLS).ledger).toBe(
+      "https://staging.ledger.staging.openapphub.org",
+    );
     for (const env of [prod, staging]) {
       expect(env.vars.VITE_HOSTED).toBe("true");
       expect(env.vars.VITE_APP_ID).toBe("ledger");
@@ -45,5 +49,15 @@ describe("deploy build env", () => {
       // Secrets never live in wrangler.jsonc (SHARED-SPEC §7.1).
       expect(Object.keys(env.vars).join(" ")).not.toMatch(/SERVICE_ROLE|SECRET|SEED|API_KEY/);
     }
+  });
+});
+
+describe("resolveTarget", () => {
+  it("builds main and local builds for production, other branches for staging", () => {
+    expect(resolveTarget("auto", {})).toBe("production");
+    expect(resolveTarget("auto", { WORKERS_CI_BRANCH: "main" })).toBe("production");
+    expect(resolveTarget("auto", { WORKERS_CI_BRANCH: "staging" })).toBe("staging");
+    expect(resolveTarget("auto", { WORKERS_CI_BRANCH: "claude/some-fix" })).toBe("staging");
+    expect(resolveTarget("production", { WORKERS_CI_BRANCH: "staging" })).toBe("production");
   });
 });

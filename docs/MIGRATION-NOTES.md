@@ -101,7 +101,7 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 
 - `package-lock.json` resolves every package from registry.npmjs.org (same integrity hashes), so `npm ci` works outside Lovable. This matters most for self-hosters.
 - `.env` is untracked; `.env.example` lists every variable; `scripts/ci/check-env.mjs` fails if an env file other than `.env.example` / `.env.desktop` is tracked.
-- `wrangler.jsonc` for the hosted edition: top level = production (`ledger.openapphub.org`, `openapphub-prod`), `env.staging` (`ledger-staging.openapphub.org`, `openapphub-staging`). `npm run build:hosted` / `build:hosted:staging` write the public `VITE_*` values from it before building (`scripts/deploy/build-env.mjs`). No `release.yml`, `staging.yml` or Cloudflare secrets.
+- `wrangler.jsonc` for the hosted edition: top level = production (`ledger.openapphub.org`, `openapphub-prod`), `env.staging` (`staging.ledger.staging.openapphub.org`, `openapphub-staging`). `npm run build:hosted` / `build:hosted:staging` write the public `VITE_*` values from it before building (`scripts/deploy/build-env.mjs`). No `release.yml`, `staging.yml` or Cloudflare secrets.
 - Security headers on every response (`src/lib/security-headers.ts`, `src/server.ts`).
 - Unused `cron-auth.ts` removed. The Lovable Vite wrapper, OAuth broker and `previewAuthStorage` stay until step 8 replaces the client.
 - **Self-hosting is unchanged:** `npm run build` with your own `.env`; `wrangler.jsonc` isn't used.
@@ -344,7 +344,7 @@ When convenient (needed before the first staging/production deploy, not before m
 3. Replace the four `<… publishable key …>` placeholders in `wrangler.jsonc` with the **publishable** keys of the staging (`dnsqxiiexkdokgebysrt`) and production (`nxungwtxnctcqolfshcr`) projects. They're public; a PR or a direct edit is fine.
 4. Add GitHub Actions secrets: `PROD_DATABASE_URL`, `STAGING_DATABASE_URL` (Session pooler, port 5432), `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (plus `SUPABASE_ACCESS_TOKEN`, `PROD_REF`, `STAGING_REF` for type generation).
 5. Set the Worker secret `BACKUP_SIGNING_SEED` on both environments (`npx wrangler secret put BACKUP_SIGNING_SEED --env staging` and `--env production`) after the first deploy creates the Workers. Use a new value for the hosted edition; never change it afterwards.
-6. Add custom domains `ledger.openapphub.org` and `ledger-staging.openapphub.org` (wrangler creates them on first deploy from `routes`; check they appear on the Workers).
+6. Add the custom domain `ledger.openapphub.org` (wrangler creates it on first deploy from `routes`). Staging is the Worker's preview of the `staging` branch: on the Worker's Domains tab, `ledger.staging.openapphub.org` enabled for Preview.
 7. Turn on GitHub secret scanning and push protection for this repo.
 8. Pick an AI provider for PDF statement reading whenever you want it back (step 3b turns it off).
 9. Keep the Lovable project `pzzmmltmghmgfwhgzlvl` until Ledger is verified on the shared project; then delete it.

@@ -17,7 +17,7 @@
 
 **Read `docs/SHARED-SPEC.md` (v2) first.** Your step plan, inventory and status are `docs/MIGRATION-NOTES.md` (§7 is the plan; §7.1 lists which codebase rules below are replaced and in which step). This section gives the owner's answers and the changes v2 makes to the plan.
 
-App ID `ledger` · schema `ledger` · hosted at `ledger.openapphub.org` (staging `ledger-staging.openapphub.org`) · package manager **npm**.
+App ID `ledger` · schema `ledger` · hosted at `ledger.openapphub.org` (staging `staging.ledger.staging.openapphub.org`) · package manager **npm**.
 
 Ledger's backend today is the Lovable Cloud project `pzzmmltmghmgfwhgzlvl`. It's built fresh in the shared project; nothing is copied. The Lovable project is retired at the end.
 
@@ -27,20 +27,20 @@ The **desktop edition** (Tauri + SQLite) keeps working throughout and stays free
 
 ### Owner answers to your notes (§6)
 
-| Your item | Answer |
-|---|---|
-| D1 inputs | Spec §0.1 is filled in. **Design is a full refresh** for every app (spec §9): Ledger isn't a reference app; restyle in step 14 once the hub's direction is approved. |
+| Your item                | Answer                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1 inputs                | Spec §0.1 is filled in. **Design is a full refresh** for every app (spec §9): Ledger isn't a reference app; restyle in step 14 once the hub's direction is approved.                                                                                                                                                                                          |
 | D2 hosting, service role | **Workers** (spec §10). Service-role use in hosted mode: **none** (spec §7.2). Invites, org deletion and account deletion move to the hub; history writes go fully through `ledger.audited_write`; restore creates the org with `public.create_organization()` as the caller. Self-hosted-only features may keep the service role behind `VITE_HOSTED=false`. |
-| D3 treasurer | `ledger.member_roles` overlay, as proposed (spec §3.5). |
-| D4 MFA | Keep `ledger.mfa_ok` in Ledger's policies, as proposed. |
-| D5 sessions | As proposed: shared cookie client in the browser; server functions keep the bearer token. |
-| D6 deletion | Hosted: org and account deletion in the hub. Self-hosted: keep Ledger's, built on `public.delete_organization`; `deleted_organizations` self-hosted only. |
-| D7 legal | Hosted: the hub records acceptance; Ledger keeps `ledger.legal_acceptances` for self-hosted and Ledger-specific consent. |
-| D8 AI PDF import | **Turn it off** (hide the option, refuse on the server) until the owner picks a provider. Then add it with a server-only key. Google sign-in: plain Supabase OAuth (self-hosted), the hub (hosted). |
-| D9–D13 | Accepted as proposed. |
-| Invitations | **Core, handled by the hub** (spec §4.3). `org_invites` isn't recreated. Ledger keeps an `/invite/<token>` page on `shared/ui/InvitationPage` and adds `ledger.on_invitation_accepted(p_invitation_id)` to set the treasurer overlay from `app_payload`. Expiry becomes the core 14 days (it was 7). |
-| Ownership | **Core, transferred in the hub** (spec §4.4). `organizations.created_by` ownership is replaced by the core owner. Self-hosted: Ledger's transfer screen calls `public.transfer_ownership`. |
-| Demo | **Staging only** (spec §11). Port `supabase/seed/demo.sql` to `db/seed/0001_ledger_demo.sql`, keeping its refusal to run on real data; demo addresses on `@demo.openapphub.org`. |
+| D3 treasurer             | `ledger.member_roles` overlay, as proposed (spec §3.5).                                                                                                                                                                                                                                                                                                       |
+| D4 MFA                   | Keep `ledger.mfa_ok` in Ledger's policies, as proposed.                                                                                                                                                                                                                                                                                                       |
+| D5 sessions              | As proposed: shared cookie client in the browser; server functions keep the bearer token.                                                                                                                                                                                                                                                                     |
+| D6 deletion              | Hosted: org and account deletion in the hub. Self-hosted: keep Ledger's, built on `public.delete_organization`; `deleted_organizations` self-hosted only.                                                                                                                                                                                                     |
+| D7 legal                 | Hosted: the hub records acceptance; Ledger keeps `ledger.legal_acceptances` for self-hosted and Ledger-specific consent.                                                                                                                                                                                                                                      |
+| D8 AI PDF import         | **Turn it off** (hide the option, refuse on the server) until the owner picks a provider. Then add it with a server-only key. Google sign-in: plain Supabase OAuth (self-hosted), the hub (hosted).                                                                                                                                                           |
+| D9–D13                   | Accepted as proposed.                                                                                                                                                                                                                                                                                                                                         |
+| Invitations              | **Core, handled by the hub** (spec §4.3). `org_invites` isn't recreated. Ledger keeps an `/invite/<token>` page on `shared/ui/InvitationPage` and adds `ledger.on_invitation_accepted(p_invitation_id)` to set the treasurer overlay from `app_payload`. Expiry becomes the core 14 days (it was 7).                                                          |
+| Ownership                | **Core, transferred in the hub** (spec §4.4). `organizations.created_by` ownership is replaced by the core owner. Self-hosted: Ledger's transfer screen calls `public.transfer_ownership`.                                                                                                                                                                    |
+| Demo                     | **Staging only** (spec §11). Port `supabase/seed/demo.sql` to `db/seed/0001_ledger_demo.sql`, keeping its refusal to run on real data; demo addresses on `@demo.openapphub.org`.                                                                                                                                                                              |
 
 ### Changes to your plan (§7)
 
@@ -56,18 +56,18 @@ Docs live in `Nox-Mob/OpenAppHub-docs` under `src/content/docs/ledger/` (spec §
 
 15. **Help links** (`src/config/help.ts`). In the desktop edition, links open in the system browser.
 
-    | Screen | Docs path |
-    |---|---|
-    | User menu → Help | `ledger/` |
-    | Onboarding | `ledger/start/setting-up/` |
-    | Wording setting | `ledger/start/wording/` |
-    | Import | `ledger/everyday/importing/` |
-    | Statement check | `ledger/everyday/statement-checks/` |
-    | Settings → Close the books | `ledger/reports/closing/` |
-    | Settings → Exports (backup and restore) | `ledger/admin/backups-and-exports/` |
-    | Settings → Security | `ledger/admin/security/` |
-    | Settings → Users & roles | `ledger/admin/members-and-roles/` |
-    | Desktop "isn't available in the desktop app yet" messages | `ledger/start/desktop-app/` |
+    | Screen                                                    | Docs path                           |
+    | --------------------------------------------------------- | ----------------------------------- |
+    | User menu → Help                                          | `ledger/`                           |
+    | Onboarding                                                | `ledger/start/setting-up/`          |
+    | Wording setting                                           | `ledger/start/wording/`             |
+    | Import                                                    | `ledger/everyday/importing/`        |
+    | Statement check                                           | `ledger/everyday/statement-checks/` |
+    | Settings → Close the books                                | `ledger/reports/closing/`           |
+    | Settings → Exports (backup and restore)                   | `ledger/admin/backups-and-exports/` |
+    | Settings → Security                                       | `ledger/admin/security/`            |
+    | Settings → Users & roles                                  | `ledger/admin/members-and-roles/`   |
+    | Desktop "isn't available in the desktop app yet" messages | `ledger/start/desktop-app/`         |
 
 16. **Docs PR:**
     - `ledger/admin/members-and-roles.md`: core roles plus Treasurer; invitations (14 days) and ownership in the hub when hosted.
