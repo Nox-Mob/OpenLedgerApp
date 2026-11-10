@@ -8,7 +8,7 @@ Releases are a two-step process. `src/lib/release.test.ts` enforces the items a 
 2. **Readme updated.** Installation steps are still accurate.
 3. **Architecture status table** in `docs/architecture.md` matches what is shipping.
 4. **Roadmap updated.** Anything not done moves to the next version.
-5. **Database changes in both folders.** Every file in `drizzle/migrations` has a matching file in `supabase/migrations`.
+5. **Database changes are applied first.** New files in `db/migrations` were applied with Actions → Migrate (staging, then production) before the release.
 6. **All checks green locally:** `npm run test`, type check, lint, `npx prettier --check .`, `node scripts/ci/check-migrations.mjs`, `npm audit --omit=dev`, build.
 7. **No Bun lock file** (`bun.lock`, `bun.lockb`) in the commit.
 8. **Push and wait.** Stop here until the maintainer confirms every GitHub check is green, including the database safety checks.

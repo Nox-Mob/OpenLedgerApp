@@ -14,7 +14,6 @@ npm is the only package manager (`package-lock.json`). Core libraries that touch
 | jspdf, jspdf-autotable                             | PDF reports                                                               | yes    |
 | pdfjs-dist                                         | Reading bank statement PDFs                                               | yes    |
 | sql.js (dev)                                       | SQLite adapter contract tests                                             | yes    |
-| drizzle-kit, drizzle-orm (dev)                     | Migration journal used by the hosted migration tool; not used by app code | 0.x    |
 | postgres (dev)                                     | Driver used by the migration tool                                         | caret  |
 | radix-ui, lucide-react, recharts, sonner, etc.     | UI components and charts                                                  | caret  |
 
@@ -23,5 +22,5 @@ Rules: add a package only when the shared domain or a port can't do it; record i
 Audit overrides (package.json): `brace-expansion@1` → 1.1.21, `brace-expansion@5` → 5.0.12, `uuid` → 11.1.1 (only exceljs uses it), `@esbuild-kit/core-utils > esbuild` → 0.25.12. Never run `npm audit fix --force`; it downgrades exceljs to 3.4.0.
 npm 11 or newer is required: npm 10 rejects this lock file in `npm ci`. CI uses Node 24. Install scripts: approve only `esbuild` (it fetches its own build tool); core-js only prints a donation message.
 
-drizzle-kit stays: Lovable's database-change tool writes and applies migrations through it (drizzle/migrations). The two "@esbuild-kit" deprecation notices come from it and are harmless. Copies of every migration also live in supabase/migrations for self-hosting.
+pg (dev) runs the migration runner (`scripts/migrate.mjs`, vendored from OpenAppHub). drizzle-kit and drizzle-orm were removed with Lovable's migration path.
 eslint 10 runs with the two classic React hook rules; the newer React Compiler rules in eslint-plugin-react-hooks 7 are not enabled yet (roadmap).

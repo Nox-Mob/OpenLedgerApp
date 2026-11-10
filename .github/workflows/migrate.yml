@@ -1,0 +1,42 @@
+name: Migrate
+
+# Owner only. Applies migrations to the shared OpenAppHub database (deploys are
+# Cloudflare's Git integration). The runner applies the vendored core (already applied
+# by the hub, so skipped) and then Ledger's db/migrations, recorded under "openledgerapp".
+# Production: run this on the pull request's branch BEFORE merging it, because merging
+# to main deploys the new code right away. Migrations must be additive.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Database
+        type: choice
+        options: [staging, production]
+        required: true
+      dry_run:
+        description: Print the plan only
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    env:
+      DATABASE_URL: ${{ inputs.target == 'production' && secrets.PROD_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Migrate ${{ inputs.target }}
+        run: |
+          args=()
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args+=(--dry-run); fi
+          if [ "${{ inputs.target }}" = "staging" ]; then args+=(--seed); fi
+          node scripts/migrate.mjs "${args[@]}"

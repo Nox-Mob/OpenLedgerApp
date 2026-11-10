@@ -1,6 +1,6 @@
 // Shape and error mapping for the audited_write client helper.
 // The RPC itself is checked end-to-end against the live database in
-// supabase/tests/audited_write.sql.
+// db/tests/20_audited_write.sql.
 import { describe, expect, it } from "vitest";
 import { auditedWrite, toAuditJson, toOpJson } from "./audited-write";
 import { DuplicateKeyError } from "./ports";
