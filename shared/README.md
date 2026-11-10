@@ -38,3 +38,5 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
 - `1.3.0`: SHARED-SPEC v2.3 (prices in Stripe, editor limits, set-based row rules); shared UI
   compiles under the apps' strictest TypeScript settings (`exactOptionalPropertyTypes`), checked
   by `npm run check:shared-strict` in CI.
+- `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
+  page's own section menu).

@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -17,13 +17,13 @@
     "shared/docs.ts": "530b2beae06f9e4229f6f114fb1bfc05d1070211939f6e19261d0bfa1db2d784",
     "shared/env.d.ts": "017b3af393af4da6d1008071ca8092293fc8709e7478ee2fdf10c8f79456b945",
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
-    "shared/README.md": "6c6c56d1e4175ca86bb5323f2f511fe10e415c620637db03bfa0edcd3742e6fe",
+    "shared/README.md": "39388869d8309ca49d753f1e9b40e21df2cce50beabf712a0209369658c6bbe9",
     "shared/supabase/billing.ts": "8b99dffdfa37ebef1338ee6b53d82e47572bece132f0a5eabe072ffcc38a413d",
     "shared/supabase/client.ts": "ddf8f272e5906402125f55277da3beb4f28c6bafeddba0193d3f68210ee88a4d",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
     "shared/supabase/org.ts": "4b021b81b71bcb9774a8ca7bffce789ecd99433f586cca9e3c6c3a5a059da9e2",
     "shared/theme.ts": "e3e82dd7001c74561430ad88cbf7306b17adb0295cc7bb083e8a33d00d52bc34",
-    "shared/ui/AppShell.tsx": "5eccea4395d50dd64de55127c37ac72a641f82b3419c8307fc32bfb6ee070830",
+    "shared/ui/AppShell.tsx": "9e4421230b402e278b8c1064a0bc38293d9385c2d7ce3f3aec81d2b9357ea22c",
     "shared/ui/BillingBanner.tsx": "4ef0e002678ed6481d6317e678f7b82d7f1b32f23270b7459772bb160e18c7ae",
     "shared/ui/CookieConsent.tsx": "b42d2788bcefbd0cf7541c455ba3c34b80bd8c4ac9f9d2631387e212f3b38091",
     "shared/ui/Dropdown.tsx": "e7409411f862b892e5aa158b25611ec06d1caeb5088ac8aa1b860b897c47ef00",
@@ -36,6 +36,6 @@
     "shared/ui/SuiteSwitcher.tsx": "59c78c15125306e0f7fde1dc083ea43136674f9ce17c029fc793ccb37c043596",
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "64d23f858ef51b0f996e4966d4e27c0371b437e2d2787890b1f7ad22d4ec5663"
+    "shared/VERSION": "10e2e117b01523891ca271a615ae36e9d5e52348fd7d642f66727602c1b8dcbe"
   }
 }
