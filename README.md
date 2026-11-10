@@ -287,16 +287,17 @@ Use **Path 2 — Self-hosted Supabase with Docker** above on the same server, th
 
 ```sh
 npm run test               # unit tests: money, terminology, account catalog, reports, dates, parsers, permissions
-npm run check:migrations   # every public table has GRANTs + row level security
-# Database rules — ONLY against a disposable database (e.g. `supabase db start`):
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:db
+npm run check:migrations   # db/migrations: schema ledger, grants, row level security, numbering
+# Database rules and performance — ONLY against a disposable Postgres (they create their own database):
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm run db:test
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm run db:perf
 ```
 
-The database checks (`supabase/tests/*.sql`) run inside a transaction that always rolls back. They verify tenant isolation (a stranger can't read or change any org table) and ledger invariants (unbalanced/single-entry transactions rejected, entries and posted transactions immutable, voids can't be undone, books lock enforced, no cross-org entries, last admin kept).
+The database checks (`db/tests/*.sql`) build a throwaway database with the migration runner (the suite core in `db/core`, then `db/migrations`) and run inside transactions that always roll back. They verify tenant isolation (a stranger can't read or change any org table) and ledger invariants (unbalanced/single-entry transactions rejected, entries and posted transactions immutable, voids can't be undone, books lock enforced, no cross-org entries, last admin kept).
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on every push, pull request, and weekly. It **only reports** — it never formats, fixes, commits, or pushes. Blocking jobs: unit tests, type check, production build, database rules (on a fresh local database with every migration applied), and high/critical dependency vulnerabilities. Lint is reported but not blocking yet. Each failure explains which rule broke in the run summary and as inline annotations.
+`.github/workflows/ci.yml` runs on every push, pull request, and weekly. It **only reports** — it never formats, fixes, commits, or pushes. Blocking jobs: unit tests, type check, production build, database rules (Postgres 17, the runner applying core and `db/migrations`, then `db/tests`), performance (5,000, 20,000 and 50,000 transactions under a 3 s budget, plus a security catalogue check), and high/critical dependency vulnerabilities. Lint is reported but not blocking yet. Each failure explains which rule broke in the run summary and as inline annotations.
 
 ---
 
@@ -308,9 +309,11 @@ The database checks (`supabase/tests/*.sql`) run inside a transaction that alway
 | `src/lib/*.functions.ts` | Server functions — all org data access goes through these |
 | `src/lib/report-math.ts` | Pure report calculations (unit-tested)                    |
 | `src/lib/parsers/`       | CSV / OFX / QFX / PDF bank-statement parsers              |
-| `supabase/migrations/`   | Database schema, RLS policies, triggers                   |
+| `db/core/`               | Suite core (vendored from OpenAppHub; never edited here)  |
+| `db/migrations/`         | Schema `ledger`: tables, RLS policies, triggers           |
+| `db/tests/`, `db/perf/`  | SQL-level rule tests and the performance check            |
+| `supabase/migrations/`   | Old public schema, frozen (self-hosting until step 8)     |
 | `supabase/seed/demo.sql` | Optional sample data (dev/test only)                      |
-| `supabase/tests/`        | SQL-level security tests                                  |
 | `AGENTS.md`              | Architecture rules and invariants                         |
 | `roadmap.md`             | Planned work                                              |
 
@@ -321,7 +324,7 @@ See LICENSE. This is pre-1.0 software — test it with sample data before trusti
 ## Before you release
 
 1. `npm run test`, `npm run lint`, `npm run format:check`, `npm run check:migrations` all pass.
-2. `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:db` passes (local throwaway DB only — the script refuses anything else).
+2. `TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm run db:test` passes (it builds and drops its own throwaway database; never a real one).
 3. `python3 scripts/smoke/smoke.py` against a dev server with the demo seed reports "No problems found."
 4. Add the operator mailing address and have the Terms and Privacy Policy reviewed by counsel before release.
 5. Leave `VITE_ALLOW_DEMO_LOGIN` unset in production so the shared demo login is refused.
