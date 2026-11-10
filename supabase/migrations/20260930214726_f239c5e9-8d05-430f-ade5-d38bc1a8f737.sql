@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN timezone text NOT NULL DEFAULT 'America/Chicago' CHECK (length(timezone) BETWEEN 1 AND 64);

@@ -2,7 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-export type Db = SupabaseClient<Database>;
+export type Db = SupabaseClient<Database, "ledger">;
 
 /** For code that walks many tables by name (backups, restore); rows are plain records. */
 export type UntypedDb = Pick<SupabaseClient, "from">;

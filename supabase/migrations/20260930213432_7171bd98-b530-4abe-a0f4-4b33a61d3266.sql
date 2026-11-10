@@ -1,1 +1,0 @@
-REVOKE UPDATE, DELETE, TRUNCATE ON public.audit_log FROM anon, authenticated;

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UntypedDb } from "./db";
 // Server-only restore: verified backup -> brand new organization.
 // Data is written with the caller's RLS client (they become admin of the new org), so
@@ -35,14 +36,19 @@ export async function restoreIntoNewOrg(
   checkRestorable(tables); // bookkeeping rules before any write
   const T = (n: string) => tables[n] ?? [];
   const src = backup.organization;
-  const orgId = newId();
   const name = `${String(src["name"]).slice(0, 100)} (restored)`;
   const withOrg = (rows: Row[]) => rows.map((r) => ({ ...r, org_id: orgId }));
 
-  const { error: orgErr } = await db.from("organizations").insert({
-    id: orgId,
-    name,
-    created_by: userId,
+  // Core creates the organization with the caller as owner; Ledger's settings follow.
+  const core = (db as unknown as SupabaseClient).schema("public");
+  const { data: newOrg, error: createErr } = await core.rpc("create_organization", {
+    p_name: name,
+  });
+  if (createErr || !newOrg)
+    throw new Error(`Could not create the organization: ${createErr?.message ?? "no id"}`);
+  const orgId = newOrg as string;
+  const { error: orgErr } = await db.from("org_settings").insert({
+    org_id: orgId,
     ...pick(src, [
       "org_type",
       "currency",
@@ -324,9 +330,9 @@ export async function restoreIntoNewOrg(
     }
     if (src["books_locked_through"]) {
       const { error } = await db
-        .from("organizations")
+        .from("org_settings")
         .update({ books_locked_through: src["books_locked_through"] })
-        .eq("id", orgId);
+        .eq("org_id", orgId);
       if (error) throw new Error(`Could not restore the books lock date: ${error.message}`);
     }
 
@@ -367,7 +373,8 @@ export async function restoreIntoNewOrg(
         original_name: backup.manifest.orgName,
         exported_at: backup.manifest.exportedAt,
         counts: verified.counts,
-        members_not_restored: (backup.tables["user_roles"] ?? []).length,
+        members_not_restored: (backup.tables["user_roles"] ?? backup.tables["member_roles"] ?? [])
+          .length,
       },
     } as never);
     if (markErr) throw new Error(`Could not record the restore: ${markErr.message}`);
@@ -378,7 +385,7 @@ export async function restoreIntoNewOrg(
     await supabaseAdmin
       .from("deleted_organizations")
       .insert({ id: newId(), org_id: orgId, name, deleted_by: userId });
-    await supabaseAdmin.from("organizations").delete().eq("id", orgId);
+    await supabaseAdmin.schema("public").from("organizations").delete().eq("id", orgId);
     throw err;
   }
 }

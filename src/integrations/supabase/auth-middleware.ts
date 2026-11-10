@@ -73,10 +73,11 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: Invalid token');
     }
 
-    const supabase = createClient<Database>(
+    const supabase = createClient<Database, 'ledger'>(
       SUPABASE_URL!,
       SUPABASE_PUBLISHABLE_KEY!,
       {
+    db: { schema: 'ledger' },
         global: {
           fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY!),
           headers: {

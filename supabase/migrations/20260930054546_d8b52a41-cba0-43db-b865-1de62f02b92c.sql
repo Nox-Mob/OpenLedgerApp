@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN terminology text NOT NULL DEFAULT 'simplified' CHECK (terminology IN ('simplified', 'accounting'));

@@ -22,7 +22,9 @@ import { DuplicateKeyError, type Repositories } from "@/lib/ports";
 import { newId } from "@/lib/domain/ledger";
 import type { TransactionTemplate } from "@/lib/domain/templates";
 
-type Db = SupabaseClient<Database>;
+import { ENSURE_SETTINGS_OP, loadMembers, loadMyOrgs, loadOrg, loadRole } from "@/lib/core-org";
+
+type Db = SupabaseClient<Database, 'ledger'>;
 
 function auditJson(e: AuditEvent) {
   return {
@@ -62,7 +64,7 @@ const toOrg = (r: any): Organization => ({
   termOverrides: (r.term_overrides ?? {}) as Record<string, string>,
   aiPdfEnabled: !!r.ai_pdf_enabled,
   booksLockedThrough: r.books_locked_through ?? null,
-  createdBy: r.created_by,
+  createdBy: r.created_by ?? "",
   createdAt: r.created_at,
 });
 
@@ -202,40 +204,23 @@ export function createSupabaseRepositories(db: Db): Repositories {
 
   return {
     orgs: {
+      // Organizations, people and roles are core (schema public); Ledger's settings
+      // and treasurer overlay are in ledger (core-org.ts).
       async get(orgId) {
-        const { data, error } = await sb.from("organizations").select("*").eq("id", orgId).maybeSingle();
-        fail(error);
-        return data ? toOrg(data) : null;
+        const org = await loadOrg(db, orgId);
+        return org ? toOrg(org) : null;
       },
       async listForUser(userId) {
-        const { data, error } = await sb
-          .from("user_roles")
-          .select("role, organizations(*)")
-          .eq("user_id", userId);
-        fail(error);
-        return ((data ?? []) as any[])
-          .filter((r) => r.organizations)
-          .map((r) => ({ ...toOrg(r.organizations), role: r.role as Role }));
+        const orgs = await loadMyOrgs(db, userId);
+        return orgs.map((o) => ({ ...toOrg(o), role: o.role as Role }));
       },
-      async create(org) {
-        const { error } = await sb.from("organizations").insert({
-          id: org.id,
-          name: org.name,
-          org_type: org.orgType,
-          currency: org.currency,
-          fiscal_year_start_month: org.fiscalYearStartMonth,
-          timezone: org.timezone,
-          terminology: org.terminology,
-          term_overrides: org.termOverrides,
-          ai_pdf_enabled: org.aiPdfEnabled,
-          books_locked_through: org.booksLockedThrough,
-          created_by: org.createdBy,
-        });
-        fail(error);
+      async create() {
+        // Hosted and self-hosted cloud: organizations are created by core
+        // (public.create_organization, org.functions.ts createOrganization).
+        throw new Error("Create organizations with createOrganization.");
       },
       async updateSettings(orgId, p, audit) {
         const row: any = {};
-        if (p.name !== undefined) row.name = p.name;
         if (p.orgType !== undefined) row.org_type = p.orgType;
         if (p.currency !== undefined) row.currency = p.currency;
         if (p.fiscalYearStartMonth !== undefined) row.fiscal_year_start_month = p.fiscalYearStartMonth;
@@ -243,48 +228,42 @@ export function createSupabaseRepositories(db: Db): Repositories {
         if (p.terminology !== undefined) row.terminology = p.terminology;
         if (p.termOverrides !== undefined) row.term_overrides = p.termOverrides;
         if (p.aiPdfEnabled !== undefined) row.ai_pdf_enabled = p.aiPdfEnabled;
-        if (audit) {
-          if (!Object.keys(row).length) return;
-          await auditedWrite(sb, orgId, [{ table: "organizations", op: "update", values: row }], entryOf(audit));
-          return;
+        // The name is core's (owner and admins, public.rename_organization).
+        if (p.name !== undefined) {
+          const current = await loadOrg(db, orgId);
+          if (current && current.name !== p.name) {
+            const { error } = await sb
+              .schema("public")
+              .rpc("rename_organization", { p_org: orgId, p_name: p.name });
+            fail(error);
+          }
         }
-        const { error } = await sb.from("organizations").update(row).eq("id", orgId);
-        fail(error);
+        if (!Object.keys(row).length) return;
+        await auditedWrite(
+          sb,
+          orgId,
+          [ENSURE_SETTINGS_OP, { table: "org_settings", op: "update", values: row }],
+          entryOf(audit ?? { orgId, userId: "", action: "update", entity: "organization", entityId: orgId }),
+        );
       },
       async setBooksLockedThrough(orgId, date, audit) {
-        if (audit) {
-          await auditedWrite(
-            sb,
-            orgId,
-            [{ table: "organizations", op: "update", values: { books_locked_through: date } }],
-            entryOf(audit),
-          );
-          return;
-        }
-        const { error } = await sb
-          .from("organizations")
-          .update({ books_locked_through: date })
-          .eq("id", orgId);
-        fail(error);
+        await auditedWrite(
+          sb,
+          orgId,
+          [ENSURE_SETTINGS_OP, { table: "org_settings", op: "update", values: { books_locked_through: date } }],
+          entryOf(audit ?? { orgId, userId: "", action: "lock_books", entity: "organization", entityId: orgId }),
+        );
       },
       async roleOf(userId, orgId) {
-        const { data, error } = await sb
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("org_id", orgId)
-          .maybeSingle();
-        fail(error);
-        return (data?.role as Role) ?? null;
+        return ((await loadRole(db, userId, orgId)).role as Role) ?? null;
       },
       async listMembers(orgId) {
-        const { data, error } = await sb.from("user_roles").select("user_id, role").eq("org_id", orgId);
-        fail(error);
-        return ((data ?? []) as any[]).map((r) => ({
-          userId: r.user_id,
+        const members = await loadMembers(db, orgId);
+        return members.map((m) => ({
+          userId: m.userId,
           orgId,
-          role: r.role,
-          displayName: null,
+          role: m.role as Role,
+          displayName: m.displayName ?? null,
         }));
       },
     },
@@ -823,7 +802,8 @@ export function createSupabaseRepositories(db: Db): Repositories {
                 closed_by: c.closedBy,
               },
             },
-            { table: "organizations", op: "update", values: { books_locked_through: lockThrough } },
+            ENSURE_SETTINGS_OP,
+            { table: "org_settings", op: "update", values: { books_locked_through: lockThrough } },
           ],
           entryOf(audit),
         );
@@ -1101,9 +1081,9 @@ export function createSupabaseRepositories(db: Db): Repositories {
       },
       async getMode(orgId) {
         const { data, error } = await sb
-          .from("organizations")
+          .from("org_settings")
           .select("recurring_mode")
-          .eq("id", orgId)
+          .eq("org_id", orgId)
           .maybeSingle();
         fail(error);
         return (data as any)?.recurring_mode === "reminder" ? "reminder" : "drafts";
@@ -1112,7 +1092,7 @@ export function createSupabaseRepositories(db: Db): Repositories {
         await auditedWrite(
           sb,
           orgId,
-          [{ table: "organizations", op: "update", values: { recurring_mode: mode } }],
+          [ENSURE_SETTINGS_OP, { table: "org_settings", op: "update", values: { recurring_mode: mode } }],
           entryOf(audit ?? { orgId, userId: "", action: "update", entity: "organization", entityId: orgId }),
         );
       },

@@ -1,2 +1,0 @@
-ALTER TABLE public.bank_transactions ADD COLUMN row_seq integer;
-COMMENT ON COLUMN public.bank_transactions.row_seq IS 'Position of the row within its import batch; part of the content fingerprint so identical rows in one file do not collide.';

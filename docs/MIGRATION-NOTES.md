@@ -48,7 +48,21 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 
 1. ~~Step 3, hygiene (redo for v2.2)~~ **done** (§0.3). Next: **3b, AI PDF import off**.
 2. ~~Steps 4, 5 and 7~~ **done** (§0.4): runner, `migrate.yml`, baseline, DB tests, performance test.
-3. **Next: step 8**, the client on the `ledger` schema (`VITE_APP_SCHEMA=ledger`, `.schema('public')` for core), then org scoping (9) and hosted vs self-hosted (10). Until step 8 the app still uses the old public tables (kept frozen in `supabase/migrations` for self-hosters).
+3. ~~Step 8, the client on `ledger`~~, staging seed and org scoping (step 9) **done** (§0.5).
+4. **Next: step 10**, hosted vs self-hosted (sign-in, invitations and billing through the hub when hosted, the billing banner), then the AppShell restyle.
+
+### 0.5 Steps 8 and 9: the app on schema `ledger`, staging seed, org scoping (2026-11-10)
+
+- **Client:** every Supabase client (browser, request, service role) is created with `db: { schema: "ledger" }`; core tables are read with `.schema("public")`. `src/integrations/supabase/types.ts` is generated from `db/core` + `db/migrations` (postgres-meta, schemas `public,ledger`).
+- **`src/lib/core-org.ts`** maps the core onto what the app always used:
+  - Ledger's role from the core role and the overlay: owner/admin → `admin`, member + `member_roles.treasurer` → `treasurer`, member → `member`, viewer → `viewer`.
+  - An organization = core `organizations` (id, name) + `ledger.org_settings`, with the column defaults when the row is missing. Settings updates insert the row first if needed (`ENSURE_SETTINGS_OP` in the same `audited_write`).
+- **Rewritten on core:** my organizations, roles and members (`org_member_directory`), creating an organization (`public.create_organization`, then settings and starter accounts), renaming (`rename_organization`), role changes (core role + treasurer overlay), invitation links (`create_invitation` with `app = 'ledger'`, `{"ledger_role":"treasurer"}` for treasurers; `accept_invitation` then `ledger.on_invitation_accepted`; `revoke_invitation`), remove/leave, `transfer_ownership`, deletion (`ledger.log_org_deletion` then `delete_organization`), account deletion, per-person wording (`ledger.user_preferences`), backup export (format unchanged: one `organization` object and a `user_roles` table) and restore.
+- **Organizations made in the hub** have no books yet: an owner or admin opening Ledger is sent to the setup screen for that organization (`/onboarding?org=…`, `setUpOrganizationBooks`: type, currency, year, wording, starter accounts). Others see "Books not set up yet".
+- **Org scoping:** the current organization is the suite cookie `oah_org` (`shared/supabase/org.ts`; on `.openapphub.org` when hosted, so all apps agree), re-checked against memberships; local storage is kept for the desktop app. Fallback: the first organization alphabetically.
+- **Staging seed:** `db/seed/0001_ledger_demo.sql` (the old demo, ported): sign-in `ledger.demo@demo.openapphub.org` / `demo1234`, Acme Demo Co and Riverside Community Kitchen as core organizations it owns (and `hub.demo_orgs` on the hub's database), with their books. Refuses a database the hub hasn't marked staging, or (without the hub) one with real organizations. `migrate.yml` runs it with `--seed` on staging only; CI loads it after the DB tests and checks the books balance. Staging sets `VITE_ALLOW_DEMO_LOGIN=true`.
+- **Retired:** `supabase/migrations`, `supabase/seed`, `supabase/config.toml` (pointed at the old Lovable project). Self-hosting is now `npm run db:migrate` plus exposing schema `ledger` (README).
+- **Not changed yet (step 10):** Ledger keeps its own sign-in screens and session handling, hosted or not.
 
 ### 0.4 Steps 4, 5 and 7: runner, baseline, DB tests (2026-11-10)
 

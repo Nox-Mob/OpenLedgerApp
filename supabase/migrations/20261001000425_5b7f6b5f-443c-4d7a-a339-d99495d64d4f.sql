@@ -1,2 +1,0 @@
-ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS idempotency_key text CHECK (idempotency_key IS NULL OR length(idempotency_key) BETWEEN 8 AND 120);
-CREATE UNIQUE INDEX IF NOT EXISTS transactions_org_idempotency_key ON public.transactions (org_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
