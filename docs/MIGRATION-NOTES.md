@@ -46,9 +46,19 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 
 ### 0.2 Next steps
 
-1. **Step 3, hygiene (redo for v2.2)**, then **3b, AI PDF import off**.
+1. ~~Step 3, hygiene (redo for v2.2)~~ **done** (§0.3). Next: **3b, AI PDF import off**.
 2. **Step 4, rest of vendoring:** `migrate.yml`, a CI `db` job running `scripts/migrate.mjs` then `db/tests/*.sql`, retire `supabase/migrations/`, `drizzle/` and the old `database` CI job.
 3. **Step 5, `db/migrations/0001_ledger_baseline.sql`**.
+
+### 0.3 Step 3 (hygiene) as done for v2.2
+
+- `package-lock.json` resolves every package from registry.npmjs.org (same integrity hashes), so `npm ci` works outside Lovable. This matters most for self-hosters.
+- `.env` is untracked; `.env.example` lists every variable; `scripts/ci/check-env.mjs` fails if an env file other than `.env.example` / `.env.desktop` is tracked.
+- `wrangler.jsonc` for the hosted edition: top level = production (`ledger.openapphub.org`, `openapphub-prod`), `env.staging` (`ledger-staging.openapphub.org`, `openapphub-staging`). `npm run build:hosted` / `build:hosted:staging` write the public `VITE_*` values from it before building (`scripts/deploy/build-env.mjs`). No `release.yml`, `staging.yml` or Cloudflare secrets.
+- Security headers on every response (`src/lib/security-headers.ts`, `src/server.ts`).
+- Unused `cron-auth.ts` removed. The Lovable Vite wrapper, OAuth broker and `previewAuthStorage` stay until step 8 replaces the client.
+- **Self-hosting is unchanged:** `npm run build` with your own `.env`; `wrangler.jsonc` isn't used.
+- **Don't connect the `openledgerapp` Worker in Cloudflare yet.** The hosted app can't work until the baseline (step 5) and the client (step 8) are in: the new database has no `ledger` schema.
 
 ## 1. Where Ledger's data lives today
 

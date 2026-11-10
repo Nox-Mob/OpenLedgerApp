@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { isAbort } from "./lib/abort";
+import { withSecurityHeaders } from "./lib/security-headers";
 
 const cancelled = () => new Response(null, { status: 499 });
 
@@ -53,19 +54,31 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Security headers on every production response (docs/SHARED-SPEC.md §10.1). Skipped in
+// `vite dev`, where the CSP and frame rules would block hot reload and editor previews.
+function secure(response: Response): Response {
+  if (import.meta.env.DEV) return response;
+  const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"];
+  return withSecurityHeaders(response, supabaseUrl);
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response, request);
-    } catch (error) {
-      if (isAbort(error) || request.signal?.aborted) return cancelled();
-      console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
-    }
+    return secure(await handle(request, env, ctx));
   },
 };
+
+async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+  try {
+    const handler = await getServerEntry();
+    const response = await handler.fetch(request, env, ctx);
+    return await normalizeCatastrophicSsrResponse(response, request);
+  } catch (error) {
+    if (isAbort(error) || request.signal?.aborted) return cancelled();
+    console.error(error);
+    return new Response(renderErrorPage(), {
+      status: 500,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+}

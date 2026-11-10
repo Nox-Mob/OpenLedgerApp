@@ -211,6 +211,10 @@ The app is server-rendered: pages **and** server functions run on the server, so
 4. Leave `VITE_ALLOW_DEMO_LOGIN` unset.
 5. Run the release checklist below.
 
+### Hosted edition (OpenAppHub)
+
+The hosted edition at `ledger.openapphub.org` runs as a Cloudflare Worker configured by `wrangler.jsonc` (top level = production, `env.staging` = staging) and shares one Supabase project with the other OpenAppHub apps (see `docs/SHARED-SPEC.md` and `docs/MIGRATION-NOTES.md`). Cloudflare's Git integration builds `main` with `npm run build:hosted` and deploys with `npx wrangler deploy --config wrangler.jsonc`. **Self-hosters can ignore this section and `wrangler.jsonc`:** `npm run build` builds the self-hosted app from your own `.env`.
+
 ### Option A — a single server (small office, home lab)
 
 One Linux VM (1 vCPU / 1 GB RAM is enough for a handful of users) plus a hosted Supabase project.
