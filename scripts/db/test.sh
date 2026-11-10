@@ -49,7 +49,7 @@ for f in $(ls "$ROOT"/db/tests/[0-9]*.sql | sort); do
 done
 # The staging demo seed loads on top of the migrations and its books balance.
 if (cd "$ROOT" && DATABASE_URL="$URL" node scripts/migrate.mjs --seed >/dev/null) &&
-  [ "$(run -tAc "select (select count(*) from ledger.org_settings) = 2 and (select coalesce(sum(amount_cents), 0) from ledger.entries) = 0")" = "t" ]; then
+  [ "$(run -tAc "select (select count(*) from ledger.transactions) > 30 and (select coalesce(sum(amount_cents), 0) from ledger.entries) = 0 and (select count(*) from ledger.reconciliations where status = 'completed') = 2")" = "t" ]; then
   echo "ok   staging seed (db/seed)"
 else
   echo "FAIL staging seed (db/seed)"; fail=1

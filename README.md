@@ -25,7 +25,7 @@ Source ZIP downloads point to the GitHub `main` branch archive (github.com/Nox-M
 
 ## Sample data (staging and development only)
 
-The demo sign-in `ledger.demo@demo.openapphub.org` / `demo1234` and its two sample organizations (Acme Demo Co, Riverside Community Kitchen) are in `db/seed/0001_ledger_demo.sql`. It is **not** a migration: it runs only when you ask for it, once per database (the runner records it):
+The suite demo, the sign-in `demo@demo.openapphub.org` / `OpenAppHubDemo2026` with the organization Riverside Community Association and about three months of its books, is in `db/seed/0001_ledger_demo.sql` (an empty test sign-in, `test@demo.openapphub.org`, comes with it). On staging OpenAppHub resets it every 12 hours. It is **not** a migration: it runs only when you ask for it, once per database (the runner records it):
 
 ```sh
 DATABASE_URL="<dev or staging connection string>" npm run db:migrate -- --seed
@@ -180,7 +180,7 @@ npm install        # npm is the only supported package manager
 npm run dev
 ```
 
-Open http://localhost:8080, create your first account, and the app walks you through creating your first organization. With sample data loaded you can sign in as `demo@demo.org` / `demo1234`.
+Open http://localhost:8080, create your first account, and the app walks you through creating your first organization. With sample data loaded you can sign in as `demo@demo.openapphub.org` / `OpenAppHubDemo2026`.
 
 Production build:
 
