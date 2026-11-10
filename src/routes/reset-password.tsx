@@ -1,11 +1,15 @@
 import { desktopEntryRedirect } from "@/lib/desktop/entry-redirect";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { hostedAuthRedirect } from "@/lib/hosted";
 import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
-  beforeLoad: desktopEntryRedirect,
+  beforeLoad: async () => {
+    hostedAuthRedirect("/forgot-password");
+    await desktopEntryRedirect();
+  },
   head: () => ({
     meta: [
       { title: "Reset Password - OpenLedgerApp" },

@@ -9,6 +9,9 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { themeInitScript } from "@shared/theme";
+import { CookieConsent } from "@shared/ui/CookieConsent";
+import { isDesktop } from "@/lib/edition";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -99,12 +102,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap",
-      },
     ],
   }),
   shellComponent: RootShell,
@@ -115,15 +112,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-app="ledger" suppressHydrationWarning>
       <head>
+        {/* The suite's light / dark / system choice, applied before first paint (shared/theme.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <HeadContent />
-        <script
-          // Apply the saved theme before first paint to avoid a flash of the wrong mode.
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("openledgerapp-theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`,
-          }}
-        />
       </head>
       <body>
         {children}
@@ -141,6 +134,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster richColors position="bottom-right" />
+      {!isDesktop() && <CookieConsent policyHref="/cookies" privacyHref="/privacy" />}
     </QueryClientProvider>
   );
 }

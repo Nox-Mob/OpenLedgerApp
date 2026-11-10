@@ -9,6 +9,7 @@ import { useAal } from "@/hooks/use-aal";
 import { errorMessage } from "@/lib/errors";
 import { setRequireMfa } from "@/lib/org.functions";
 import { deleteMyAccount, getMyAccountDeletion } from "@/lib/members.functions";
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { Button } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/PageStates";
 
@@ -34,7 +35,22 @@ function SecuritySettings() {
     <div className="max-w-2xl space-y-4">
       <TwoStep />
       <RequireForOrg />
-      <DeleteAccount />
+      {isHosted() ? (
+        <div className="rounded-lg border bg-card p-5">
+          <h2 className="font-display text-lg font-semibold">Delete my account</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your account covers every OpenAppHub app, so it's deleted in OpenAppHub.
+          </p>
+          <a
+            href={hubUrl("/account")}
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Account settings
+          </a>
+        </div>
+      ) : (
+        <DeleteAccount />
+      )}
     </div>
   );
 }

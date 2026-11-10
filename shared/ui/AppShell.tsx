@@ -58,9 +58,10 @@ function SideNav({
   helpHref,
   LinkComponent,
   onNavigate,
-}: Pick<AppShellProps, "app" | "nav" | "navFooter" | "helpHref"> & {
+}: Pick<AppShellProps, "app" | "nav" | "helpHref"> & {
+  navFooter?: NavItem[] | undefined;
   LinkComponent: LinkLike;
-  onNavigate?: () => void;
+  onNavigate?: (() => void) | undefined;
 }) {
   const item = (n: NavItem) => (
     <li key={n.href}>

@@ -1,5 +1,6 @@
 import { errorMessage } from "@/lib/errors";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { BookOpen, Building2, HeartHandshake } from "lucide-react";
@@ -33,6 +34,11 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   }),
   // ?org=<id>: set up the books of an organization created in OpenAppHub.
   validateSearch: z.object({ org: z.string().uuid().optional() }),
+  // Hosted, new organizations are created in OpenAppHub (setting up the books of an existing
+  // one, ?org=…, stays here).
+  beforeLoad: ({ search }) => {
+    if (isHosted() && !isDesktop() && !search.org) throw redirect({ href: hubUrl("/orgs/new") });
+  },
   component: OnboardingPage,
 });
 

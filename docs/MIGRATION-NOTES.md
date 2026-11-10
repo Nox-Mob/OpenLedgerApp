@@ -11,7 +11,6 @@ All existing Ledger data is demo/test data. **Nothing is copied across.** Ledger
 
 ---
 
-
 ## 0. Spec v2.2 changes (2026-11-09): read first
 
 Spec v2.2 (`docs/SHARED-SPEC.md`, synced from the hub) changes parts of the plan below. Where this
@@ -49,7 +48,23 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 1. ~~Step 3, hygiene (redo for v2.2)~~ **done** (§0.3). Next: **3b, AI PDF import off**.
 2. ~~Steps 4, 5 and 7~~ **done** (§0.4): runner, `migrate.yml`, baseline, DB tests, performance test.
 3. ~~Step 8, the client on `ledger`~~, staging seed and org scoping (step 9) **done** (§0.5).
-4. **Next: step 10**, hosted vs self-hosted (sign-in, invitations and billing through the hub when hosted, the billing banner), then the AppShell restyle.
+4. ~~Step 10, hosted vs self-hosted, and the AppShell restyle~~ **done** (§0.6).
+5. Next: step 3b (AI PDF import off), integration views for the hub dashboard, help links.
+
+### 0.6 Step 10 and the restyle: hosted vs self-hosted, suite design (2026-11-10)
+
+- **Hosted** (`VITE_HOSTED=true`, both Workers):
+  - The browser session is a cookie on `.openapphub.org` (`@supabase/ssr`, `shared/supabase/client.ts` cookie options), shared with the hub and the other apps, so one sign-in covers the suite.
+  - `/auth` and signed-out pages go to the hub's sign-in and come back (`loginRedirect`); `/reset-password` goes to the hub's.
+  - New organizations are created in the hub (`/onboarding` without `?org` redirects there; setting up the books of an existing organization stays in Ledger).
+  - Settings → Users & roles: inviting, transferring ownership and deleting the organization link to the hub; Ledger keeps role changes (including treasurer) and removal. Deleting your account links to the hub's Account page.
+  - Signing out returns to the hub.
+- **Self-hosted and desktop:** unchanged (Ledger's own sign-in, organizations and invitation links).
+- **Restyle** (behaviour and wording unchanged):
+  - `styles.css` uses the suite tokens and Tailwind mapping (`shared/design`), Inter (`@fontsource-variable/inter`) instead of Google Fonts; Ledger keeps only its website hero colours and shadcn sidebar extras, mapped onto the tokens.
+  - Every signed-in page is in the shared `AppShell` (`src/components/AppShell.tsx` wraps it): same nav items, the suite and organization switchers, Help (docs), the user menu with the theme toggle, and the billing banner (`get_org_billing`, nothing when billing is off).
+  - `<html data-app="ledger">` with the suite theme script (light / dark / system, shared); `ThemeToggle` is the shared one. Cookie consent is rendered once, with a new `/cookies` page listing every cookie.
+- **Shared 1.3.0** (vendored): SHARED-SPEC v2.3 and shared UI that compiles under Ledger's strict TypeScript settings.
 
 ### 0.5 Steps 8 and 9: the app on schema `ledger`, staging seed, org scoping (2026-11-10)
 
@@ -94,16 +109,16 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 
 ## 1. Where Ledger's data lives today
 
-| | Today |
-|---|---|
-| Backend | **Lovable Cloud** managed Supabase project `pzzmmltmghmgfwhgzlvl` (`supabase/config.toml`, `.env`). Not on the owner's own Supabase account. |
-| Schema | Everything in **`public`**: 26 tables, 8 enum types, ~35 functions, 27 triggers. |
-| Migrations | Two copies kept in sync by hand: `supabase/migrations/` (38 files, used by CI and self-hosters) and `drizzle/migrations/` (3 files, applied by Lovable). |
-| Storage buckets | **None.** Statement files (CSV/OFX/PDF) are parsed in memory and never stored. |
-| Edge Functions | **None.** Server logic runs in TanStack Start server functions (`src/lib/*.functions.ts`, `*.server.ts`) on a Cloudflare Worker (nitro, `cloudflare` target). |
-| Local data | Desktop edition (Tauri) uses SQLite via `src/lib/adapters/sqlite`; not affected by this migration. No mock data in the web build. |
-| Seed | `supabase/seed/demo.sql` (manual dev seed; refuses databases with real orgs). |
-| DB tests | `supabase/tests/*.sql` (7 files: tenant isolation, ledger invariants, audited write, bank/opening, catalog guards, member lifecycle, treasurer role), run by `scripts/ci/run-db-tests.sh` in CI. |
+|                 | Today                                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend         | **Lovable Cloud** managed Supabase project `pzzmmltmghmgfwhgzlvl` (`supabase/config.toml`, `.env`). Not on the owner's own Supabase account.                                                     |
+| Schema          | Everything in **`public`**: 26 tables, 8 enum types, ~35 functions, 27 triggers.                                                                                                                 |
+| Migrations      | Two copies kept in sync by hand: `supabase/migrations/` (38 files, used by CI and self-hosters) and `drizzle/migrations/` (3 files, applied by Lovable).                                         |
+| Storage buckets | **None.** Statement files (CSV/OFX/PDF) are parsed in memory and never stored.                                                                                                                   |
+| Edge Functions  | **None.** Server logic runs in TanStack Start server functions (`src/lib/*.functions.ts`, `*.server.ts`) on a Cloudflare Worker (nitro, `cloudflare` target).                                    |
+| Local data      | Desktop edition (Tauri) uses SQLite via `src/lib/adapters/sqlite`; not affected by this migration. No mock data in the web build.                                                                |
+| Seed            | `supabase/seed/demo.sql` (manual dev seed; refuses databases with real orgs).                                                                                                                    |
+| DB tests        | `supabase/tests/*.sql` (7 files: tenant isolation, ledger invariants, audited write, bank/opening, catalog guards, member lifecycle, treasurer role), run by `scripts/ci/run-db-tests.sh` in CI. |
 
 ## 2. Database objects
 
@@ -113,32 +128,32 @@ Money is already **`bigint` cents** everywhere (`amount_cents`, `budget_cents`, 
 
 "org_id" = has an `org_id` column today. "who" = records `created_by`/`user_id` today.
 
-| Table | org_id | who | Kind | Target |
-|---|---|---|---|---|
-| `organizations` | (is the org) | yes | core concept + Ledger settings | **Split:** identity and owner → core (`public.organizations`, owner membership). Ledger columns → `ledger.org_settings` (§4.1). |
-| `user_roles` | yes | yes | core concept | **Replace** with `public.memberships` + `ledger.member_roles` overlay (see §4.2). |
-| `profiles` | — | (is the user) | core concept + Ledger pref | **Split:** `display_name` → `public.profiles`. `terminology` → `ledger.user_preferences`. |
-| `org_invites` | yes | yes | membership | **Not recreated.** Core `public.invitations` in both modes (§4.4). |
-| `accounts` | yes | **no** | books | `ledger.accounts` (+ `created_by`) |
-| `transactions` | yes | yes | books (immutable once posted) | `ledger.transactions` |
-| `entries` | **no** | **no** | books (immutable) | `ledger.entries` (+ `org_id`, kept equal to the transaction's by trigger; + `created_by`) |
-| `transaction_tags` | **no** | no | books link | `ledger.transaction_tags` (+ `org_id`) |
-| `bank_transactions` | yes | no | evidence (immutable) | `ledger.bank_transactions` (+ `created_by`) |
-| `import_batches` | yes | yes | evidence | `ledger.import_batches` |
-| `import_profiles` | yes | no | settings | `ledger.import_profiles` (+ `created_by`) |
-| `reconciliations` | yes | yes | books | `ledger.reconciliations` |
-| `period_closes` | yes | (`closed_by`) | books | `ledger.period_closes` |
-| `budgets` | yes | no | planning | `ledger.budgets` (+ `created_by`) |
-| `transaction_templates` | yes | no | planning | `ledger.transaction_templates` (+ `created_by`) |
-| `recurring_occurrences` | yes | no | planning | `ledger.recurring_occurrences` (+ `created_by`) |
-| `funds` | yes | no | catalog | `ledger.funds` (+ `created_by`) |
-| `pledges` | yes | yes | books-adjacent | `ledger.pledges` |
-| `pledge_payments` | yes | no | books-adjacent | `ledger.pledge_payments` (+ `created_by`) |
-| `categories`, `tags`, `projects` | yes | no | catalog | `ledger.*` (+ `created_by`) |
-| `audit_log` | yes | yes | history (append-only) | `ledger.audit_log` |
-| `ai_usage` | yes | yes | metering (cloud-only) | `ledger.ai_usage` (kept for when AI PDF import returns) |
-| `legal_acceptances` | yes | yes | legal (append-only) | `ledger.legal_acceptances`: self-hosted sign-up and Ledger-specific consent (AI PDF). Hosted sign-up acceptance is the hub's. |
-| `deleted_organizations` | yes | no | tombstone log | `ledger.deleted_organizations`, self-hosted only (hosted deletion is the hub's). |
+| Table                            | org_id       | who           | Kind                           | Target                                                                                                                          |
+| -------------------------------- | ------------ | ------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `organizations`                  | (is the org) | yes           | core concept + Ledger settings | **Split:** identity and owner → core (`public.organizations`, owner membership). Ledger columns → `ledger.org_settings` (§4.1). |
+| `user_roles`                     | yes          | yes           | core concept                   | **Replace** with `public.memberships` + `ledger.member_roles` overlay (see §4.2).                                               |
+| `profiles`                       | —            | (is the user) | core concept + Ledger pref     | **Split:** `display_name` → `public.profiles`. `terminology` → `ledger.user_preferences`.                                       |
+| `org_invites`                    | yes          | yes           | membership                     | **Not recreated.** Core `public.invitations` in both modes (§4.4).                                                              |
+| `accounts`                       | yes          | **no**        | books                          | `ledger.accounts` (+ `created_by`)                                                                                              |
+| `transactions`                   | yes          | yes           | books (immutable once posted)  | `ledger.transactions`                                                                                                           |
+| `entries`                        | **no**       | **no**        | books (immutable)              | `ledger.entries` (+ `org_id`, kept equal to the transaction's by trigger; + `created_by`)                                       |
+| `transaction_tags`               | **no**       | no            | books link                     | `ledger.transaction_tags` (+ `org_id`)                                                                                          |
+| `bank_transactions`              | yes          | no            | evidence (immutable)           | `ledger.bank_transactions` (+ `created_by`)                                                                                     |
+| `import_batches`                 | yes          | yes           | evidence                       | `ledger.import_batches`                                                                                                         |
+| `import_profiles`                | yes          | no            | settings                       | `ledger.import_profiles` (+ `created_by`)                                                                                       |
+| `reconciliations`                | yes          | yes           | books                          | `ledger.reconciliations`                                                                                                        |
+| `period_closes`                  | yes          | (`closed_by`) | books                          | `ledger.period_closes`                                                                                                          |
+| `budgets`                        | yes          | no            | planning                       | `ledger.budgets` (+ `created_by`)                                                                                               |
+| `transaction_templates`          | yes          | no            | planning                       | `ledger.transaction_templates` (+ `created_by`)                                                                                 |
+| `recurring_occurrences`          | yes          | no            | planning                       | `ledger.recurring_occurrences` (+ `created_by`)                                                                                 |
+| `funds`                          | yes          | no            | catalog                        | `ledger.funds` (+ `created_by`)                                                                                                 |
+| `pledges`                        | yes          | yes           | books-adjacent                 | `ledger.pledges`                                                                                                                |
+| `pledge_payments`                | yes          | no            | books-adjacent                 | `ledger.pledge_payments` (+ `created_by`)                                                                                       |
+| `categories`, `tags`, `projects` | yes          | no            | catalog                        | `ledger.*` (+ `created_by`)                                                                                                     |
+| `audit_log`                      | yes          | yes           | history (append-only)          | `ledger.audit_log`                                                                                                              |
+| `ai_usage`                       | yes          | yes           | metering (cloud-only)          | `ledger.ai_usage` (kept for when AI PDF import returns)                                                                         |
+| `legal_acceptances`              | yes          | yes           | legal (append-only)            | `ledger.legal_acceptances`: self-hosted sign-up and Ledger-specific consent (AI PDF). Hosted sign-up acceptance is the hub's.   |
+| `deleted_organizations`          | yes          | no            | tombstone log                  | `ledger.deleted_organizations`, self-hosted only (hosted deletion is the hub's).                                                |
 
 ### 2.2 Enum types
 
@@ -156,26 +171,26 @@ These already satisfy AGENTS step 5 "integrity": posted entries can't be edited 
 
 All access is server-side through server functions, except auth calls in screens. The typed client is `Db` (`src/lib/db.ts`).
 
-| File | Tables / RPCs / auth calls |
-|---|---|
-| `src/integrations/supabase/client.ts` | browser client (`createClient`, localStorage / Lovable preview broker storage) — **replaced by `shared/supabase/client.ts`** |
-| `src/integrations/supabase/client.server.ts` | service-role admin client (`SUPABASE_SERVICE_ROLE_KEY`) |
-| `src/integrations/supabase/auth-middleware.ts`, `auth-attacher.ts` | per-request user client from bearer token (`auth.getClaims`, `auth.getSession`) |
-| `src/integrations/supabase/cron-auth.ts` | Lovable cron secret check — **unused**, remove |
-| `src/integrations/lovable/index.ts` | Lovable OAuth broker (`@lovable.dev/cloud-auth-js`, `auth.setSession`) — remove; use `supabase.auth.signInWithOAuth` |
-| `src/lib/adapters/supabase/index.ts` | accounts, audit_log, bank_transactions, budgets, entries, import_batches, organizations, period_closes, pledge_payments, pledges, projects, reconciliations, recurring_occurrences, transaction_templates, transactions, user_roles; `post_transaction_atomic`, `void_transaction_atomic` |
-| `src/lib/org.functions.ts` | organizations, user_roles, profiles, accounts, bank_transactions, budgets, entries, import_batches, reconciliations |
-| `src/lib/members.functions.ts` | org_invites, organizations, user_roles; `delete_organization_atomic`; **admin**: `auth.admin.deleteUser`, invite claim. Becomes core calls (`create_invitation`, `accept_invitation`, `transfer_ownership`, `delete_organization`) + `ledger.member_roles` |
-| `src/lib/permissions.ts` | user_roles (+ `organizations.require_mfa`); `mfa_ok` |
-| `src/lib/import.functions.ts` | ai_usage, bank_transactions, import_batches, import_profiles, organizations; `can_write_org`; **admin** client; **Lovable AI gateway** `ai.gateway.lovable.dev` (`LOVABLE_API_KEY`) — turned off in step 3b |
-| `src/lib/funds.functions.ts` | entries, funds, pledge_payments, pledges |
-| `src/lib/taxonomy.functions.ts` | accounts, categories, entries, funds, projects, tags |
-| `src/lib/transactions.functions.ts` | transactions |
-| `src/lib/legal.functions.ts` | legal_acceptances |
-| `src/lib/audited-write.ts` / `src/lib/audit.ts` | `audited_write` RPC / audit_log via **admin** client |
-| `src/lib/backup.functions.ts`, `backup-export.server.ts` | audit_log, entries, profiles, organizations, transaction_tags (table-walking `UntypedDb`) |
-| `src/lib/restore.server.ts` | accounts, audit_log, deleted_organizations, entries, organizations, reconciliations; **admin** client (creates and, on failure, deletes the restored org). Becomes `public.create_organization()` / `public.delete_organization()` as the caller |
-| `src/routes/auth.tsx`, `reset-password.tsx`, `invite.$token.tsx`, `_authenticated/route.tsx`, `settings/security.tsx`, `components/AppShell.tsx` | `signUp`, `signInWithPassword`, `signInWithOAuth`, `resend`, `resetPasswordForEmail`, `updateUser`, `getSession`, `getUser`, `onAuthStateChange`, `signOut` |
+| File                                                                                                                                             | Tables / RPCs / auth calls                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/integrations/supabase/client.ts`                                                                                                            | browser client (`createClient`, localStorage / Lovable preview broker storage) — **replaced by `shared/supabase/client.ts`**                                                                                                                                                              |
+| `src/integrations/supabase/client.server.ts`                                                                                                     | service-role admin client (`SUPABASE_SERVICE_ROLE_KEY`)                                                                                                                                                                                                                                   |
+| `src/integrations/supabase/auth-middleware.ts`, `auth-attacher.ts`                                                                               | per-request user client from bearer token (`auth.getClaims`, `auth.getSession`)                                                                                                                                                                                                           |
+| `src/integrations/supabase/cron-auth.ts`                                                                                                         | Lovable cron secret check — **unused**, remove                                                                                                                                                                                                                                            |
+| `src/integrations/lovable/index.ts`                                                                                                              | Lovable OAuth broker (`@lovable.dev/cloud-auth-js`, `auth.setSession`) — remove; use `supabase.auth.signInWithOAuth`                                                                                                                                                                      |
+| `src/lib/adapters/supabase/index.ts`                                                                                                             | accounts, audit_log, bank_transactions, budgets, entries, import_batches, organizations, period_closes, pledge_payments, pledges, projects, reconciliations, recurring_occurrences, transaction_templates, transactions, user_roles; `post_transaction_atomic`, `void_transaction_atomic` |
+| `src/lib/org.functions.ts`                                                                                                                       | organizations, user_roles, profiles, accounts, bank_transactions, budgets, entries, import_batches, reconciliations                                                                                                                                                                       |
+| `src/lib/members.functions.ts`                                                                                                                   | org_invites, organizations, user_roles; `delete_organization_atomic`; **admin**: `auth.admin.deleteUser`, invite claim. Becomes core calls (`create_invitation`, `accept_invitation`, `transfer_ownership`, `delete_organization`) + `ledger.member_roles`                                |
+| `src/lib/permissions.ts`                                                                                                                         | user_roles (+ `organizations.require_mfa`); `mfa_ok`                                                                                                                                                                                                                                      |
+| `src/lib/import.functions.ts`                                                                                                                    | ai_usage, bank_transactions, import_batches, import_profiles, organizations; `can_write_org`; **admin** client; **Lovable AI gateway** `ai.gateway.lovable.dev` (`LOVABLE_API_KEY`) — turned off in step 3b                                                                               |
+| `src/lib/funds.functions.ts`                                                                                                                     | entries, funds, pledge_payments, pledges                                                                                                                                                                                                                                                  |
+| `src/lib/taxonomy.functions.ts`                                                                                                                  | accounts, categories, entries, funds, projects, tags                                                                                                                                                                                                                                      |
+| `src/lib/transactions.functions.ts`                                                                                                              | transactions                                                                                                                                                                                                                                                                              |
+| `src/lib/legal.functions.ts`                                                                                                                     | legal_acceptances                                                                                                                                                                                                                                                                         |
+| `src/lib/audited-write.ts` / `src/lib/audit.ts`                                                                                                  | `audited_write` RPC / audit_log via **admin** client                                                                                                                                                                                                                                      |
+| `src/lib/backup.functions.ts`, `backup-export.server.ts`                                                                                         | audit_log, entries, profiles, organizations, transaction_tags (table-walking `UntypedDb`)                                                                                                                                                                                                 |
+| `src/lib/restore.server.ts`                                                                                                                      | accounts, audit_log, deleted_organizations, entries, organizations, reconciliations; **admin** client (creates and, on failure, deletes the restored org). Becomes `public.create_organization()` / `public.delete_organization()` as the caller                                          |
+| `src/routes/auth.tsx`, `reset-password.tsx`, `invite.$token.tsx`, `_authenticated/route.tsx`, `settings/security.tsx`, `components/AppShell.tsx` | `signUp`, `signInWithPassword`, `signInWithOAuth`, `resend`, `resetPasswordForEmail`, `updateUser`, `getSession`, `getUser`, `onAuthStateChange`, `signOut`                                                                                                                               |
 
 Because every table access already goes through ports/adapters and a small set of server-function files, the schema move is mostly: `db: { schema: 'ledger' }` on the client, `.schema('public')` for the four core lookups, and new generated types.
 
@@ -191,13 +206,13 @@ Core `public.organizations` holds `id, name, slug, created_by, created_at`; owne
 
 ### 4.2 Roles
 
-| Ledger today | Core role | Ledger in v2 |
-|---|---|---|
-| owner = `organizations.created_by` (+ `admin`) | `owner` | admin rights; transfer via core `transfer_ownership` |
-| `admin` | `admin` | `admin` |
-| `treasurer` | `member` (or higher) | core role + `ledger.member_roles (org_id, user_id, role = 'treasurer')` overlay |
-| `member` | `member` | `member` |
-| `viewer` | `viewer` | `viewer` |
+| Ledger today                                   | Core role            | Ledger in v2                                                                    |
+| ---------------------------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| owner = `organizations.created_by` (+ `admin`) | `owner`              | admin rights; transfer via core `transfer_ownership`                            |
+| `admin`                                        | `admin`              | `admin`                                                                         |
+| `treasurer`                                    | `member` (or higher) | core role + `ledger.member_roles (org_id, user_id, role = 'treasurer')` overlay |
+| `member`                                       | `member`             | `member`                                                                        |
+| `viewer`                                       | `viewer`             | `viewer`                                                                        |
 
 - The overlay is managed in Ledger by owner/admin, in both modes. A treasurer row requires core `member` or higher, and is removed when the membership goes (cascade via a trigger on read, or a check in `ledger.can_close_books`).
 - `CAPABILITIES` in `src/lib/permissions.ts` stays the only role table; `assertCan` derives the Ledger role from core role + overlay. `owner` gets admin's capabilities.
@@ -219,12 +234,12 @@ Core `public.organizations` holds `id, name, slug, created_by, created_at`; owne
 
 ### 4.5 Ownership, org deletion, account deletion
 
-| | Hosted | Self-hosted |
-|---|---|---|
-| Transfer ownership | link to the hub | Ledger screen → `public.transfer_ownership` (candidates from `ownership_transfer_candidates`) |
-| Delete organization | link to the hub | Ledger screen → `public.delete_organization(org, confirm_name)`; Ledger logs `ledger.deleted_organizations` first |
-| Delete my account | link to the hub | Ledger's existing flow (`auth.admin.deleteUser`), service role allowed behind `VITE_HOSTED=false` on the server (spec §7.2) |
-| Remove / leave | link to the hub | core RLS on `public.memberships` (never the owner) |
+|                     | Hosted          | Self-hosted                                                                                                                 |
+| ------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Transfer ownership  | link to the hub | Ledger screen → `public.transfer_ownership` (candidates from `ownership_transfer_candidates`)                               |
+| Delete organization | link to the hub | Ledger screen → `public.delete_organization(org, confirm_name)`; Ledger logs `ledger.deleted_organizations` first           |
+| Delete my account   | link to the hub | Ledger's existing flow (`auth.admin.deleteUser`), service role allowed behind `VITE_HOSTED=false` on the server (spec §7.2) |
+| Remove / leave      | link to the hub | core RLS on `public.memberships` (never the owner)                                                                          |
 
 Org deletion cascades every app's tables through `org_id`. Ledger's "deferrable no action FKs + balance trigger skipping deleted transactions" rule is kept so the cascade can't trip the balance check.
 
@@ -234,14 +249,14 @@ Kept in Ledger: `require_mfa` lives in `ledger.org_settings`, and `ledger.mfa_ok
 
 ### 4.7 Service role
 
-| Use today | v2 |
-|---|---|
-| Invite claim (`members.functions.ts`) | gone: `accept_invitation` runs as the caller |
-| Org delete (`delete_organization_atomic`) | gone: `public.delete_organization` as the caller |
-| Account delete (`auth.admin.deleteUser`) | self-hosted only, server checks `VITE_HOSTED` |
-| History writes (`audit.ts` → `audit_log` insert) | `ledger.audited_write` / event-only history RPC as the caller |
-| Restore (`restore.server.ts`) | `public.create_organization()` as the caller; cleanup on failure via `public.delete_organization` |
-| AI usage meter (`import.functions.ts`) | off (step 3b); when it returns, a `ledger` RPC as the caller |
+| Use today                                        | v2                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Invite claim (`members.functions.ts`)            | gone: `accept_invitation` runs as the caller                                                      |
+| Org delete (`delete_organization_atomic`)        | gone: `public.delete_organization` as the caller                                                  |
+| Account delete (`auth.admin.deleteUser`)         | self-hosted only, server checks `VITE_HOSTED`                                                     |
+| History writes (`audit.ts` → `audit_log` insert) | `ledger.audited_write` / event-only history RPC as the caller                                     |
+| Restore (`restore.server.ts`)                    | `public.create_organization()` as the caller; cleanup on failure via `public.delete_organization` |
+| AI usage meter (`import.functions.ts`)           | off (step 3b); when it returns, a `ledger` RPC as the caller                                      |
 
 Hosted Ledger ends up with **no** service-role key (spec §7.2). The only Ledger Worker secret is `BACKUP_SIGNING_SEED`.
 
@@ -253,59 +268,59 @@ Hosted Ledger ends up with **no** service-role key (spec §7.2). The only Ledger
 
 All the questions raised in v1 of these notes are answered. Spec v2 wins wherever the original proposal differed.
 
-| # | Question | Answer |
-|---|---|---|
-| D1 | Owner inputs | Filled in (spec §0.1): `openapphub.org`, production `nxungwtxnctcqolfshcr`, staging `dnsqxiiexkdokgebysrt`. **Design is a full refresh**; Ledger restyles in step 14 after the hub's direction is approved. |
-| D2 | Hosting, service role | **Cloudflare Workers.** No service role in hosted mode (§4.7). |
-| D3 | Treasurer | `ledger.member_roles` overlay (§4.2). |
-| D4 | MFA | Keep `ledger.mfa_ok` in Ledger's policies (§4.6). |
-| D5 | Sessions | Shared cookie client in the browser; server functions keep the bearer token. |
-| D6 | Deletion | Hosted: hub. Self-hosted: Ledger screens on `public.delete_organization`; `deleted_organizations` self-hosted only (§4.5). |
-| D7 | Legal | Hosted: hub records acceptance. Ledger keeps `ledger.legal_acceptances` for self-hosted and Ledger-specific consent. |
-| D8 | AI PDF import | **Off** (hide the option, refuse on the server) until the owner picks a provider. Google sign-in: plain Supabase OAuth (self-hosted), the hub (hosted). |
-| D9–D13 | ids, currency, routing, migration folders, desktop parity | Accepted as proposed. |
-| — | Invitations | Core, sent by the hub; 14 days; `ledger.on_invitation_accepted` (§4.4). |
-| — | Ownership | Core; transfer in the hub (hosted) or via `public.transfer_ownership` (self-hosted). |
-| — | Demo | Staging only. `db/seed/0001_ledger_demo.sql` keeps the refusal to run on real data; demo addresses on `@demo.openapphub.org`. |
+| #      | Question                                                  | Answer                                                                                                                                                                                                      |
+| ------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1     | Owner inputs                                              | Filled in (spec §0.1): `openapphub.org`, production `nxungwtxnctcqolfshcr`, staging `dnsqxiiexkdokgebysrt`. **Design is a full refresh**; Ledger restyles in step 14 after the hub's direction is approved. |
+| D2     | Hosting, service role                                     | **Cloudflare Workers.** No service role in hosted mode (§4.7).                                                                                                                                              |
+| D3     | Treasurer                                                 | `ledger.member_roles` overlay (§4.2).                                                                                                                                                                       |
+| D4     | MFA                                                       | Keep `ledger.mfa_ok` in Ledger's policies (§4.6).                                                                                                                                                           |
+| D5     | Sessions                                                  | Shared cookie client in the browser; server functions keep the bearer token.                                                                                                                                |
+| D6     | Deletion                                                  | Hosted: hub. Self-hosted: Ledger screens on `public.delete_organization`; `deleted_organizations` self-hosted only (§4.5).                                                                                  |
+| D7     | Legal                                                     | Hosted: hub records acceptance. Ledger keeps `ledger.legal_acceptances` for self-hosted and Ledger-specific consent.                                                                                        |
+| D8     | AI PDF import                                             | **Off** (hide the option, refuse on the server) until the owner picks a provider. Google sign-in: plain Supabase OAuth (self-hosted), the hub (hosted).                                                     |
+| D9–D13 | ids, currency, routing, migration folders, desktop parity | Accepted as proposed.                                                                                                                                                                                       |
+| —      | Invitations                                               | Core, sent by the hub; 14 days; `ledger.on_invitation_accepted` (§4.4).                                                                                                                                     |
+| —      | Ownership                                                 | Core; transfer in the hub (hosted) or via `public.transfer_ownership` (self-hosted).                                                                                                                        |
+| —      | Demo                                                      | Staging only. `db/seed/0001_ledger_demo.sql` keeps the refusal to run on real data; demo addresses on `@demo.openapphub.org`.                                                                               |
 
 ## 7. Plan (one PR per step)
 
 Production order is fixed by START-HERE: Charter park → Hub core + billing → Charter → Board → **Ledger baseline (5th)** → staging.
 
-| Step | What | Depends on | Status |
-|---|---|---|---|
-| 1 | Inventory, `docs/SHARED-SPEC.md`, `AGENTS.md` suite section | — | **done** (this PR) |
-| 2 | Secret scan (§8) | — | **done** (this PR) |
-| 3 | Hygiene: `.env` untracked; `.env.example` with every v2 variable; security headers set in `src/server.ts` (Workers ignore `_headers`; no `_redirects`); `wrangler.jsonc` (staging + production); `staging.yml` + `release.yml` behind `scripts/deploy/preflight.sh`, which refuses until steps 4, 5 and 8 are done; 64 lockfile entries moved off Lovable's private npm cache (403 outside Lovable) to registry.npmjs.org, same integrity hashes; unused Lovable `cron-auth.ts` removed; `check-env.mjs` now fails if any `.env*` other than `.env.example` / `.env.desktop` is tracked | owner disconnects Lovable before merge | **done** (this PR) |
-| 3b | AI PDF import off: hide the option, server refuses, remove the Lovable AI gateway call; docs PR (importing, troubleshooting, known limits, FAQ) | — | next |
-| 4 | Vendor `shared/`, `db/core/`, `scripts/migrate.mjs`; `migrate.yml`; CI `db` job on `db/`; **retire** `supabase/migrations/`, `drizzle/`, the old `database` CI job, and point `check-migrations.mjs` at `db/` | Hub Phase 1–2 merged | **done** (§0.4) |
-| 5 | `db/migrations/0001_ledger_baseline.sql`: schema `ledger`, every table of §2.1 with `org_id` (incl. `entries`, `transaction_tags`) and `created_by`/`created_at`; `org_settings`, `user_preferences`, `member_roles`; helpers of §4.2; ported triggers and RPCs; `on_invitation_accepted`; RLS + grants per spec §3.4. Bucket name `ledger-files` if files are ever stored (none today) | 4 | **done** (§0.4)|
-| 6 | `db/seed/0001_ledger_demo.sql` (port of `supabase/seed/demo.sql`, refuses real orgs, `@demo.openapphub.org`) | 5 | |
-| 7 | `db/tests/`: port the 7 existing suites; add non-member can't read, viewer can't write, expired trial = read-only, treasurer overlay rules, posted entries immutable, balance check | 5 | **done** (§0.4)|
-| 8 | Client: `shared/supabase/client.ts` (`VITE_APP_SCHEMA=ledger`), `.schema('public')` for core, regenerated types (`gen-types.yml`); remove `previewAuthStorage`, Lovable OAuth broker | 5 | |
-| 9 | Org scoping via `shared/supabase/org.ts` (`oah_org`) | 8 | |
-| 10 | Hosted vs self-hosted: hub links for sign-in, org create/delete, core roles, invitations, ownership, account deletion; `/invite/<token>` on `InvitationPage`; hosted `/` → `/ledger`; service role only behind `VITE_HOSTED=false` | 9 | |
-| 11 | `BillingBanner`, write controls disabled when read-only, link to `${VITE_HUB_URL}/billing` | 10 | |
-| 12 | Export: CSV per table + JSON bundle, works read-only, tested | 8 | |
-| 13 | `ledger.api_budgets`, `ledger.api_period_summaries`; `docs/INTEGRATION.md` | 5 | |
-| 14 | New shared design in web **and** desktop builds; separate PRs; before/after screenshots; behaviour and visible text unchanged | hub design approved | |
-| 15–16 | Help map `src/config/help.ts`; docs PR (AGENTS → Phase 5) | 14 | |
-| — | Retire Lovable project `pzzmmltmghmgfwhgzlvl`; remove `supabase/config.toml`, `@lovable.dev/*` (incl. the Vite config wrapper), `.lovable/`, the Lovable note in `AGENTS.md` | Ledger live on the shared project | |
+| Step  | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Depends on                             | Status             |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------ |
+| 1     | Inventory, `docs/SHARED-SPEC.md`, `AGENTS.md` suite section                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | —                                      | **done** (this PR) |
+| 2     | Secret scan (§8)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | —                                      | **done** (this PR) |
+| 3     | Hygiene: `.env` untracked; `.env.example` with every v2 variable; security headers set in `src/server.ts` (Workers ignore `_headers`; no `_redirects`); `wrangler.jsonc` (staging + production); `staging.yml` + `release.yml` behind `scripts/deploy/preflight.sh`, which refuses until steps 4, 5 and 8 are done; 64 lockfile entries moved off Lovable's private npm cache (403 outside Lovable) to registry.npmjs.org, same integrity hashes; unused Lovable `cron-auth.ts` removed; `check-env.mjs` now fails if any `.env*` other than `.env.example` / `.env.desktop` is tracked | owner disconnects Lovable before merge | **done** (this PR) |
+| 3b    | AI PDF import off: hide the option, server refuses, remove the Lovable AI gateway call; docs PR (importing, troubleshooting, known limits, FAQ)                                                                                                                                                                                                                                                                                                                                                                                                                                         | —                                      | next               |
+| 4     | Vendor `shared/`, `db/core/`, `scripts/migrate.mjs`; `migrate.yml`; CI `db` job on `db/`; **retire** `supabase/migrations/`, `drizzle/`, the old `database` CI job, and point `check-migrations.mjs` at `db/`                                                                                                                                                                                                                                                                                                                                                                           | Hub Phase 1–2 merged                   | **done** (§0.4)    |
+| 5     | `db/migrations/0001_ledger_baseline.sql`: schema `ledger`, every table of §2.1 with `org_id` (incl. `entries`, `transaction_tags`) and `created_by`/`created_at`; `org_settings`, `user_preferences`, `member_roles`; helpers of §4.2; ported triggers and RPCs; `on_invitation_accepted`; RLS + grants per spec §3.4. Bucket name `ledger-files` if files are ever stored (none today)                                                                                                                                                                                                 | 4                                      | **done** (§0.4)    |
+| 6     | `db/seed/0001_ledger_demo.sql` (port of `supabase/seed/demo.sql`, refuses real orgs, `@demo.openapphub.org`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 5                                      |                    |
+| 7     | `db/tests/`: port the 7 existing suites; add non-member can't read, viewer can't write, expired trial = read-only, treasurer overlay rules, posted entries immutable, balance check                                                                                                                                                                                                                                                                                                                                                                                                     | 5                                      | **done** (§0.4)    |
+| 8     | Client: `shared/supabase/client.ts` (`VITE_APP_SCHEMA=ledger`), `.schema('public')` for core, regenerated types (`gen-types.yml`); remove `previewAuthStorage`, Lovable OAuth broker                                                                                                                                                                                                                                                                                                                                                                                                    | 5                                      |                    |
+| 9     | Org scoping via `shared/supabase/org.ts` (`oah_org`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 8                                      |                    |
+| 10    | Hosted vs self-hosted: hub links for sign-in, org create/delete, core roles, invitations, ownership, account deletion; `/invite/<token>` on `InvitationPage`; hosted `/` → `/ledger`; service role only behind `VITE_HOSTED=false`                                                                                                                                                                                                                                                                                                                                                      | 9                                      |                    |
+| 11    | `BillingBanner`, write controls disabled when read-only, link to `${VITE_HUB_URL}/billing`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 10                                     |                    |
+| 12    | Export: CSV per table + JSON bundle, works read-only, tested                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 8                                      |                    |
+| 13    | `ledger.api_budgets`, `ledger.api_period_summaries`; `docs/INTEGRATION.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 5                                      |                    |
+| 14    | New shared design in web **and** desktop builds; separate PRs; before/after screenshots; behaviour and visible text unchanged                                                                                                                                                                                                                                                                                                                                                                                                                                                           | hub design approved                    |                    |
+| 15–16 | Help map `src/config/help.ts`; docs PR (AGENTS → Phase 5)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 14                                     |                    |
+| —     | Retire Lovable project `pzzmmltmghmgfwhgzlvl`; remove `supabase/config.toml`, `@lovable.dev/*` (incl. the Vite config wrapper), `.lovable/`, the Lovable note in `AGENTS.md`                                                                                                                                                                                                                                                                                                                                                                                                            | Ledger live on the shared project      |                    |
 
 ### 7.1 Codebase rules that change, and when
 
-| Rule in `AGENTS.md` → Codebase rules | Replaced by | Step |
-|---|---|---|
-| "Members: `organizations.created_by` is the owner; invite links store only a SHA-256 hash … claimed atomically" | core owner membership; core `invitations` (still hashed, still atomic in `accept_invitation`) | 5, 10 |
-| "Org delete needs deferrable no action FKs …" | still true inside `ledger`; the delete itself is `public.delete_organization` | 5 |
-| "Org data: requireSupabaseAuth + assertCan + member RLS; settings/accounts admin-only" | same, with core roles + overlay; admin-only = `ledger.is_admin` | 5, 8 |
-| "MFA: org require_mfa enforced in DB via mfa_ok inside membership helpers" | `ledger.mfa_ok` inside Ledger helpers (core helpers don't check it) | 5 |
-| "IDs: app-generated UUID, never a DB default" | app still supplies ids; `default gen_random_uuid()` exists only as a fallback (spec §2) | 5 |
-| "Routing: public website owns `/`" | self-hosted only; hosted `/` → `/ledger` | 10 |
-| "Demo login: manual dev seed only" | demo on staging only, through `staging.yml` | 6 |
-| "AI PDF: org opt-in, upload ack, limits …" | feature off until a provider is chosen; rule returns with it | 3b |
-| "Database changes live in both `drizzle/migrations` and `supabase/migrations`" (`docs/architecture.md`, `scripts/ci/AGENTS.md`) | `db/migrations/` only, applied by `scripts/migrate.mjs` | 4 |
-| `.env` "tracked on purpose (Lovable needs it)" (`scripts/ci/check-env.mjs`) | `.env` untracked; CI fails if any `.env*` other than `.env.example` / `.env.desktop` is tracked | 3 |
+| Rule in `AGENTS.md` → Codebase rules                                                                                            | Replaced by                                                                                     | Step  |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----- |
+| "Members: `organizations.created_by` is the owner; invite links store only a SHA-256 hash … claimed atomically"                 | core owner membership; core `invitations` (still hashed, still atomic in `accept_invitation`)   | 5, 10 |
+| "Org delete needs deferrable no action FKs …"                                                                                   | still true inside `ledger`; the delete itself is `public.delete_organization`                   | 5     |
+| "Org data: requireSupabaseAuth + assertCan + member RLS; settings/accounts admin-only"                                          | same, with core roles + overlay; admin-only = `ledger.is_admin`                                 | 5, 8  |
+| "MFA: org require_mfa enforced in DB via mfa_ok inside membership helpers"                                                      | `ledger.mfa_ok` inside Ledger helpers (core helpers don't check it)                             | 5     |
+| "IDs: app-generated UUID, never a DB default"                                                                                   | app still supplies ids; `default gen_random_uuid()` exists only as a fallback (spec §2)         | 5     |
+| "Routing: public website owns `/`"                                                                                              | self-hosted only; hosted `/` → `/ledger`                                                        | 10    |
+| "Demo login: manual dev seed only"                                                                                              | demo on staging only, through `staging.yml`                                                     | 6     |
+| "AI PDF: org opt-in, upload ack, limits …"                                                                                      | feature off until a provider is chosen; rule returns with it                                    | 3b    |
+| "Database changes live in both `drizzle/migrations` and `supabase/migrations`" (`docs/architecture.md`, `scripts/ci/AGENTS.md`) | `db/migrations/` only, applied by `scripts/migrate.mjs`                                         | 4     |
+| `.env` "tracked on purpose (Lovable needs it)" (`scripts/ci/check-env.mjs`)                                                     | `.env` untracked; CI fails if any `.env*` other than `.env.example` / `.env.desktop` is tracked | 3     |
 
 ## 8. Secret scan (step 2 result)
 

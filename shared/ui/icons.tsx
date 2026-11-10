@@ -21,7 +21,8 @@ function Svg({ d, ...props }: SVGProps<SVGSVGElement> & { d: string }) {
   );
 }
 
-type P = SVGProps<SVGSVGElement>;
+// Without `d`: each icon sets its own path, so a caller's props can never replace it.
+type P = Omit<SVGProps<SVGSVGElement>, "d">;
 export const MenuIcon = (p: P) => <Svg d="M4 6h16M4 12h16M4 18h16" {...p} />;
 export const CloseIcon = (p: P) => <Svg d="M6 6l12 12M18 6 6 18" {...p} />;
 export const GridIcon = (p: P) => (

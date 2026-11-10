@@ -4,6 +4,8 @@
 Place it at `docs/SHARED-SPEC.md` in all four app repos (the docs repo has its own `AGENTS.md`).
 If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the owner.
 
+**v2.3 (2026-11-10, owner changes):** prices are set (§6.1) and live in **Stripe**, found by lookup key `<plan>_<interval>`, so there's no `STRIPE_PRICE_MAP` (§6.2, §7.1); plan limits count **editors** (owner, admin, member; never viewers or Charter's dues-paying members), Starter 5, Suite 15, Plus unlimited (§5); suite billing collects no sales tax for now (§6.2); row rules should be set-based (§3.4).
+
 **v2.2 (2026-11-09, owner changes):** the design direction is chosen ("Civic, slightly warm", §9); dark mode is Light / Dark / System, shared across the suite (§9); money and dates use `shared/format.ts` in every app (§9); **deploys use Cloudflare's Git integration: merging to `main` deploys production** (§10.2), so the `CLOUDFLARE_*` GitHub secrets and `release.yml` are gone (§7.1); pull request descriptions carry no "Generated with Claude Code" line or session link (§2.2).
 
 **v2.1 (2026-11-08, owner change):** the suite starts from **fresh databases**. The old Supabase projects are being deleted; nothing is copied or parked, and there is no legacy schema. `VITE_SUITE_URLS` is a JSON object (§7.1). Changes are in §0.1, §3.1 and §7.1.
@@ -26,7 +28,7 @@ If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the
 | Production database order | hub core (+ hub billing later) → Charter baseline → Board baseline → Ledger baseline. Staging: the same, plus each repo's seed data, once it exists |
 | Design | **Full refresh** for all four apps (§9). No existing app is the reference. |
 | Docs site | `https://docs.openapphub.org`, repo `Nox-Mob/OpenAppHub-docs` (§12) |
-| Prices | **Not confirmed** (§6.1). Don't put prices anywhere except `pricing.ts` and the draft plans page. |
+| Prices | Set in **Stripe** (§6.1). Never put prices in code: the hub reads them from Stripe by lookup key. |
 
 If a value you need is still missing, **stop and ask the owner**. Never guess a project ref or price.
 
@@ -264,7 +266,7 @@ create table board.example (
 create index on board.example(org_id);
 alter table board.example enable row level security;
 
-create policy "read"   on board.example for select using (public.is_member(org_id));
+create policy "read"   on board.example for select using (org_id in (select board.readable_org_ids()));
 create policy "insert" on board.example for insert with check (board.can_edit(org_id));
 create policy "update" on board.example for update using (board.can_edit(org_id)) with check (board.can_edit(org_id));
 create policy "delete" on board.example for delete using (board.can_edit(org_id));
@@ -373,7 +375,7 @@ Owned by the hub, schema `billing` (not exposed).
 - `billing.stripe_events(id pk, type, received_at)` for idempotency.
 - `billing.org_has_app_access(p_org, p_app)`: trialing and not expired; or active/past_due and `p_app = any(apps)`.
 - **Trial:** an `after insert` trigger on `public.organizations` (in the hub's billing migration) creates a trialing subscription for all apps, 30 days. One trial per user: if `created_by` already had a trial, the new org starts `expired`.
-- **Member limit:** a trigger on `public.memberships` insert rejects inserts beyond `max_members` when billing is on. **It counts core memberships only**, so Charter portal members never count (§4.5).
+- **Editor limit:** a trigger on `public.memberships` (insert, and a role raised from viewer) rejects editors beyond `max_members` when billing is on. Editors are memberships with a role above `viewer` (owner, admin, member); viewers and Charter portal members never count (§4.5). The column keeps its name and holds the editor limit (`0003_editor_limits.sql`).
 - `public.get_org_billing(p_org)`: definer RPC, requires `is_member(p_org)` **or** `charter.is_portal_member(p_org, null)` (resolved at run time), returns plan, status, dates and apps.
 - The billing migration ends with `update public.instance_settings set billing_enabled = true;`. Self-hosters skip it (`--skip 0002_billing`). (The hub's own schema is `db/migrations/0001_hub.sql`, which applies first.)
 
@@ -389,21 +391,23 @@ There are **two separate kinds of payment**. Never mix them.
 | Stripe account | OpenAppHub's | Each organization's own (connected in Charter) |
 | Code | Hub only | Charter only |
 
-### 6.1 Plans (not confirmed)
+### 6.1 Plans
 
-The owner hasn't set prices. The owner is weighing one price per organization against pricing that depends on how many chapters (Charter units) an organization has. Until confirmed:
+One price per organization, in US dollars, monthly or yearly. **Prices live in Stripe** (the owner changes them there): each price has the lookup key `<plan>_<interval>` (`starter_month`, `suite_year`, …), and the hub reads active prices by those keys, cached a few minutes. A plan without a price shows "Price TBA" and can't be chosen.
 
-- The hub reads all displayed prices from `src/config/pricing.ts`; the docs plans page stays a draft.
-- Build plans so limits come from `billing.plans` rows, not code, so a later price model needs data changes only.
-- Charter publishes `charter.api_unit_count (org_id, units)` so the hub can read it if pricing ends up depending on units.
+| Plan | Apps | Editors | Monthly | Yearly |
+|---|---|---|---|---|
+| `starter` | 1 of your choice | 5 | $5 | $50 |
+| `suite` | all | 15 | $10 | $100 |
+| `plus` | all | unlimited | $25 | $250 |
 
-Placeholder rows for development: `starter` (1 app, 10 members), `suite` (all apps, 25 members), `plus` (all apps, unlimited). Trial: all apps, 10 members, 30 days, no card. Lapsed: read-only, export still allowed.
+Amounts are as set in Stripe on 2026-11-10, for reference only. Limits come from `billing.plans` rows, not code. Trial: all apps, 10 editors, 30 days, no card. Lapsed: read-only, export still allowed. Charter publishes `charter.api_unit_count (org_id, units)` in case pricing later depends on units.
 
 ### 6.2 Suite billing (hub)
 
 Hub server functions and routes on its Worker:
 
-- **`createCheckoutSession`** (signed in, owner/admin of the org): reuse or create the Stripe customer; Checkout in subscription mode, `client_reference_id = org_id`, metadata `{org_id, plan, apps}`. Price IDs come from the `STRIPE_PRICE_MAP` secret, never code.
+- **`createCheckoutSession`** (signed in, owner/admin of the org): reuse or create the Stripe customer; Checkout in subscription mode, `client_reference_id = org_id`, metadata `{org_id, plan, apps}`. The price is found in Stripe by lookup key, never in code. The webhook takes the plan from the price's lookup key; Suite and Plus always give every app, Starter the one app chosen at checkout. No automatic tax yet (the owner isn't registered to collect sales tax); turning it on later is a Checkout setting plus Stripe Tax.
 - **`createPortalSession`** (owner/admin): Stripe Customer Portal URL.
 - **`/api/stripe/webhook`** server route: verify the signature (`STRIPE_WEBHOOK_SECRET`), skip seen events, handle `checkout.session.completed`, `customer.subscription.created|updated|deleted`, `invoice.payment_failed`; write `billing.*` with the service-role client (§7.2).
 - Sub-apps show billing state from `get_org_billing` and link to `${VITE_HUB_URL}/billing`.
@@ -431,7 +435,7 @@ Hub server functions and routes on its Worker:
 `VITE_SUITE_URLS` is a JSON object of app origins, the same shape everywhere: `{"hub":"https://openapphub.org","charter":"https://charter.openapphub.org","board":"https://board.openapphub.org","ledger":"https://ledger.openapphub.org"}`. `shared/supabase/hosted.ts` (`parseSuiteUrls`) parses it; unknown keys and invalid URLs are ignored.
 
 | `SUPABASE_SERVICE_ROLE_KEY` | Worker secret | **NO** | hub, Charter (allowlist §7.2) |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MAP` | Worker secret | **NO** | hub |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Worker secret | **NO** | hub |
 | Charter's gateway encryption key | Worker secret | **NO** | Charter |
 | `BACKUP_SIGNING_SEED` | Worker secret | **NO** | Ledger |
 | `SMTP_*` (or Supabase Auth SMTP) | Supabase Auth settings / hub Worker secret | **NO** | hub email |

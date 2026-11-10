@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as NotAdviceRouteImport } from './routes/not-advice'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -61,6 +62,11 @@ const AuthRoute = AuthRouteImport.update({
 const ChangelogRoute = ChangelogRouteImport.update({
   id: '/changelog',
   path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetStartedRoute = GetStartedRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/changelog': typeof ChangelogRoute
+  '/cookies': typeof CookiesRoute
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/changelog': typeof ChangelogRoute
+  '/cookies': typeof CookiesRoute
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/changelog': typeof ChangelogRoute
+  '/cookies': typeof CookiesRoute
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
@@ -339,6 +348,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/changelog'
+    | '/cookies'
     | '/get-started'
     | '/not-advice'
     | '/privacy'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/changelog'
+    | '/cookies'
     | '/get-started'
     | '/not-advice'
     | '/privacy'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/changelog'
+    | '/cookies'
     | '/get-started'
     | '/not-advice'
     | '/privacy'
@@ -446,6 +458,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ChangelogRoute: typeof ChangelogRoute
+  CookiesRoute: typeof CookiesRoute
   GetStartedRoute: typeof GetStartedRoute
   NotAdviceRoute: typeof NotAdviceRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -482,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/changelog'
       fullPath: '/changelog'
       preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-started': {
@@ -770,6 +790,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ChangelogRoute: ChangelogRoute,
+  CookiesRoute: CookiesRoute,
   GetStartedRoute: GetStartedRoute,
   NotAdviceRoute: NotAdviceRoute,
   PrivacyRoute: PrivacyRoute,

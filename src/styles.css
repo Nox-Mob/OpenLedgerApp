@@ -1,41 +1,17 @@
 @import "tailwindcss" source(none);
 @source "../src";
+@source "../shared";
 @import "tw-animate-css";
+@import "@fontsource-variable/inter";
+@import "../shared/design/tokens.css";
+@import "../shared/design/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
+/*
+ * The suite design system (shared/design, SHARED-SPEC §9): colours, type and spacing come from
+ * the shared tokens. Ledger adds only what the shared set doesn't name, mapped onto it:
+ * shadcn's sidebar extras (components/ui/sidebar.tsx) and the public website's photo hero.
+ */
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -45,29 +21,28 @@
   --color-hero-muted: var(--hero-muted);
   --color-hero-accent: var(--hero-accent);
   --color-hero-accent-foreground: var(--hero-accent-foreground);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Libre Baskerville", Georgia, serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
-.website {
-  --background: oklch(0.995 0.001 160);
-  --foreground: oklch(0.24 0.02 165);
-  --primary: oklch(0.4 0.075 165);
-  --primary-foreground: oklch(0.99 0.002 160);
-  --muted: oklch(0.955 0.007 160);
-  --muted-foreground: oklch(0.47 0.018 165);
-  --secondary: oklch(0.97 0.008 160);
-  --secondary-foreground: oklch(0.25 0.03 165);
-  --border: oklch(0.89 0.009 160);
-  --input: var(--border);
-  --accent: var(--muted);
-  --accent-foreground: var(--foreground);
+:root {
+  --sidebar-primary: var(--app-accent);
+  --sidebar-primary-foreground: var(--app-accent-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  /* Text over the website's dark photo hero, in both themes. */
   --hero-foreground: oklch(0.99 0.004 150);
   --hero-muted: oklch(0.86 0.018 150);
-  --hero-accent: oklch(0.86 0.115 115);
-  --hero-accent-foreground: oklch(0.23 0.03 160);
+  --hero-accent: var(--app-accent);
+  --hero-accent-foreground: var(--app-accent-foreground);
   --hero-shade: oklch(0.22 0.035 165 / 92%);
+}
+
+.website-eyebrow {
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .website-hero {
@@ -77,13 +52,6 @@
 }
 .website-hero-shade {
   display: none;
-}
-.website-eyebrow {
-  color: var(--primary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0;
 }
 @media (max-width: 767px) {
   .website-hero {
@@ -95,128 +63,9 @@
   }
 }
 
-:root {
-  --radius: 0.5rem;
-  /* Warm paper ledger palette */
-  --background: oklch(0.972 0.008 95);
-  --foreground: oklch(0.28 0.02 70);
-  --card: oklch(0.988 0.004 95);
-  --card-foreground: oklch(0.28 0.02 70);
-  --popover: oklch(0.988 0.004 95);
-  --popover-foreground: oklch(0.28 0.02 70);
-  --primary: oklch(0.44 0.07 165);
-  --primary-foreground: oklch(0.97 0.01 95);
-  --secondary: oklch(0.935 0.012 90);
-  --secondary-foreground: oklch(0.35 0.03 70);
-  --muted: oklch(0.94 0.01 90);
-  --muted-foreground: oklch(0.52 0.02 75);
-  --accent: oklch(0.92 0.03 90);
-  --accent-foreground: oklch(0.35 0.03 70);
-  --destructive: oklch(0.55 0.2 28);
-  --destructive-foreground: oklch(0.97 0.01 95);
-  --border: oklch(0.885 0.012 85);
-  --input: oklch(0.885 0.012 85);
-  --ring: oklch(0.44 0.07 165);
-  --chart-1: oklch(0.44 0.07 165);
-  --chart-2: oklch(0.6 0.12 80);
-  --chart-3: oklch(0.5 0.08 240);
-  --chart-4: oklch(0.65 0.15 40);
-  --chart-5: oklch(0.55 0.1 300);
-  --sidebar: oklch(0.26 0.02 70);
-  --sidebar-foreground: oklch(0.93 0.01 90);
-  --sidebar-primary: oklch(0.65 0.1 165);
-  --sidebar-primary-foreground: oklch(0.16 0.02 70);
-  --sidebar-accent: oklch(0.32 0.025 70);
-  --sidebar-accent-foreground: oklch(0.95 0.01 90);
-  --sidebar-border: oklch(0.35 0.02 70);
-}
-
-:root {
-  color-scheme: light;
-}
-
 /* Native dropdown lists follow the theme instead of the system's white menu. */
 select option,
 select optgroup {
   background-color: var(--popover);
   color: var(--popover-foreground);
-}
-
-.dark {
-  /* High-contrast dark theme: bright text on deep surfaces */
-  color-scheme: dark;
-  --background: oklch(0.17 0.012 70);
-  --foreground: oklch(0.96 0.008 90);
-  --card: oklch(0.21 0.015 70);
-  --card-foreground: oklch(0.96 0.008 90);
-  --popover: oklch(0.21 0.015 70);
-  --popover-foreground: oklch(0.96 0.008 90);
-  --primary: oklch(0.75 0.11 165);
-  --primary-foreground: oklch(0.14 0.02 70);
-  --secondary: oklch(0.27 0.018 70);
-  --secondary-foreground: oklch(0.95 0.008 90);
-  --muted: oklch(0.26 0.018 70);
-  --muted-foreground: oklch(0.8 0.015 80);
-  --accent: oklch(0.29 0.02 75);
-  --accent-foreground: oklch(0.96 0.008 90);
-  --destructive: oklch(0.7 0.18 28);
-  --destructive-foreground: oklch(0.98 0.005 95);
-  --border: oklch(1 0 0 / 20%);
-  --input: oklch(1 0 0 / 24%);
-  --ring: oklch(0.75 0.11 165);
-  --chart-1: oklch(0.75 0.11 165);
-  --chart-2: oklch(0.75 0.13 80);
-  --chart-3: oklch(0.7 0.09 240);
-  --chart-4: oklch(0.75 0.15 40);
-  --chart-5: oklch(0.72 0.11 300);
-  --sidebar: oklch(0.14 0.01 70);
-  --sidebar-foreground: oklch(0.94 0.008 90);
-  --sidebar-primary: oklch(0.75 0.11 165);
-  --sidebar-primary-foreground: oklch(0.14 0.02 70);
-  --sidebar-accent: oklch(0.23 0.015 70);
-  --sidebar-accent-foreground: oklch(0.96 0.008 90);
-  --sidebar-border: oklch(1 0 0 / 14%);
-}
-
-.dark .website {
-  --background: oklch(0.17 0.012 165);
-  --foreground: oklch(0.96 0.008 160);
-  --primary: oklch(0.75 0.11 165);
-  --primary-foreground: oklch(0.14 0.02 165);
-  --muted: oklch(0.24 0.015 165);
-  --muted-foreground: oklch(0.8 0.015 160);
-  --secondary: oklch(0.26 0.015 165);
-  --secondary-foreground: oklch(0.95 0.008 160);
-  --border: oklch(1 0 0 / 20%);
-  --accent: var(--muted);
-  --accent-foreground: var(--foreground);
-}
-
-@layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
-  }
-
-  .font-display {
-    font-family: var(--font-display);
-  }
-
-  .tnum {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-/* Keyboard users always see where they are. */
-@layer base {
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
 }

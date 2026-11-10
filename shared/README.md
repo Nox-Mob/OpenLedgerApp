@@ -35,3 +35,6 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
 - `1.2.0`: core `0004_core_org_settings.sql` (organization time zone and currency; ownership
   transfer only to active members, confirmed by typing their name); `getOrgPreferences()` in
   `shared/supabase/org.ts`.
+- `1.3.0`: SHARED-SPEC v2.3 (prices in Stripe, editor limits, set-based row rules); shared UI
+  compiles under the apps' strictest TypeScript settings (`exactOptionalPropertyTypes`), checked
+  by `npm run check:shared-strict` in CI.

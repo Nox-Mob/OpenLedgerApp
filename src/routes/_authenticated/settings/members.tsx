@@ -1,5 +1,6 @@
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -87,6 +88,8 @@ const btnCls =
   "rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50";
 
 function MembersSettings() {
+  // Hosted, people and ownership are managed in OpenAppHub (SHARED-SPEC §1.1).
+  const hosted = isHosted();
   const { org } = useOrgContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -249,7 +252,25 @@ function MembersSettings() {
         </ul>
       </div>
 
-      {isAdmin && (
+      {hosted && isAdmin && (
+        <div className="rounded-lg border bg-card p-5">
+          <h2 className="font-display text-lg font-semibold">Invitations and ownership</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Inviting people, transferring ownership and deleting the organization are done in
+            OpenAppHub, for every app at once.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-sm font-medium">
+            <a href={hubUrl("/members")} className="text-primary hover:underline">
+              Members and invitations
+            </a>
+            <a href={hubUrl("/settings")} className="text-primary hover:underline">
+              Organization settings
+            </a>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && !hosted && (
         <div className="rounded-lg border bg-card p-5">
           <h2 className="font-display text-lg font-semibold">Invite someone</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -335,7 +356,7 @@ function MembersSettings() {
         </div>
       )}
 
-      {owner?.isOwner && (
+      {owner?.isOwner && !hosted && (
         <div className="rounded-lg border bg-card p-5">
           <h2 className="font-display text-lg font-semibold">Transfer ownership</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -375,7 +396,7 @@ function MembersSettings() {
         </div>
       )}
 
-      {owner?.isOwner && (
+      {owner?.isOwner && !hosted && (
         <div className="rounded-lg border border-destructive/50 bg-card p-5">
           <h2 className="font-display text-lg font-semibold text-destructive">
             Delete organization
