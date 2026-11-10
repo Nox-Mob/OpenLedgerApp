@@ -1,6 +1,6 @@
 // The same request sent twice at the same moment (double click, retry, two tabs) must
 // record exactly once. These run real shared workflows against the reference adapter;
-// the database backs the same rules with unique keys (see supabase/tests).
+// the database backs the same rules with unique keys (see db/tests).
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryRepositories } from "@/lib/adapters/memory";
 import { postTransaction, voidTransaction } from "./ledger";

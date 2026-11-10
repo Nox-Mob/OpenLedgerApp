@@ -86,5 +86,5 @@ Every data change and its history entry are written in one database transaction;
 - Organization settings: a database trigger refuses settings changes from signed-in non-admin users (treasurers may still lock books and close the year); server and maintenance steps are not blocked.
 
 - npm 11+ only (`package-lock.json`, `npm ci`), Node 24 in CI.
-- CI runs: tests, direct-writes check, type check, lint, formatting, migration checks (GRANTs and RLS), disposable-database safety checks (`supabase/tests/*.sql`), runtime dependency audit, build.
-- Database changes live in both `drizzle/migrations` (applied by Lovable) and `supabase/migrations` (loaded by CI and self-hosters); keep them in sync.
+- CI runs: tests, direct-writes check, type check, lint, formatting, migration checks (GRANTs and RLS), disposable-database safety checks (`db/tests/*.sql`, `npm run db:test`), the performance check (`npm run db:perf`), runtime dependency audit, build.
+- Database changes are numbered files in `db/migrations` (schema `ledger`, on the OpenAppHub core in `db/core`), applied in order by `scripts/migrate.mjs`. Never edit an applied file; add a new one. `supabase/migrations` is the frozen old schema the current app still runs on, kept for self-hosters until the app moves to `ledger` (see `supabase/README.md`).

@@ -65,7 +65,7 @@ Pick **one** path for the database and sign-in service, then finish with the sha
 1. **Create a project** at [supabase.com](https://supabase.com).
 2. **Collect credentials** (Project Settings → API and → Database): project URL, publishable (anon) key, service-role key, and the database connection string (`SUPABASE_DB_URL`).
 3. **Install the Postgres client** if you don't have `psql` (Debian/Ubuntu: `sudo apt install -y postgresql-client`; macOS: `brew install libpq`). If you see `You must install at least one postgresql-client-<version> package`, this is the fix.
-4. **Apply every migration** in filename order:
+4. **Apply every migration** in filename order. (These are the current app's tables in `supabase/migrations/`. The app is moving to the `ledger` schema in `db/migrations/`; this step changes to `npm run db:migrate` when it does. See `supabase/README.md`.)
 
    ```sh
    export SUPABASE_DB_URL="<your connection string>"

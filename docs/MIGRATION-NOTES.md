@@ -47,8 +47,26 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 ### 0.2 Next steps
 
 1. ~~Step 3, hygiene (redo for v2.2)~~ **done** (§0.3). Next: **3b, AI PDF import off**.
-2. **Step 4, rest of vendoring:** `migrate.yml`, a CI `db` job running `scripts/migrate.mjs` then `db/tests/*.sql`, retire `supabase/migrations/`, `drizzle/` and the old `database` CI job.
-3. **Step 5, `db/migrations/0001_ledger_baseline.sql`**.
+2. ~~Steps 4, 5 and 7~~ **done** (§0.4): runner, `migrate.yml`, baseline, DB tests, performance test.
+3. **Next: step 8**, the client on the `ledger` schema (`VITE_APP_SCHEMA=ledger`, `.schema('public')` for core), then org scoping (9) and hosted vs self-hosted (10). Until step 8 the app still uses the old public tables (kept frozen in `supabase/migrations` for self-hosters).
+
+### 0.4 Steps 4, 5 and 7: runner, baseline, DB tests (2026-11-10)
+
+- **How the baseline was built:** the old `supabase/migrations` were replayed on a scratch database and the final schema was ported to `ledger` (`db/migrations/0001_ledger_baseline.sql`), so it's the end state, not 38 diffs. 25 tables: the 22 Ledger tables of §2.1 plus `org_settings`, `member_roles`, `user_preferences`. Every guard and RPC keeps its behaviour.
+- **Helpers** (§4.2): `ledger.mfa_ok`, `ledger.can_read` (member + two-step sign-in), `ledger.can_edit` (`public.can_write(org,'ledger')` + two-step), `ledger.is_admin`, `ledger.is_treasurer`, `ledger.can_close_books`.
+- **Policies use set-based checks**, `org_id in (select ledger.readable_org_ids())` and `ledger.writable_org_ids()`, evaluated once per query. Per-row `can_read(org_id)` made account balances take 1.7 s for 10,000 entries; with the set form, 74 ms at 100,000 entries.
+- **Decisions:**
+  - `entries` and `transaction_tags` gained `org_id` (spec §3.4), set from the transaction by a trigger, so callers don't pass it.
+  - Organization settings move to `ledger.org_settings`; a missing row means defaults. A treasurer may only move `books_locked_through` (guard trigger), as before on `organizations`.
+  - The treasurer overlay counts only while the person is core `member` or higher; a viewer can't be given it.
+  - `audited_write`'s allow-list: `organizations` → `org_settings`; `user_roles` and `org_invites` → gone (core), `member_roles` added.
+  - Grants are the same as before (history, closes, evidence can't be deleted). `period_closes` gains insert to match its existing policy.
+  - `delete_organization_atomic` isn't ported: self-hosted deletion is `ledger.log_org_deletion(org)` then core `public.delete_organization`.
+  - `ledger.on_invitation_accepted` applies `{"ledger_role":"treasurer"}`.
+- **Tests:** the 7 old suites → `db/tests/10`–`60`. Five ported as they were (still in the `RESULT k=v` format). `treasurer_role` and `member_lifecycle` were rewritten as `60_roles_settings_and_core.sql`, because user roles, invites and org deletion are core now. Added: viewer can't write, read-only when the plan lapses, two-step sign-in, the invitation overlay.
+- **Package name** is now `openledgerapp` (the runner's key; Ledger and Board were both `tanstack_start_ts`).
+- **Retired:** `drizzle/` and its packages, the old `database` job (`supabase db start` and `run-db-tests.sh`), and `supabase/tests`. **Kept, frozen:** `supabase/migrations` and `supabase/config.toml`, because the current app and the README's self-hosting steps still use them until step 8 (`supabase/README.md`). No workflow applies them to the shared database.
+- **CI:** `database` (runner, then `db/tests`, on Postgres 17 with a Supabase stub) and `performance` (5,000, 20,000 and 50,000 transactions; 3 s budget on CI, 1 s locally), as in Charter.
 
 ### 0.3 Step 3 (hygiene) as done for v2.2
 
@@ -246,10 +264,10 @@ Production order is fixed by START-HERE: Charter park → Hub core + billing →
 | 2 | Secret scan (§8) | — | **done** (this PR) |
 | 3 | Hygiene: `.env` untracked; `.env.example` with every v2 variable; security headers set in `src/server.ts` (Workers ignore `_headers`; no `_redirects`); `wrangler.jsonc` (staging + production); `staging.yml` + `release.yml` behind `scripts/deploy/preflight.sh`, which refuses until steps 4, 5 and 8 are done; 64 lockfile entries moved off Lovable's private npm cache (403 outside Lovable) to registry.npmjs.org, same integrity hashes; unused Lovable `cron-auth.ts` removed; `check-env.mjs` now fails if any `.env*` other than `.env.example` / `.env.desktop` is tracked | owner disconnects Lovable before merge | **done** (this PR) |
 | 3b | AI PDF import off: hide the option, server refuses, remove the Lovable AI gateway call; docs PR (importing, troubleshooting, known limits, FAQ) | — | next |
-| 4 | Vendor `shared/`, `db/core/`, `scripts/migrate.mjs`; `migrate.yml`; CI `db` job on `db/`; **retire** `supabase/migrations/`, `drizzle/`, the old `database` CI job, and point `check-migrations.mjs` at `db/` | Hub Phase 1–2 merged | blocked on hub |
-| 5 | `db/migrations/0001_ledger_baseline.sql`: schema `ledger`, every table of §2.1 with `org_id` (incl. `entries`, `transaction_tags`) and `created_by`/`created_at`; `org_settings`, `user_preferences`, `member_roles`; helpers of §4.2; ported triggers and RPCs; `on_invitation_accepted`; RLS + grants per spec §3.4. Bucket name `ledger-files` if files are ever stored (none today) | 4 | |
+| 4 | Vendor `shared/`, `db/core/`, `scripts/migrate.mjs`; `migrate.yml`; CI `db` job on `db/`; **retire** `supabase/migrations/`, `drizzle/`, the old `database` CI job, and point `check-migrations.mjs` at `db/` | Hub Phase 1–2 merged | **done** (§0.4) |
+| 5 | `db/migrations/0001_ledger_baseline.sql`: schema `ledger`, every table of §2.1 with `org_id` (incl. `entries`, `transaction_tags`) and `created_by`/`created_at`; `org_settings`, `user_preferences`, `member_roles`; helpers of §4.2; ported triggers and RPCs; `on_invitation_accepted`; RLS + grants per spec §3.4. Bucket name `ledger-files` if files are ever stored (none today) | 4 | **done** (§0.4)|
 | 6 | `db/seed/0001_ledger_demo.sql` (port of `supabase/seed/demo.sql`, refuses real orgs, `@demo.openapphub.org`) | 5 | |
-| 7 | `db/tests/`: port the 7 existing suites; add non-member can't read, viewer can't write, expired trial = read-only, treasurer overlay rules, posted entries immutable, balance check | 5 | |
+| 7 | `db/tests/`: port the 7 existing suites; add non-member can't read, viewer can't write, expired trial = read-only, treasurer overlay rules, posted entries immutable, balance check | 5 | **done** (§0.4)|
 | 8 | Client: `shared/supabase/client.ts` (`VITE_APP_SCHEMA=ledger`), `.schema('public')` for core, regenerated types (`gen-types.yml`); remove `previewAuthStorage`, Lovable OAuth broker | 5 | |
 | 9 | Org scoping via `shared/supabase/org.ts` (`oah_org`) | 8 | |
 | 10 | Hosted vs self-hosted: hub links for sign-in, org create/delete, core roles, invitations, ownership, account deletion; `/invite/<token>` on `InvitationPage`; hosted `/` → `/ledger`; service role only behind `VITE_HOSTED=false` | 9 | |

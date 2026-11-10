@@ -98,45 +98,74 @@ jobs:
           exit $code
 
   database:
-    name: Database rules (migrations, tenant isolation, ledger invariants)
+    name: Database rules (migrations, tenant isolation, ledger invariants, roles)
     runs-on: ubuntu-latest
+    # Builds a throwaway database the way production is built (scripts/migrate.mjs: the
+    # OpenAppHub core, then db/migrations) on Postgres with a stub of Supabase's auth,
+    # then runs db/tests/*.sql. Mirrors OpenCharterApp's "Database rules" job.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Static migration checks (GRANTs + row level security)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Static migration checks (schema, GRANTs, row level security, no data loss)
         run: node scripts/ci/check-migrations.mjs
-      # Pinned version (no "latest" lookup) plus the token avoids GitHub API rate limits.
-      # Bump SUPABASE_CLI_VERSION deliberately; it also keys the image cache below.
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.120.0
+      - name: Apply migrations and run the SQL safety checks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Most of this job's time is pulling the database Docker image. Cache it as a tar
-      # keyed on the CLI version (which decides the image tag) and config.toml.
-      - name: Restore cached database image
-        id: db-image-cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/supabase-images.tar
-          key: supabase-images-2.120.0-${{ hashFiles('supabase/config.toml') }}
-      - name: Load cached database image
-        if: steps.db-image-cache.outputs.cache-hit == 'true'
-        run: docker load -i /tmp/supabase-images.tar
-      - name: Start disposable local database and apply every migration
-        run: supabase db start
-      - name: Save database image for the cache
-        if: steps.db-image-cache.outputs.cache-hit != 'true'
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         run: |
-          images=$(docker ps --format '{{.Image}}' | sort -u)
-          echo "Caching: $images"
-          docker save -o /tmp/supabase-images.tar $images
-      - name: Run SQL safety checks
+          bash scripts/db/test.sh || {
+            echo "### ❌ A database rule failed (isolation, ledger invariants, roles, two-step sign-in or read-only)." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+  performance:
+    # One set of books grown to 5,000, 20,000 and 50,000 transactions next to 30 other
+    # organizations; fails if a heavy report is over budget at any size. The budget is
+    # looser than the 1 second target because shared runners are slower and vary.
+    # Mirrors OpenCharterApp's Performance job.
+    name: Performance (5,000 to 50,000 transactions)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-        run: bash scripts/ci/run-db-tests.sh
-      - name: Security advisor (lint)
-        if: always()
-        run: supabase db lint --level error --fail-on error
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Seed large books and time the heavy reports
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+          PERF_BUDGET_MS: "3000"
+        run: |
+          bash scripts/db/perf.sh || {
+            echo "### ❌ A heavy report went over budget, or the security catalogue check failed." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
 
   lint:
     name: Lint (code problems — blocking)
