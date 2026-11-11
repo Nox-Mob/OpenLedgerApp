@@ -33,10 +33,15 @@ function DashboardPage() {
   const { org, orgs, terms, isLoading } = useOrgContext();
   const navigate = useNavigate();
 
+  // An organization made in OpenAppHub starts without books: its owner or an admin
+  // sets them up first (type, currency, starter accounts).
+  const needsSetup = !!org && "configured" in org && org.configured === false;
   useEffect(() => {
     if (!isLoading && orgs.length === 0) navigate({ to: "/onboarding" });
     if (!isLoading && org) setStoredOrgId(org.id);
-  }, [isLoading, orgs.length, org, navigate]);
+    if (!isLoading && org && needsSetup && org.role === "admin")
+      navigate({ to: "/onboarding", search: { org: org.id } });
+  }, [isLoading, orgs.length, org, navigate, needsSetup]);
 
   const monthStart = todayISO(new Date(), org?.timezone).slice(0, 8) + "01";
 
@@ -61,6 +66,17 @@ function DashboardPage() {
       <div className="flex min-h-screen items-center justify-center p-8">
         <LoadingState label="Loading your dashboard" />
       </div>
+    );
+  }
+
+  if (needsSetup && org.role !== "admin") {
+    return (
+      <AppShell>
+        <EmptyState
+          title="Books not set up yet"
+          description={`An owner or admin of ${org.name} needs to open OpenLedgerApp once to set up the books.`}
+        />
+      </AppShell>
     );
   }
 

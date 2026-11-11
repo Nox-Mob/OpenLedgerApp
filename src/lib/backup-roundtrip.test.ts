@@ -28,6 +28,18 @@ class BackupStore {
   pages: { table: string; from: number }[] = [];
   failTable: string | null = null;
 
+  // Core (schema public) and Ledger tables share one store; core's
+  // create_organization makes the org and the caller its owner.
+  schema() {
+    return this;
+  }
+  async rpc(name: string, args: Row) {
+    if (name !== "create_organization") return { data: null, error: { message: `no rpc ${name}` } };
+    const id = crypto.randomUUID();
+    (this.tables["organizations"] ??= []).push({ id, name: args["p_name"] });
+    return { data: id, error: null };
+  }
+
   from(table: string) {
     let operation = "select";
     let payload: Row[] = [];
@@ -76,7 +88,7 @@ class BackupStore {
                 .filter((t) => t["org_id"] === org["id"])
                 .map((t) => t["id"]),
             );
-            for (const name of TABLES)
+            for (const name of [...TABLES, "org_settings", "memberships"])
               this.tables[name] = (this.tables[name] ?? []).filter(
                 (r) => r["org_id"] !== org["id"] && !txIds.has(r["transaction_id"]),
               );
@@ -131,6 +143,10 @@ class BackupStore {
         single = true;
         return query;
       },
+      maybeSingle: () => {
+        single = true;
+        return query;
+      },
       insert: (rows: Row | Row[]) => {
         operation = "insert";
         payload = Array.isArray(rows) ? rows : [rows];
@@ -155,16 +171,18 @@ class BackupStore {
 const ORG_ID = "00000000-0000-4000-8000-000000000001";
 function fixture(db: BackupStore) {
   db.tables = Object.fromEntries(TABLES.map((t) => [t, []]));
-  db.tables["organizations"] = [
+  db.tables["organizations"] = [{ id: ORG_ID, name: "Community Books" }];
+  db.tables["org_settings"] = [
     {
-      id: ORG_ID,
-      name: "Community Books",
+      org_id: ORG_ID,
       currency: "USD",
       timezone: "America/Chicago",
       org_type: "nonprofit",
       books_locked_through: "2026-01-31",
     },
   ];
+  db.tables["memberships"] = [{ org_id: ORG_ID, user_id: "old-user", role: "admin" }];
+  db.tables["member_roles"] = [];
   const add = (table: string, row: Row) => {
     const rows = db.tables[table];
     if (!rows) throw new Error(`Missing fixture table ${table}`);
@@ -294,7 +312,6 @@ function fixture(db: BackupStore) {
     period_start: "2026-01-01",
     amount_cents: 500000,
   });
-  add("user_roles", { id: "member", user_id: "old-user", role: "admin" });
   // Unrelated books must never leak into the export or be touched by restore/rollback.
   add("accounts", { id: "foreign-account", org_id: "foreign-org", name: "Private", type: "asset" });
 }
@@ -402,7 +419,7 @@ describe("moderately sized organization backup roundtrip", () => {
       false,
     );
     expect(
-      (db.tables["organizations"] ?? []).find((r) => r["id"] === restored.orgId)?.[
+      (db.tables["org_settings"] ?? []).find((r) => r["org_id"] === restored.orgId)?.[
         "books_locked_through"
       ],
     ).toBe("2026-01-31");
@@ -466,7 +483,7 @@ describe("moderately sized organization backup roundtrip", () => {
     await expect(
       restoreIntoNewOrg(db as unknown as UntypedDb, "restoring-user", verified),
     ).rejects.toThrow("Injected write failure");
-    for (const table of ["organizations", ...TABLES])
+    for (const table of ["organizations", "org_settings", ...TABLES])
       expect(db.tables[table]).toEqual(original[table]);
     expect(db.tables["deleted_organizations"]).toHaveLength(1);
   }, 30000);

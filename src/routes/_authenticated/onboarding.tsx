@@ -1,9 +1,12 @@
 import { errorMessage } from "@/lib/errors";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { BookOpen, Building2, HeartHandshake } from "lucide-react";
-import { createOrganization } from "@/lib/org.functions";
+import { createOrganization, setUpOrganizationBooks } from "@/lib/org.functions";
+import { useOrgContext } from "@/hooks/use-org-context";
+import { z } from "zod";
 import { setStoredOrgId } from "@/lib/current-org";
 import { isDesktop, LOCAL_USER_ID } from "@/lib/edition";
 import { catalogFor } from "@/lib/account-catalog";
@@ -29,6 +32,13 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  // ?org=<id>: set up the books of an organization created in OpenAppHub.
+  validateSearch: z.object({ org: z.string().uuid().optional() }),
+  // Hosted, new organizations are created in OpenAppHub (setting up the books of an existing
+  // one, ?org=…, stays here).
+  beforeLoad: ({ search }) => {
+    if (isHosted() && !isDesktop() && !search.org) throw redirect({ href: hubUrl("/orgs/new") });
+  },
   component: OnboardingPage,
 });
 
@@ -57,8 +67,12 @@ const inputCls =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 function OnboardingPage() {
+  const { org: existingOrgId } = Route.useSearch();
+  const { orgs } = useOrgContext();
+  const existing = existingOrgId ? orgs.find((o) => o.id === existingOrgId) : undefined;
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
+  const [typedName, setName] = useState("");
+  const name = existing?.name ?? typedName;
   const [orgType, setOrgType] = useState<"nonprofit" | "business">("business");
   const [picked, setPicked] = useState<Record<string, Set<string>>>({});
   const [terminology, setTerminology] = useState<"simplest" | "simple" | "accounting">("simplest");
@@ -101,6 +115,9 @@ function OnboardingPage() {
           import("@/lib/services/organizations"),
         ]);
         id = await createOrganizationWithAccounts(await localRepos(), LOCAL_USER_ID, input);
+      } else if (existingOrgId) {
+        const { name: _name, ...books } = input;
+        ({ id } = await setUpOrganizationBooks({ data: { orgId: existingOrgId, ...books } }));
       } else {
         ({ id } = await createOrganization({ data: input }));
       }
@@ -144,6 +161,7 @@ function OnboardingPage() {
                 aria-label="Organization name"
                 required
                 value={name}
+                readOnly={!!existingOrgId}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Riverside Community Kitchen"
                 className={inputCls}

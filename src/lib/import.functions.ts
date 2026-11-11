@@ -434,17 +434,14 @@ const extractPdfStatementCloud = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: org, error: oErr } = await supabase
-      .from("organizations")
+      .from("org_settings")
       .select("ai_pdf_enabled")
-      .eq("id", data.orgId)
-      .single();
-    if (oErr || !org) throw new Error("Organization not found");
-    if (!org.ai_pdf_enabled)
+      .eq("org_id", data.orgId)
+      .maybeSingle();
+    if (oErr) throw new Error("Organization not found");
+    if (!org?.ai_pdf_enabled)
       throw new Error("An admin needs to turn on AI PDF reading in Settings first.");
-    const { data: canWrite } = await supabase.rpc("can_write_org", {
-      _user_id: userId,
-      _org_id: data.orgId,
-    });
+    const { data: canWrite } = await supabase.rpc("can_edit", { p_org: data.orgId });
     if (!canWrite) throw new Error("You don't have permission to import here.");
     const usage = await pdfUsage(supabase, data.orgId, userId);
     if (usage.remaining <= 0)

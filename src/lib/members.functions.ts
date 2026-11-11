@@ -1,64 +1,51 @@
 import { desktopAware } from "@/lib/desktop/bridge";
 import type { Db } from "@/lib/db";
-// Member lifecycle: invite links, remove/leave, transfer ownership, delete organization.
-// Each handler checks the caller with the user's own client before any privileged write.
+// Member lifecycle on the OpenAppHub core: invitation links, remove/leave, transfer
+// ownership, delete organization. Memberships, invitations and ownership are core
+// (schema public, SHARED-SPEC §4); Ledger adds the treasurer overlay and its history.
+// Each handler acts as the signed-in user, so the core's own rules apply.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertCan } from "./permissions";
-import { newId } from "./domain/ledger";
+import { assertCan, type OrgRole } from "./permissions";
 import {
   assertCanDeleteOrg,
   assertCanRemove,
   accountDeletionBlocker,
   assertCanTransfer,
-  assertInviteUsable,
   inviteStatus,
   type MemberRef,
 } from "./domain/members";
 import { auditedWrite } from "./audited-write";
+import { coreRoleFor, loadMembers, ledgerRole, type CoreRole } from "./core-org";
 
 const uuid = z.string().uuid();
 
-async function sha256(text: string) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function randomToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-async function orgMembers(supabase: Db, orgId: string): Promise<MemberRef[]> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("user_id, role")
-    .eq("org_id", orgId);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => ({ userId: r.user_id, role: r.role }));
+async function orgMembers(supabase: Db, orgId: string) {
+  const members = await loadMembers(supabase, orgId);
+  const owner = members.find((m) => m.coreRole === "owner");
+  const refs: MemberRef[] = members.map((m) => ({ userId: m.userId, role: m.role }));
+  return { refs, ownerId: owner?.userId ?? "" };
 }
 
 async function orgRow(supabase: Db, orgId: string) {
   const { data, error } = await supabase
+    .schema("public")
     .from("organizations")
-    .select("id, name, created_by")
+    .select("id, name")
     .eq("id", orgId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Organization not found.");
-  return data as { id: string; name: string; created_by: string };
+  return data as { id: string; name: string };
 }
 
 const getOrgOwnerCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input) => z.object({ orgId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const org = await orgRow(context.supabase, data.orgId);
-    return { ownerId: org.created_by, isOwner: org.created_by === context.userId };
+    const { ownerId } = await orgMembers(context.supabase, data.orgId);
+    return { ownerId, isOwner: ownerId === context.userId };
   });
 export const getOrgOwner = desktopAware("getOrgOwner", getOrgOwnerCloud);
 
@@ -69,24 +56,32 @@ const listInvitesCloud = createServerFn({ method: "GET" })
   .validator((input) => z.object({ orgId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, context.userId, data.orgId, "manage_members");
+    // Core invitations (owner/admin read); Ledger's role is the core role plus the overlay.
     const { data: rows, error } = await context.supabase
-      .from("org_invites")
-      .select("id, role, expires_at, used_at, revoked_at, created_at")
+      .schema("public")
+      .from("invitations")
+      .select("id, role, app, app_payload, expires_at, accepted_at, revoked_at, created_at")
       .eq("org_id", data.orgId)
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => ({
-      id: r.id as string,
-      role: r.role as string,
-      expiresAt: r.expires_at as string,
-      createdAt: r.created_at as string,
-      status: inviteStatus({
-        expiresAt: r.expires_at,
-        usedAt: r.used_at,
-        revokedAt: r.revoked_at,
-      }),
-    }));
+    return (rows ?? [])
+      .filter((r) => r.role !== null)
+      .map((r) => {
+        const payload = (r.app_payload ?? {}) as { ledger_role?: string };
+        const treasurer = r.app === "ledger" && payload.ledger_role === "treasurer";
+        return {
+          id: r.id as string,
+          role: (ledgerRole(r.role as CoreRole, treasurer) ?? "member") as string,
+          expiresAt: r.expires_at as string,
+          createdAt: r.created_at as string,
+          status: inviteStatus({
+            expiresAt: r.expires_at,
+            usedAt: r.accepted_at,
+            revokedAt: r.revoked_at,
+          }),
+        };
+      });
   });
 export const listInvites = desktopAware("listInvites", listInvitesCloud);
 
@@ -103,35 +98,22 @@ const createInviteCloud = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, context.userId, data.orgId, "manage_members");
-    const token = randomToken();
-    const id = newId();
+    // A core invitation link (no email): anyone with the link can join once. A
+    // treasurer joins as a member and ledger.on_invitation_accepted adds the overlay.
+    const { data: rows, error } = await context.supabase.schema("public").rpc("create_invitation", {
+      p_org: data.orgId,
+      p_email: "",
+      p_role: coreRoleFor(data.role as OrgRole),
+      p_app: "ledger",
+      p_payload: data.role === "treasurer" ? { ledger_role: "treasurer" } : {},
+      p_days: data.days,
+    });
+    if (error) throw new Error(error.message);
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row) throw new Error("Couldn't create the invite.");
     const expiresAt = new Date(Date.now() + data.days * 86400000).toISOString();
-    await auditedWrite(
-      context.supabase,
-      data.orgId,
-      [
-        {
-          table: "org_invites",
-          op: "insert",
-          values: {
-            id,
-            token_hash: await sha256(token),
-            role: data.role,
-            created_by: context.userId,
-            expires_at: expiresAt,
-          },
-        },
-      ],
-      {
-        action: "create",
-        entity: "invite",
-        entityId: id,
-        after: { role: data.role, expiresAt },
-        kind: "system",
-      },
-    );
     // The raw token is returned once and never stored.
-    return { id, token, expiresAt };
+    return { id: row.invitation_id as string, token: row.token as string, expiresAt };
   });
 export const createInvite = desktopAware("createInvite", createInviteCloud);
 
@@ -140,19 +122,10 @@ const revokeInviteCloud = createServerFn({ method: "POST" })
   .validator((input) => z.object({ orgId: uuid, inviteId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, context.userId, data.orgId, "manage_members");
-    await auditedWrite(
-      context.supabase,
-      data.orgId,
-      [
-        {
-          table: "org_invites",
-          op: "update",
-          values: { revoked_at: new Date().toISOString() },
-          match: { id: data.inviteId, used_at: null },
-        },
-      ],
-      { action: "revoke", entity: "invite", entityId: data.inviteId, kind: "system" },
-    );
+    const { error } = await context.supabase
+      .schema("public")
+      .rpc("revoke_invitation", { p_id: data.inviteId });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 export const revokeInvite = desktopAware("revokeInvite", revokeInviteCloud);
@@ -161,60 +134,26 @@ const acceptInviteCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => z.object({ token: z.string().min(16).max(100) }).parse(input))
   .handler(async ({ data, context }) => {
-    // The joining user is not a member yet, so lookup and role grant use the service role,
-    // keyed only by the hash of a secret token the caller must possess.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const hash = await sha256(data.token);
-    const { data: inv, error } = await supabaseAdmin
-      .from("org_invites")
-      .select("id, org_id, role, expires_at, used_at, revoked_at, organizations(name)")
-      .eq("token_hash", hash)
-      .maybeSingle();
+    const db = context.supabase;
+    const { data: info } = await db.schema("public").rpc("get_invitation", { p_token: data.token });
+    const invite = Array.isArray(info) ? info[0] : info;
+    if (!invite) throw new Error("This invite link is not valid.");
+    const orgName = invite.org_name ?? "the organization";
+    // Core accepts it once, for this user, and adds the membership (existing members
+    // keep their role); then Ledger applies the treasurer overlay if the link has one.
+    const { data: accepted, error } = await db
+      .schema("public")
+      .rpc("accept_invitation", { p_token: data.token });
     if (error) throw new Error(error.message);
-    assertInviteUsable(
-      inv ? { expiresAt: inv.expires_at, usedAt: inv.used_at, revokedAt: inv.revoked_at } : null,
-    );
-    const invite = inv!;
-    const orgName = invite.organizations?.name ?? "the organization";
-
-    const { data: existing } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("org_id", invite.org_id)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (existing) return { orgId: invite.org_id, orgName, alreadyMember: true };
-
-    // Claim the invite first so a link can never be used twice, even concurrently.
-    // Claim, role grant and history are one transaction: all happen or none do.
-    await auditedWrite(
-      supabaseAdmin,
-      invite.org_id,
-      [
-        {
-          table: "org_invites",
-          op: "update",
-          values: { used_at: new Date().toISOString(), used_by: context.userId },
-          match: { id: invite.id, used_at: null, revoked_at: null },
-          minRows: 1,
-          minRowsMessage: "This invite link was already used.",
-        },
-        {
-          table: "user_roles",
-          op: "insert",
-          values: { id: newId(), user_id: context.userId, role: invite.role },
-        },
-      ],
-      {
-        action: "join",
-        entity: "user_role",
-        entityId: context.userId,
-        after: { role: invite.role, inviteId: invite.id },
-        kind: "system",
-      },
-      context.userId,
-    );
-    return { orgId: invite.org_id, orgName, alreadyMember: false };
+    const row = Array.isArray(accepted) ? accepted[0] : accepted;
+    if (!row) throw new Error("This invite link is not valid.");
+    if (row.app === "ledger") {
+      const { error: overlayError } = await db.rpc("on_invitation_accepted", {
+        p_invitation_id: row.id,
+      });
+      if (overlayError) throw new Error(overlayError.message);
+    }
+    return { orgId: row.org_id as string, orgName, alreadyMember: false };
   });
 export const acceptInvite = desktopAware("acceptInvite", acceptInviteCloud);
 
@@ -227,25 +166,32 @@ const removeMemberCloud = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const leaving = data.userId === userId;
     await assertCan(supabase, userId, data.orgId, leaving ? "read" : "manage_members");
-    const [members, org] = await Promise.all([
-      orgMembers(supabase, data.orgId),
-      orgRow(supabase, data.orgId),
-    ]);
-    assertCanRemove(members, data.userId, org.created_by);
+    const { refs, ownerId } = await orgMembers(supabase, data.orgId);
+    assertCanRemove(refs, data.userId, ownerId);
+    // Ledger's overlay and history first (service role, so someone leaving can clear
+    // their own treasurer role), then the core membership as the signed-in user.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await auditedWrite(
       supabaseAdmin,
       data.orgId,
-      [{ table: "user_roles", op: "delete", match: { user_id: data.userId } }],
+      [{ table: "member_roles", op: "delete", match: { user_id: data.userId } }],
       {
         action: leaving ? "leave" : "remove",
         entity: "user_role",
         entityId: data.userId,
-        before: { role: members.find((m) => m.userId === data.userId)?.role },
+        before: { role: refs.find((m) => m.userId === data.userId)?.role },
         kind: "system",
       },
       userId,
     );
+    const { error } = await supabase
+      .schema("public")
+      .from("memberships")
+      // cloud-only-write: core membership (schema public), not organization books
+      .delete()
+      .eq("org_id", data.orgId)
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 export const removeMember = desktopAware("removeMember", removeMemberCloud);
@@ -255,34 +201,13 @@ const transferOwnershipCloud = createServerFn({ method: "POST" })
   .validator((input) => z.object({ orgId: uuid, toUserId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const [members, org] = await Promise.all([
-      orgMembers(supabase, data.orgId),
-      orgRow(supabase, data.orgId),
-    ]);
-    assertCanTransfer(members, userId, org.created_by, data.toUserId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await auditedWrite(
-      supabaseAdmin,
-      data.orgId,
-      [
-        {
-          table: "organizations",
-          op: "update",
-          values: { created_by: data.toUserId },
-          match: { created_by: userId },
-          minRows: 1,
-        },
-      ],
-      {
-        action: "transfer_ownership",
-        entity: "organization",
-        entityId: data.orgId,
-        before: { owner: userId },
-        after: { owner: data.toUserId },
-        kind: "system",
-      },
-      userId,
-    );
+    const { refs, ownerId } = await orgMembers(supabase, data.orgId);
+    assertCanTransfer(refs, userId, ownerId, data.toUserId);
+    // Core swaps the roles: the new owner becomes owner, the old owner an admin.
+    const { error } = await supabase
+      .schema("public")
+      .rpc("transfer_ownership", { p_org: data.orgId, p_new_owner: data.toUserId });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 export const transferOwnership = desktopAware("transferOwnership", transferOwnershipCloud);
@@ -291,15 +216,19 @@ const deleteOrganizationCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => z.object({ orgId: uuid, confirmName: z.string().max(200) }).parse(input))
   .handler(async ({ data, context }) => {
-    const org = await orgRow(context.supabase, data.orgId);
-    assertCanDeleteOrg(context.userId, org.created_by, org.name, data.confirmName);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // The deleted-org record and the delete are one database transaction.
-    const { error } = await supabaseAdmin.rpc("delete_organization_atomic", {
-      p_org: org.id,
-      p_user: context.userId,
-      p_confirm: data.confirmName,
-    });
+    const { supabase, userId } = context;
+    const [org, { ownerId }] = await Promise.all([
+      orgRow(supabase, data.orgId),
+      orgMembers(supabase, data.orgId),
+    ]);
+    assertCanDeleteOrg(userId, ownerId, org.name, data.confirmName);
+    // Ledger keeps a record that outlives the org, then core deletes it and
+    // everything that belongs to it.
+    const { error: logError } = await supabase.rpc("log_org_deletion", { p_org: org.id });
+    if (logError) throw new Error(logError.message);
+    const { error } = await supabase
+      .schema("public")
+      .rpc("delete_organization", { p_org: org.id, p_confirm_name: org.name });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -318,18 +247,19 @@ export const getMyAccountDeletion = desktopAware("getMyAccountDeletion", getMyAc
 
 async function myMemberships(supabase: Db, userId: string) {
   const { data, error } = await supabase
-    .from("user_roles")
-    .select("org_id, role, organizations(name, created_by)")
+    .schema("public")
+    .from("memberships")
+    .select("org_id, role, organizations(name)")
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
   return Promise.all(
     (data ?? []).map(async (r) => {
-      const members = await orgMembers(supabase, r.org_id);
+      const members = await loadMembers(supabase, r.org_id);
       return {
         orgId: r.org_id,
         orgName: r.organizations?.name ?? "an organization",
-        role: r.role,
-        isOwner: r.organizations?.created_by === userId,
+        role: ledgerRole(r.role as CoreRole, false) as OrgRole,
+        isOwner: r.role === "owner",
         adminCount: members.filter((m) => m.role === "admin").length,
       };
     }),
@@ -345,12 +275,13 @@ const deleteMyAccountCloud = createServerFn({ method: "POST" })
     const blocker = accountDeletionBlocker(memberships);
     if (blocker) throw new Error(blocker);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Leave each organization with a history entry, then remove the sign-in account.
+    // A history entry in each organization, then remove the sign-in account (its
+    // core memberships go with it).
     for (const m of memberships) {
       await auditedWrite(
         supabaseAdmin,
         m.orgId,
-        [{ table: "user_roles", op: "delete", match: { user_id: userId }, minRows: 1 }],
+        [{ table: "member_roles", op: "delete", match: { user_id: userId } }],
         {
           action: "account_deleted",
           entity: "user_role",

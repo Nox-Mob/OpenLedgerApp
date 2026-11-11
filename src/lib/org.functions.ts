@@ -11,7 +11,14 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { catalogFor, matchesCatalog, type OrgType } from "./account-catalog";
-import { assertCan } from "./permissions";
+import { assertCan, type OrgRole } from "./permissions";
+import {
+  coreRoleFor,
+  ENSURE_SETTINGS_OP,
+  loadMembers,
+  loadMyOrgs,
+  type CoreRole,
+} from "./core-org";
 import { createSupabaseRepositories } from "./adapters/supabase";
 import { newId } from "./domain/ledger";
 import { updateOrganization as updateOrgSettings } from "./services/settings";
@@ -43,43 +50,45 @@ async function accountUsage(supabase: Db, orgId: string) {
 const getMyOrgsCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("user_roles")
-      .select(
-        "role, organizations(id, name, org_type, currency, fiscal_year_start_month, timezone, terminology, term_overrides, ai_pdf_enabled, require_mfa)",
-      )
-      .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
-    return (data ?? [])
-      .map((row) => ({
-        id: row.organizations?.id as string,
-        name: row.organizations?.name as string,
-        orgType: row.organizations?.org_type as "nonprofit" | "business",
-        currency: (row.organizations?.currency ?? "USD") as string,
-        fiscalYearStartMonth: (row.organizations?.fiscal_year_start_month ?? 1) as number,
-        timezone: (row.organizations?.timezone ?? "America/Chicago") as string,
-        terminology: normalizeTerminology(row.organizations?.terminology),
-        termOverrides: cleanOverrides(row.organizations?.term_overrides),
-        aiPdfEnabled: !!row.organizations?.ai_pdf_enabled,
-        requireMfa: !!row.organizations?.require_mfa,
-        role: row.role as string,
-      }))
-      .filter((o) => o.id);
+    const orgs = await loadMyOrgs(context.supabase, context.userId);
+    return orgs.map((o) => ({
+      id: o.id,
+      name: o.name,
+      orgType: o.org_type,
+      currency: o.currency,
+      fiscalYearStartMonth: o.fiscal_year_start_month,
+      timezone: o.timezone,
+      terminology: normalizeTerminology(o.terminology),
+      termOverrides: cleanOverrides(o.term_overrides),
+      aiPdfEnabled: !!o.ai_pdf_enabled,
+      requireMfa: !!o.require_mfa,
+      role: o.role as string,
+      configured: o.configured,
+    }));
   });
 export const getMyOrgs = desktopAware("getMyOrgs", getMyOrgsCloud);
 
 const getMyProfileCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase
-      .from("profiles")
-      .select("display_name, terminology, term_overrides")
-      .eq("id", context.userId)
-      .maybeSingle();
+    // Name from the core profile; wording preferences are Ledger's own.
+    const [{ data: profile }, { data: prefs }] = await Promise.all([
+      context.supabase
+        .schema("public")
+        .from("profiles")
+        .select("display_name")
+        .eq("id", context.userId)
+        .maybeSingle(),
+      context.supabase
+        .from("user_preferences")
+        .select("terminology, term_overrides")
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+    ]);
     return {
-      displayName: data?.display_name ?? null,
-      terminology: normalizeTerminology(data?.terminology),
-      termOverrides: cleanOverrides(data?.term_overrides),
+      displayName: profile?.display_name ?? null,
+      terminology: normalizeTerminology(prefs?.terminology),
+      termOverrides: cleanOverrides(prefs?.term_overrides),
     };
   });
 export const getMyProfile = desktopAware("getMyProfile", getMyProfileCloud);
@@ -89,9 +98,9 @@ const setMyTermOverridesCloud = createServerFn({ method: "POST" })
   .validator((input) => z.object({ termOverrides: overridesSchema }).parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
-      .from("profiles")
+      .from("user_preferences")
       // cloud-only-write: per-user or service record, not organization books
-      .upsert({ id: context.userId, term_overrides: data.termOverrides });
+      .upsert({ user_id: context.userId, term_overrides: data.termOverrides });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -139,26 +148,14 @@ const listOrgMembersCloud = createServerFn({ method: "GET" })
   .validator((input) => z.object({ orgId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Any member can see the member list; RLS scopes user_roles to org members.
-    const { data: rows, error } = await supabase
-      .from("user_roles")
-      .select("id, user_id, role")
-      .eq("org_id", data.orgId);
-    if (error) throw new Error(error.message);
-
-    const userIds = (rows ?? []).map((r) => r.user_id);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
-    const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
-
-    return (rows ?? []).map((r) => ({
-      id: r.id as string,
-      userId: r.user_id as string,
-      role: r.role as string,
-      displayName: (nameById.get(r.user_id) as string | null) ?? null,
-      isYou: r.user_id === userId,
+    // Any member can see the member list (core directory plus the treasurer overlay).
+    const members = await loadMembers(supabase, data.orgId);
+    return members.map((m) => ({
+      id: m.userId,
+      userId: m.userId,
+      role: m.role as string,
+      displayName: m.displayName ?? m.email ?? null,
+      isYou: m.userId === userId,
     }));
   });
 export const listOrgMembers = desktopAware("listOrgMembers", listOrgMembersCloud);
@@ -181,30 +178,47 @@ const updateMemberRoleCloud = createServerFn({ method: "POST" })
       throw new Error("You can't demote yourself. Ask another admin to do it.");
     }
 
-    const { data: before } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.userId)
-      .eq("org_id", data.orgId)
-      .maybeSingle();
+    const members = await loadMembers(supabase, data.orgId);
+    const target = members.find((m) => m.userId === data.userId);
+    if (!target) throw new Error("That person isn't in this organization.");
+    if (target.coreRole === "owner" && data.role !== "admin") {
+      throw new Error(
+        "The owner always has full access. Transfer ownership first to change their role.",
+      );
+    }
 
+    // The core role (owner and admins only, enforced by the database), then Ledger's
+    // treasurer overlay with its history entry.
+    const core: CoreRole =
+      target.coreRole === "owner" ? "owner" : coreRoleFor(data.role as OrgRole);
+    if (core !== target.coreRole) {
+      const { error } = await supabase
+        .schema("public")
+        .from("memberships")
+        // cloud-only-write: core membership (schema public), not organization books
+        .update({ role: core })
+        .eq("org_id", data.orgId)
+        .eq("user_id", data.userId);
+      if (error) throw new Error(error.message);
+    }
     await auditedWrite(
       supabase,
       data.orgId,
       [
-        {
-          table: "user_roles",
-          op: "update",
-          values: { role: data.role },
-          match: { user_id: data.userId },
-          minRows: 1,
-        },
+        data.role === "treasurer"
+          ? {
+              table: "member_roles",
+              op: "insert",
+              values: { user_id: data.userId, role: "treasurer" },
+              conflict: "nothing",
+            }
+          : { table: "member_roles", op: "delete", match: { user_id: data.userId } },
       ],
       {
         action: "update",
         entity: "user_role",
         entityId: data.userId,
-        before: before ?? null,
+        before: { role: target.role },
         after: { role: data.role },
         kind: "system",
       },
@@ -235,21 +249,20 @@ const createOrganizationCloud = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Generate the id here: reading the row back (insert().select()) would be
-    // blocked by RLS because the user isn't a member until user_roles exists.
-    const org = { id: newId() };
-    const orgRow = {
-      id: org.id,
-      name: data.name,
+    // Core creates the organization and makes the caller its owner.
+    const { data: orgId, error: orgError } = await supabase
+      .schema("public")
+      .rpc("create_organization", { p_name: data.name });
+    if (orgError || !orgId)
+      throw new Error(orgError?.message ?? "Couldn't create the organization.");
+    const org = { id: orgId as string };
+    const settingsRow = {
       org_type: data.orgType,
-      created_by: userId,
       ...(data.currency ? { currency: data.currency } : {}),
       ...(data.fiscalYearStartMonth ? { fiscal_year_start_month: data.fiscalYearStartMonth } : {}),
       ...(data.terminology ? { terminology: data.terminology } : {}),
       ...(data.timezone ? { timezone: data.timezone } : {}),
     };
-
-    // The creator's admin row is added by the organizations_add_creator DB trigger.
 
     const keys = data.accountKeys ? new Set(data.accountKeys) : null;
     const accounts = catalogFor(data.orgType)
@@ -261,15 +274,12 @@ const createOrganizationCloud = createServerFn({ method: "POST" })
         subtype: c.subtype ?? null,
         org_id: org.id,
       }));
-    // cloud-only-write: per-user or service record, not organization books
-    await supabase.from("profiles").upsert({ id: userId });
-
-    // Organization, starter accounts and history are saved together.
+    // Settings, starter accounts and history are saved together.
     await auditedWrite(
       supabase,
       org.id,
       [
-        { table: "organizations", op: "insert", values: orgRow },
+        { table: "org_settings", op: "insert", values: settingsRow },
         { table: "accounts", op: "insert", values: accounts },
       ],
       {
@@ -283,6 +293,69 @@ const createOrganizationCloud = createServerFn({ method: "POST" })
     return { id: org.id as string };
   });
 export const createOrganization = desktopAware("createOrganization", createOrganizationCloud);
+
+/**
+ * Sets up the books for an organization created in OpenAppHub (no Ledger settings
+ * yet): its type, currency, year, wording and starter accounts. Owner or admin.
+ */
+const setUpOrganizationBooksCloud = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z
+      .object({
+        orgId: z.string().uuid(),
+        orgType: z.enum(["nonprofit", "business"]),
+        accountKeys: z.array(z.string().max(60)).max(100).optional(),
+        currency: z.string().regex(/^[A-Z]{3}$/),
+        fiscalYearStartMonth: z.number().int().min(1).max(12),
+        timezone: z.string().max(64).refine(isValidTimeZone, "Unknown timezone"),
+        terminology: z.enum(["simplest", "simple", "accounting"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await requireOrgAdmin(supabase, userId, data.orgId);
+    const { data: existing } = await supabase
+      .from("org_settings")
+      .select("org_id")
+      .eq("org_id", data.orgId)
+      .maybeSingle();
+    if (existing) throw new Error("This organization's books are already set up.");
+    const keys = data.accountKeys ? new Set(data.accountKeys) : null;
+    const accounts = catalogFor(data.orgType)
+      .filter((c) => c.required || (keys ? keys.has(c.key) : c.defaultOn))
+      .map((c) => ({ id: newId(), name: c.name, type: c.type, subtype: c.subtype ?? null }));
+    await auditedWrite(
+      supabase,
+      data.orgId,
+      [
+        {
+          table: "org_settings",
+          op: "insert",
+          values: {
+            org_type: data.orgType,
+            currency: data.currency,
+            fiscal_year_start_month: data.fiscalYearStartMonth,
+            timezone: data.timezone,
+            terminology: data.terminology,
+          },
+        },
+        { table: "accounts", op: "insert", values: accounts },
+      ],
+      {
+        action: "setup",
+        entity: "organization",
+        entityId: data.orgId,
+        after: { org_type: data.orgType, currency: data.currency },
+      },
+    );
+    return { id: data.orgId };
+  });
+export const setUpOrganizationBooks = desktopAware(
+  "setUpOrganizationBooks",
+  setUpOrganizationBooksCloud,
+);
 
 // ---------- Account setup (which accounts the org uses) ----------
 
@@ -338,10 +411,10 @@ const setAccountEnabledCloud = createServerFn({ method: "POST" })
     await requireOrgAdmin(supabase, userId, data.orgId);
 
     const { data: org } = await supabase
-      .from("organizations")
+      .from("org_settings")
       .select("org_type")
-      .eq("id", data.orgId)
-      .single();
+      .eq("org_id", data.orgId)
+      .maybeSingle();
     const catalog = catalogFor((org?.org_type ?? "business") as OrgType);
     const item = data.catalogKey ? catalog.find((c) => c.key === data.catalogKey) : undefined;
 
@@ -448,7 +521,7 @@ const deleteUnusedAccountCloud = createServerFn({ method: "POST" })
         .eq("org_id", data.orgId)
         .eq("id", data.accountId)
         .maybeSingle(),
-      supabase.from("organizations").select("org_type").eq("id", data.orgId).single(),
+      supabase.from("org_settings").select("org_type").eq("org_id", data.orgId).maybeSingle(),
     ]);
     if (error) throw new Error(error.message);
     if (!acct) throw new Error("Account not found.");
@@ -493,8 +566,9 @@ const setRequireMfaCloud = createServerFn({ method: "POST" })
       supabase,
       data.orgId,
       [
+        ENSURE_SETTINGS_OP,
         {
-          table: "organizations",
+          table: "org_settings",
           op: "update",
           values: { require_mfa: data.enabled },
           minRows: 1,

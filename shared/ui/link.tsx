@@ -4,11 +4,11 @@ import type { ComponentType, MouseEventHandler, ReactNode } from "react";
 
 export type LinkLikeProps = {
   href: string;
-  className?: string;
+  className?: string | undefined;
   children: ReactNode;
-  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  onClick?: MouseEventHandler<HTMLAnchorElement> | undefined;
   "aria-current"?: "page" | undefined;
-  "aria-label"?: string;
+  "aria-label"?: string | undefined;
 };
 
 export type LinkLike = ComponentType<LinkLikeProps>;

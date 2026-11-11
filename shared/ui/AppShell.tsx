@@ -28,6 +28,11 @@ export type AppShellProps = {
   nav: NavItem[];
   /** Extra links at the bottom of the sidebar (e.g. Settings). */
   navFooter?: NavItem[];
+  /**
+   * Extra sidebar content under the nav, desktop only (e.g. a page's own section menu, as in
+   * Charter). On phones pages show their own section picker instead.
+   */
+  sidebar?: ReactNode;
   user: { name: string | null; email: string | null } | null;
   orgs: SwitcherOrg[];
   currentOrgId: string | null;
@@ -58,9 +63,12 @@ function SideNav({
   helpHref,
   LinkComponent,
   onNavigate,
-}: Pick<AppShellProps, "app" | "nav" | "navFooter" | "helpHref"> & {
+  sidebar,
+}: Pick<AppShellProps, "app" | "nav" | "helpHref"> & {
+  navFooter?: NavItem[] | undefined;
+  sidebar?: ReactNode;
   LinkComponent: LinkLike;
-  onNavigate?: () => void;
+  onNavigate?: (() => void) | undefined;
 }) {
   const item = (n: NavItem) => (
     <li key={n.href}>
@@ -89,6 +97,7 @@ function SideNav({
       </div>
       <nav aria-label={APP_NAMES[app]} className="flex-1 overflow-y-auto">
         <ul className="flex flex-col gap-0.5">{nav.map(item)}</ul>
+        {sidebar ? <div className="mt-2">{sidebar}</div> : null}
       </nav>
       <ul className="flex flex-col gap-0.5">
         {(navFooter ?? []).map(item)}
@@ -228,6 +237,7 @@ export function AppShell(props: AppShellProps) {
     app,
     nav,
     navFooter,
+    sidebar,
     user,
     orgs,
     currentOrgId,
@@ -261,6 +271,7 @@ export function AppShell(props: AppShellProps) {
           navFooter={navFooter}
           helpHref={helpHref}
           LinkComponent={LinkComponent}
+          sidebar={sidebar}
         />
       </aside>
       <Drawer open={drawer} onClose={closeDrawer} label={`${APP_NAMES[app]} menu`}>

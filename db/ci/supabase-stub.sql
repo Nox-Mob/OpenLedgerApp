@@ -27,8 +27,36 @@ create table if not exists auth.users (
   raw_user_meta_data jsonb default '{}'::jsonb,
   created_at timestamptz default now()
 );
--- Present on real Supabase; added here for the stub.
+-- Present on real Supabase; added here for the stub (the staging seed writes them).
 alter table auth.users add column if not exists banned_until timestamptz;
+alter table auth.users add column if not exists instance_id uuid;
+alter table auth.users add column if not exists aud varchar(255);
+alter table auth.users add column if not exists role varchar(255);
+alter table auth.users add column if not exists encrypted_password varchar(255);
+alter table auth.users add column if not exists raw_app_meta_data jsonb;
+alter table auth.users add column if not exists updated_at timestamptz;
+alter table auth.users add column if not exists confirmation_token varchar(255);
+alter table auth.users add column if not exists recovery_token varchar(255);
+alter table auth.users add column if not exists email_change_token_new varchar(255);
+alter table auth.users add column if not exists email_change varchar(255);
+alter table auth.users add column if not exists email_change_token_current varchar(255);
+alter table auth.users add column if not exists reauthentication_token varchar(255);
+alter table auth.users add column if not exists phone_change text;
+alter table auth.users add column if not exists phone_change_token varchar(255);
+create table if not exists auth.identities (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  identity_data jsonb not null,
+  provider text not null,
+  last_sign_in_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  unique (provider_id, provider)
+);
+-- pgcrypto in schema extensions, as on Supabase (the seed hashes the demo password).
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 do $$
 begin

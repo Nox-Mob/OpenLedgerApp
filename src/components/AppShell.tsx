@@ -1,5 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AppShell as SuiteShell } from "@shared/ui/AppShell";
+import { getOrgBilling } from "@shared/supabase/billing";
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
+import { docsUrl } from "@shared/docs";
+import { RouterLink } from "@/lib/router-link";
+import { setStoredOrgId } from "@/lib/current-org";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -14,16 +21,12 @@ import {
   HandCoins,
   FileBarChart,
   Settings,
-  LogOut,
-  BookOpen,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRouterState } from "@tanstack/react-router";
 import { useAal } from "@/hooks/use-aal";
 import { MfaCodeForm } from "@/components/MfaCodeForm";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { useOrgContext } from "@/hooks/use-org-context";
 import { ErrorState, LoadingState } from "@/components/PageStates";
 import { errorMessage } from "@/lib/errors";
@@ -46,6 +49,21 @@ const NAV = [
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
+/** The nav item for this page: the longest matching path (so /transactions/new isn't also /transactions). */
+function currentNav(pathname: string, items: readonly { to: string }[]): string | null {
+  const hits = items.filter((i) =>
+    i.to === "/ledger"
+      ? pathname === "/ledger"
+      : pathname === i.to || pathname.startsWith(`${i.to}/`),
+  );
+  return hits.sort((a, b) => b.to.length - a.to.length)[0]?.to ?? null;
+}
+
+/**
+ * Every signed-in page sits in the suite's AppShell (shared/ui, SHARED-SPEC §9): sidebar, top
+ * bar with the suite and organization switchers, Help and the user menu, and the billing banner.
+ * Hosted, organizations are created in OpenAppHub; self-hosted (and desktop), in Ledger.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const { org, orgs, terms, error, retry } = useOrgContext();
   const navigate = useNavigate();
@@ -54,127 +72,116 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const mfaBlocked =
     !!org?.requireMfa && aal.data?.current !== "aal2" && pathname !== "/settings/security";
+  const desktop = isDesktop();
+
+  const user = useQuery({
+    queryKey: ["auth-user"],
+    enabled: !desktop,
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+      const name = (meta["full_name"] ?? meta["display_name"] ?? null) as string | null;
+      return { name, email: data.user?.email ?? null };
+    },
+  });
+  // The billing banner (trial, payment problem, read-only); null when billing is off.
+  const billing = useQuery({
+    queryKey: ["billing", org?.id],
+    enabled: !!org && !desktop,
+    queryFn: () =>
+      getOrgBilling(supabase.schema("public") as unknown as SupabaseClient, org?.id ?? ""),
+  });
 
   async function signOut() {
     await supabase.auth.signOut();
     queryClient.clear();
-    navigate({ to: "/auth" });
+    if (isHosted()) window.location.assign(hubUrl("/"));
+    else navigate({ to: "/auth" });
   }
 
+  const items = NAV.filter((item) => !("write" in item && item.write) || org?.role !== "viewer");
+  const active = currentNav(pathname, items);
+  const nav = items
+    .filter((item) => item.to !== "/settings")
+    .map((item) => ({
+      label: item.to === "/reconcile" ? terms.reconcile : item.label,
+      href: item.to,
+      icon: <item.icon aria-hidden="true" />,
+      current: item.to === active,
+    }));
+  const createHref = isHosted() ? hubUrl("/orgs/new") : "/onboarding";
+
   return (
-    <div className="flex min-h-screen bg-background">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-      >
-        Skip to content
-      </a>
-      <aside className="flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
-        <div className="flex items-center gap-2 px-5 py-5">
-          <BookOpen className="h-5 w-5 text-sidebar-primary" />
-          <span className="font-display text-lg font-bold">OpenLedgerApp</span>
+    <SuiteShell
+      app="ledger"
+      nav={nav}
+      navFooter={[
+        {
+          label: "Settings",
+          href: "/settings",
+          icon: <Settings aria-hidden="true" />,
+          current: active === "/settings",
+        },
+      ]}
+      user={desktop ? null : (user.data ?? null)}
+      orgs={orgs.map((o) => ({ id: o.id, name: o.name, role: o.role }))}
+      currentOrgId={org?.id ?? null}
+      onSelectOrg={(id) => {
+        setStoredOrgId(id);
+        void queryClient.invalidateQueries();
+      }}
+      orgCreateHref={createHref}
+      billing={billing.data ?? null}
+      canManageBilling={org?.role === "admin"}
+      billingHref={hubUrl("/billing")}
+      helpHref={docsUrl("ledger/")}
+      onSignOut={() => void signOut()}
+      LinkComponent={RouterLink}
+    >
+      {error && !org ? (
+        <ErrorState
+          title="Your organizations didn't load"
+          message={errorMessage(error)}
+          onRetry={retry}
+        />
+      ) : aal.data && aal.data.next === "aal2" && aal.data.current !== "aal2" ? (
+        <div className="max-w-sm rounded-lg border bg-card p-6">
+          <h1 className="mb-3 font-display text-xl font-semibold">Two-step sign-in</h1>
+          <MfaCodeForm onDone={() => void queryClient.invalidateQueries()} />
         </div>
-
-        {orgs.length > 1 && (
-          <div className="px-4 pb-3">
-            <OrgSwitcher orgs={orgs} current={org} />
-          </div>
-        )}
-        {orgs.length === 1 && org && (
-          <div className="px-5 pb-3 text-sm text-sidebar-foreground">
-            {org.name}
-            <span className="ml-2 text-xs text-sidebar-foreground/80">{terms.orgLabel}</span>
-          </div>
-        )}
-        {orgs.length <= 1 && (
-          <div className="px-5 pb-3">
-            <Link
-              to="/onboarding"
-              className="text-xs text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground"
-            >
-              + New organization
-            </Link>
-          </div>
-        )}
-
-        <nav aria-label="Main" className="flex-1 space-y-0.5 px-3">
-          {NAV.filter((item) => !("write" in item && item.write) || org?.role !== "viewer").map(
-            (item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                activeOptions={{ exact: item.to === "/ledger" }}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-                activeProps={{
-                  className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
-                }}
-              >
-                <item.icon className="h-4 w-4" aria-hidden="true" />
-                {item.to === "/reconcile" ? terms.reconcile : item.label}
-              </Link>
-            ),
-          )}
-        </nav>
-
-        <div className="p-3">
-          <div className="mb-2 flex items-center justify-between gap-2 px-3">
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-sidebar-foreground/80">
-              <Link to="/terms" className="hover:text-sidebar-foreground">
-                Terms
-              </Link>
-              <Link to="/privacy" className="hover:text-sidebar-foreground">
-                Privacy
-              </Link>
-              <Link to="/not-advice" className="hover:text-sidebar-foreground">
-                Not advice
-              </Link>
-            </div>
-            <ThemeToggle className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground" />
-          </div>
-          {!isDesktop() && (
-            <button
-              onClick={signOut}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent"
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              Sign out
-            </button>
-          )}
+      ) : mfaBlocked ? (
+        <div role="alert" className="max-w-xl rounded-lg border bg-card p-6">
+          <h1 className="font-display text-xl font-semibold">Two-step sign-in required</h1>
+          <p className="mt-2 text-sm">
+            {org?.name} requires two-step sign-in. Set it up (or sign out and back in with your
+            code) to see its books.
+          </p>
+          <Link
+            to="/settings/security"
+            className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Go to Security
+          </Link>
         </div>
-      </aside>
-
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-8 py-8 outline-none">
-        {error && !org ? (
-          <ErrorState
-            title="Your organizations didn't load"
-            message={errorMessage(error)}
-            onRetry={retry}
-          />
-        ) : aal.data && aal.data.next === "aal2" && aal.data.current !== "aal2" ? (
-          <div className="max-w-sm rounded-lg border bg-card p-6">
-            <h1 className="mb-3 font-display text-xl font-semibold">Two-step sign-in</h1>
-            <MfaCodeForm onDone={() => void queryClient.invalidateQueries()} />
-          </div>
-        ) : mfaBlocked ? (
-          <div role="alert" className="max-w-xl rounded-lg border bg-card p-6">
-            <h1 className="font-display text-xl font-semibold">Two-step sign-in required</h1>
-            <p className="mt-2 text-sm">
-              {org?.name} requires two-step sign-in. Set it up (or sign out and back in with your
-              code) to see its books.
-            </p>
-            <Link
-              to="/settings/security"
-              className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            >
-              Go to Security
-            </Link>
-          </div>
-        ) : (
-          children
-        )}
-      </main>
+      ) : (
+        children
+      )}
+      <footer className="mt-12 flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-xs text-muted-foreground">
+        <Link to="/terms" className="hover:text-foreground">
+          Terms
+        </Link>
+        <Link to="/privacy" className="hover:text-foreground">
+          Privacy
+        </Link>
+        <Link to="/not-advice" className="hover:text-foreground">
+          Not advice
+        </Link>
+        <Link to="/cookies" className="hover:text-foreground">
+          Cookies
+        </Link>
+      </footer>
       {org && <TutorialPanel orgId={org.id} />}
-    </div>
+    </SuiteShell>
   );
 }
 

@@ -180,14 +180,22 @@ describe("statement check off", () => {
   });
 });
 
-/** Minimal stand-in for the role lookup assertCan does. */
+/** Minimal stand-in for the role lookup assertCan does (core role + treasurer overlay). */
 function roleDb(role: string): Db {
-  const q = {
-    select: () => q,
-    eq: () => q,
-    maybeSingle: async () => ({ data: { role, organizations: { require_mfa: false } } }),
+  const core = role === "admin" ? "admin" : role === "viewer" ? "viewer" : "member";
+  const rows: Record<string, unknown> = {
+    memberships: { role: core },
+    member_roles: role === "treasurer" ? { role: "treasurer" } : null,
+    org_settings: { require_mfa: false },
   };
-  return { from: () => q } as unknown as Db;
+  const db = {
+    schema: () => db,
+    from: (table: string) => {
+      const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: rows[table] }) };
+      return q;
+    },
+  };
+  return db as unknown as Db;
 }
 
 async function closeAs(role: string, action: OrgAction = "close_books") {

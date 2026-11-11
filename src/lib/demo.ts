@@ -1,4 +1,4 @@
-export const DEMO_EMAIL = "demo@demo.org";
+export const DEMO_EMAIL = "demo@demo.openapphub.org";
 
 /** Demo sign-in is allowed on dev servers and editor preview links, or when a self-hoster sets VITE_ALLOW_DEMO_LOGIN=true. */
 export function demoAllowedHere(): boolean {

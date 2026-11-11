@@ -1,4 +1,5 @@
 import type { Db } from "@/lib/db";
+import { loadRole } from "./core-org";
 // Role authorization matrix — the single source of truth for who can do what.
 // Server functions call assertCan() after requireSupabaseAuth; the database
 // mirrors the same rules in RLS policies and triggers so nothing slips around.
@@ -51,17 +52,12 @@ export async function assertCan(
   orgId: string,
   action: OrgAction,
 ): Promise<OrgRole> {
-  const { data: roleRow } = await supabase
-    .from("user_roles")
-    .select("role, organizations(require_mfa)")
-    .eq("user_id", userId)
-    .eq("org_id", orgId)
-    .maybeSingle();
-  const role = roleRow?.role as OrgRole | undefined;
+  // Core role plus Ledger's treasurer overlay (core-org.ts).
+  const { role, requireMfa } = await loadRole(supabase, userId, orgId);
   if (!can(role, action)) throw new ForbiddenError(action);
   // The database enforces this too; checking here gives a clear message instead of empty data.
-  if (roleRow?.organizations?.require_mfa) {
-    const { data: ok } = await supabase.rpc("mfa_ok", { _org_id: orgId });
+  if (requireMfa) {
+    const { data: ok } = await supabase.rpc("mfa_ok", { p_org: orgId });
     if (!ok) throw new MfaRequiredError();
   }
   return role as OrgRole;

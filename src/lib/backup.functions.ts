@@ -142,6 +142,7 @@ const listHistoryCloud = createServerFn({ method: "GET" })
     const known = new Set<string>();
     if (ids.length) {
       const { data: profiles } = await context.supabase
+        .schema("public")
         .from("profiles")
         .select("id, display_name")
         .in("id", ids);

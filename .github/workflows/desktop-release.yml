@@ -35,7 +35,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       is_new: ${{ steps.v.outputs.is_new }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - id: v
         run: |
@@ -68,8 +68,8 @@ jobs:
           - { name: macOS (Intel), platform: macos-latest, args: "--target x86_64-apple-darwin" }
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm

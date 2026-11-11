@@ -2,7 +2,7 @@
 // VITE_* values are baked into the browser bundle at build time, so `npm run build:hosted`
 // writes them to .env.production.local before building; the same values are also the
 // Worker's runtime `vars`. The top level of wrangler.jsonc is production.
-// Usage: node scripts/deploy/build-env.mjs <production|staging> > .env.production.local
+// Usage: node scripts/deploy/build-env.mjs <production|staging|auto> > .env.production.local
 // Fails if a value is still a "<…>" placeholder, so a half-configured deploy never runs.
 import { readFileSync } from "node:fs";
 
@@ -41,6 +41,17 @@ export function stripJsonc(text) {
   return out.replace(/,(\s*[}\]])/g, "$1");
 }
 
+/**
+ * "auto" picks the environment from the branch Cloudflare's Workers Builds is building
+ * (WORKERS_CI_BRANCH): `main` and local builds are production, any other branch is staging,
+ * so its preview (<branch>.<app>.staging.openapphub.org) uses the staging database.
+ */
+export function resolveTarget(arg, env = process.env) {
+  if (arg !== "auto") return arg;
+  const branch = env.WORKERS_CI_BRANCH;
+  return branch && branch !== "main" ? "staging" : "production";
+}
+
 export function buildEnv(config, envName) {
   const env = envName === "production" ? config : config.env?.[envName];
   if (!env) throw new Error(`wrangler.jsonc has no env "${envName}"`);
@@ -62,7 +73,8 @@ export function buildEnv(config, envName) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const envName = process.argv[2];
+  const envName = resolveTarget(process.argv[2]);
+  console.error(`build env: ${envName}`);
   try {
     const config = JSON.parse(stripJsonc(readFileSync("wrangler.jsonc", "utf8")));
     console.log(buildEnv(config, envName).join("\n"));

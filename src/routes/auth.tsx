@@ -2,6 +2,7 @@ import { desktopEntryRedirect } from "@/lib/desktop/entry-redirect";
 import { errorMessage } from "@/lib/errors";
 import { PENDING_INVITE_KEY } from "@/lib/invite-link";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { hostedAuthRedirect } from "@/lib/hosted";
 import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,10 @@ import { lovable } from "@/integrations/lovable";
 import { MfaCodeForm } from "@/components/MfaCodeForm";
 
 export const Route = createFileRoute("/auth")({
-  beforeLoad: desktopEntryRedirect,
+  beforeLoad: async () => {
+    hostedAuthRedirect();
+    await desktopEntryRedirect();
+  },
   head: () => ({
     meta: [
       { title: "Sign In - OpenLedgerApp" },

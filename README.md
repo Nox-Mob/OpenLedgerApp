@@ -23,17 +23,15 @@ Source ZIP downloads point to the GitHub `main` branch archive (github.com/Nox-M
 
 ---
 
-## Running the sample-data setup file manually
+## Sample data (staging and development only)
 
-The sample data (the shared `demo@demo.org` / `demo1234` login and its two sample organizations) lives in `supabase/seed/demo.sql`. It is **not** a migration and never runs automatically. To load it into a development or test database:
+The suite demo, the sign-in `demo@demo.openapphub.org` / `OpenAppHubDemo2026` with the organization Riverside Community Association and about three months of its books, is in `db/seed/0001_ledger_demo.sql` (an empty test sign-in, `test@demo.openapphub.org`, comes with it). On staging OpenAppHub resets it every 12 hours. It is **not** a migration: it runs only when you ask for it, once per database (the runner records it):
 
 ```sh
-psql "$SUPABASE_DB_URL" -f supabase/seed/demo.sql
+DATABASE_URL="<dev or staging connection string>" npm run db:migrate -- --seed
 ```
 
-- `$SUPABASE_DB_URL` is the Postgres connection string of your **dev/test** database (on Supabase: Project Settings → Database → Connection string). You need a role that can write to `auth.users` (the `postgres` superuser works).
-- The script is re-runnable: every insert uses `ON CONFLICT DO NOTHING`, so running it twice is safe.
-- **Never run it against a production database with real users.** It creates a publicly known login.
+It refuses to run on a database that holds real organizations (or, on the OpenAppHub database, one not marked staging). **Never load it into production:** it creates a publicly known sign-in.
 
 ---
 
@@ -41,11 +39,13 @@ psql "$SUPABASE_DB_URL" -f supabase/seed/demo.sql
 
 Pick **one** path for the database and sign-in service, then finish with the shared steps.
 
-|                     | Path 1 — Cloud-hosted Supabase               | Path 2 — Self-hosted Supabase (Docker)                                 |
-| ------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
-| Where data lives    | supabase.com                                 | Your own server                                                        |
-| Effort              | Easiest                                      | More setup, 4 GB+ RAM                                                  |
-| Migrations run with | `psql` on your machine or `supabase db push` | `docker exec` into the `supabase-db` container (no host `psql` needed) |
+|                     | Path 1 — Cloud-hosted Supabase | Path 2 — Self-hosted Supabase (Docker) |
+| ------------------- | ------------------------------ | -------------------------------------- |
+| Where data lives    | supabase.com                   | Your own server                        |
+| Effort              | Easiest                        | More setup, 4 GB+ RAM                  |
+| Migrations run with | `npm run db:migrate`           | `npm run db:migrate`                   |
+
+The database is the OpenAppHub core (`db/core`: organizations, members, invitations) plus Ledger's own schema `ledger` (`db/migrations`). `npm run db:migrate` (`scripts/migrate.mjs`) applies both, each file once, in order, and records what it applied, so running it again after an update applies only the new files. Self-hosted, there is no hub and no billing: everything is always writable.
 
 ### Shared prerequisites
 
@@ -64,19 +64,16 @@ Pick **one** path for the database and sign-in service, then finish with the sha
 
 1. **Create a project** at [supabase.com](https://supabase.com).
 2. **Collect credentials** (Project Settings → API and → Database): project URL, publishable (anon) key, service-role key, and the database connection string (`SUPABASE_DB_URL`).
-3. **Install the Postgres client** if you don't have `psql` (Debian/Ubuntu: `sudo apt install -y postgresql-client`; macOS: `brew install libpq`). If you see `You must install at least one postgresql-client-<version> package`, this is the fix.
-4. **Apply every migration** in filename order. (These are the current app's tables in `supabase/migrations/`. The app is moving to the `ledger` schema in `db/migrations/`; this step changes to `npm run db:migrate` when it does. See `supabase/README.md`.)
+3. **Apply the database** (core plus Ledger):
 
    ```sh
-   export SUPABASE_DB_URL="<your connection string>"
-   for f in supabase/migrations/*.sql; do
-     echo "Applying $f..."
-     psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"
-   done
+   npm ci
+   DATABASE_URL="<your connection string>" npm run db:migrate
    ```
 
-   Or with the Supabase CLI: `supabase link --project-ref <ref> && supabase db push`.
+   Use the **Session pooler** connection string (Connect → Session pooler, port 5432) if your network has no IPv6.
 
+4. **Expose the `ledger` schema** to the app: Project Settings → Data API → **Exposed schemas**, add `ledger` (keep `public`).
 5. **Configure sign-in** (Authentication → Sign In / Providers): enable Email; keep email confirmation ON for production; optionally enable Google. Under URL Configuration set **Site URL** to your app's URL and add `<app-url>/reset-password` (and your local dev URL) to the redirect list.
 6. **Fill in `.env`:**
 
@@ -90,7 +87,7 @@ Pick **one** path for the database and sign-in service, then finish with the sha
    LOVABLE_API_KEY=<optional, enables AI PDF import>
    ```
 
-7. _(Optional, dev/test only)_ load sample data: `psql "$SUPABASE_DB_URL" -f supabase/seed/demo.sql`.
+7. _(Optional, dev/test only)_ load sample data: `DATABASE_URL="<connection string>" npm run db:migrate -- --seed`.
 
 Continue with **Run the app** below.
 
@@ -128,19 +125,14 @@ Runs Postgres, Auth, Storage and the API on your own machine. Allow **4 GB+ RAM*
 
    The API gateway listens on port `8000`: your project URL is `http://<server-ip>:8000` (or your TLS URL if you put a proxy in front).
 
-4. **Apply every migration inside the database container.** Go back to _this app's_ project folder and run the migrations through Docker — you do **not** need `psql` installed on the host:
+4. **Apply the database and expose the `ledger` schema.** From _this app's_ folder:
 
    ```sh
-   # Confirm the database container name (usually supabase-db)
-   docker ps --filter "name=db" --format "{{.Names}}"
-
-   for file in supabase/migrations/*.sql; do
-     echo "Applying $file..."
-     docker exec -i supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$file"
-   done
+   npm ci
+   DATABASE_URL="postgres://postgres.<POOLER_TENANT_ID>:<POSTGRES_PASSWORD>@<server-ip>:5432/postgres" npm run db:migrate
    ```
 
-   If `docker ps` shows a different name (e.g. `supabase-project-db-1`), use that instead of `supabase-db`.
+   (`POOLER_TENANT_ID` and `POSTGRES_PASSWORD` are in `supabase-project/.env`.) Then add `ledger` to the API's schemas: in `supabase-project/.env` set `PGRST_DB_SCHEMAS=public,storage,graphql_public,ledger` and run `docker compose restart rest`.
 
 5. **Fill in `.env`** — the browser and server values are the same here:
 
@@ -166,7 +158,7 @@ Runs Postgres, Auth, Storage and the API on your own machine. Allow **4 GB+ RAM*
 8. _(Optional, dev/test only)_ load sample data:
 
    ```sh
-   docker exec -i supabase-db psql -U postgres -d postgres < supabase/seed/demo.sql
+   DATABASE_URL="<connection string from step 4>" npm run db:migrate -- --seed
    ```
 
 9. **Backups.** Dump nightly and copy off the machine:
@@ -177,7 +169,7 @@ Runs Postgres, Auth, Storage and the API on your own machine. Allow **4 GB+ RAM*
    gunzip -c backup.sql.gz | docker exec -i supabase-db psql -U postgres postgres
    ```
 
-Updating Supabase later: run the stack's `update.sh` from `supabase-project` (version recorded in `.supabase-version`). App and Supabase updates are independent; neither touches your data. New app migrations are applied with the same `docker exec` loop (already-applied ones may report "already exists" — only new files matter).
+Updating Supabase later: run the stack's `update.sh` from `supabase-project` (version recorded in `.supabase-version`). App and Supabase updates are independent; neither touches your data. New app migrations are applied with the same `npm run db:migrate` (it skips what's already applied).
 
 ---
 
@@ -188,7 +180,7 @@ npm install        # npm is the only supported package manager
 npm run dev
 ```
 
-Open http://localhost:8080, create your first account, and the app walks you through creating your first organization. With sample data loaded you can sign in as `demo@demo.org` / `demo1234`.
+Open http://localhost:8080, create your first account, and the app walks you through creating your first organization. With sample data loaded you can sign in as `demo@demo.openapphub.org` / `OpenAppHubDemo2026`.
 
 Production build:
 
@@ -206,7 +198,7 @@ The app is server-rendered: pages **and** server functions run on the server, so
 ### Before any deployment
 
 1. Copy `.env.example` to `.env` (or your host's secret store) and fill it in. `.env` is git-ignored — never commit it. The service-role key is server-only.
-2. Apply migrations to the production database (`supabase db push`). Migrations are append-only; never run `supabase/seed/demo.sql` in production.
+2. Apply migrations to the production database (`npm run db:migrate`; hosted: the **Migrate** workflow). Migrations are append-only; never use `--seed` in production.
 3. Set Auth → URL Configuration (Site URL + `/reset-password` redirect) to your production domain.
 4. Leave `VITE_ALLOW_DEMO_LOGIN` unset.
 5. Run the release checklist below.
@@ -257,7 +249,7 @@ books.example.com {
 }
 ```
 
-Updating: `git pull && npm ci && supabase db push && npm run build && sudo systemctl restart open-ledger`. Restarting never touches data.
+Updating: `git pull && npm ci && DATABASE_URL=... npm run db:migrate && npm run build && sudo systemctl restart open-ledger`. Restarting never touches data.
 
 #### Fully self-contained alternative
 
@@ -312,8 +304,7 @@ The database checks (`db/tests/*.sql`) build a throwaway database with the migra
 | `db/core/`               | Suite core (vendored from OpenAppHub; never edited here)  |
 | `db/migrations/`         | Schema `ledger`: tables, RLS policies, triggers           |
 | `db/tests/`, `db/perf/`  | SQL-level rule tests and the performance check            |
-| `supabase/migrations/`   | Old public schema, frozen (self-hosting until step 8)     |
-| `supabase/seed/demo.sql` | Optional sample data (dev/test only)                      |
+| `db/seed/`               | Demo data for staging and development (`--seed`)          |
 | `AGENTS.md`              | Architecture rules and invariants                         |
 | `roadmap.md`             | Planned work                                              |
 

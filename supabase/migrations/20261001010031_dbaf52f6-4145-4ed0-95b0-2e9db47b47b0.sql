@@ -1,1 +1,0 @@
-REVOKE EXECUTE ON FUNCTION public.guard_books_lock() FROM anon, authenticated, public;

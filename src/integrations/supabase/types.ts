@@ -7,12 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.18"
-  }
-  public: {
+  ledger: {
     Tables: {
       accounts: {
         Row: {
@@ -22,8 +17,9 @@ export type Database = {
           name: string
           org_id: string
           subtype: string | null
-          type: Database["public"]["Enums"]["account_type"]
+          type: Database["ledger"]["Enums"]["account_type"]
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -31,7 +27,7 @@ export type Database = {
           name: string
           org_id: string
           subtype?: string | null
-          type: Database["public"]["Enums"]["account_type"]
+          type: Database["ledger"]["Enums"]["account_type"]
         }
         Update: {
           created_at?: string
@@ -40,17 +36,9 @@ export type Database = {
           name?: string
           org_id?: string
           subtype?: string | null
-          type?: Database["public"]["Enums"]["account_type"]
+          type?: Database["ledger"]["Enums"]["account_type"]
         }
-        Relationships: [
-          {
-            foreignKeyName: "accounts_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ai_usage: {
         Row: {
@@ -62,6 +50,7 @@ export type Database = {
           page_count: number | null
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -80,15 +69,7 @@ export type Database = {
           page_count?: number | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_usage_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       audit_log: {
         Row: {
@@ -104,6 +85,7 @@ export type Database = {
           recorded_change: Json | null
           user_id: string | null
         }
+        ComputedFields: never
         Insert: {
           action: string
           after?: Json | null
@@ -130,15 +112,7 @@ export type Database = {
           recorded_change?: Json | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "audit_log_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       bank_transactions: {
         Row: {
@@ -157,6 +131,7 @@ export type Database = {
           row_seq: number | null
           transaction_id: string | null
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           amount_cents: number
@@ -193,28 +168,18 @@ export type Database = {
           {
             foreignKeyName: "bank_transactions_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bank_transactions_batch_id_fkey"
             columns: ["batch_id"]
-            isOneToOne: false
             referencedRelation: "import_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bank_transactions_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bank_transactions_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -233,6 +198,7 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           amount_cents: number
@@ -261,28 +227,18 @@ export type Database = {
           {
             foreignKeyName: "budgets_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "budgets_fund_id_fkey"
             columns: ["fund_id"]
-            isOneToOne: false
             referencedRelation: "funds"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budgets_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "budgets_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -295,15 +251,16 @@ export type Database = {
           is_active: boolean
           name: string
           org_id: string
-          type: Database["public"]["Enums"]["account_type"]
+          type: Database["ledger"]["Enums"]["account_type"]
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
           is_active?: boolean
           name: string
           org_id: string
-          type?: Database["public"]["Enums"]["account_type"]
+          type?: Database["ledger"]["Enums"]["account_type"]
         }
         Update: {
           created_at?: string
@@ -311,17 +268,9 @@ export type Database = {
           is_active?: boolean
           name?: string
           org_id?: string
-          type?: Database["public"]["Enums"]["account_type"]
+          type?: Database["ledger"]["Enums"]["account_type"]
         }
-        Relationships: [
-          {
-            foreignKeyName: "categories_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       deleted_organizations: {
         Row: {
@@ -331,6 +280,7 @@ export type Database = {
           name: string
           org_id: string
         }
+        ComputedFields: never
         Insert: {
           deleted_at?: string
           deleted_by: string
@@ -356,10 +306,12 @@ export type Database = {
           fund_id: string | null
           id: string
           memo: string | null
+          org_id: string
           project_id: string | null
           reconciliation_id: string | null
           transaction_id: string
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           amount_cents: number
@@ -368,6 +320,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           memo?: string | null
+          org_id: string
           project_id?: string | null
           reconciliation_id?: string | null
           transaction_id: string
@@ -380,6 +333,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           memo?: string | null
+          org_id?: string
           project_id?: string | null
           reconciliation_id?: string | null
           transaction_id?: string
@@ -388,42 +342,36 @@ export type Database = {
           {
             foreignKeyName: "entries_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entries_category_id_fkey"
             columns: ["category_id"]
-            isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entries_fund_id_fkey"
             columns: ["fund_id"]
-            isOneToOne: false
             referencedRelation: "funds"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entries_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entries_reconciliation_id_fkey"
             columns: ["reconciliation_id"]
-            isOneToOne: false
             referencedRelation: "reconciliations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entries_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -438,6 +386,7 @@ export type Database = {
           name: string
           org_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -454,15 +403,7 @@ export type Database = {
           name?: string
           org_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "funds_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       import_batches: {
         Row: {
@@ -473,7 +414,7 @@ export type Database = {
           created_by: string | null
           ending_balance_cents: number | null
           file_name: string
-          format: Database["public"]["Enums"]["import_format"]
+          format: Database["ledger"]["Enums"]["import_format"]
           id: string
           org_id: string
           rows_duplicate: number
@@ -485,6 +426,7 @@ export type Database = {
           status: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           balance_mismatch_cents?: number | null
@@ -493,7 +435,7 @@ export type Database = {
           created_by?: string | null
           ending_balance_cents?: number | null
           file_name: string
-          format: Database["public"]["Enums"]["import_format"]
+          format: Database["ledger"]["Enums"]["import_format"]
           id?: string
           org_id: string
           rows_duplicate?: number
@@ -513,7 +455,7 @@ export type Database = {
           created_by?: string | null
           ending_balance_cents?: number | null
           file_name?: string
-          format?: Database["public"]["Enums"]["import_format"]
+          format?: Database["ledger"]["Enums"]["import_format"]
           id?: string
           org_id?: string
           rows_duplicate?: number
@@ -529,15 +471,7 @@ export type Database = {
           {
             foreignKeyName: "import_batches_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_batches_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -547,16 +481,17 @@ export type Database = {
           account_id: string
           created_at: string
           id: string
-          mapping: Json
+          mapping: NonNullable<Json>
           name: string
           org_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           created_at?: string
           id?: string
-          mapping?: Json
+          mapping?: NonNullable<Json>
           name: string
           org_id: string
           updated_at?: string
@@ -565,7 +500,7 @@ export type Database = {
           account_id?: string
           created_at?: string
           id?: string
-          mapping?: Json
+          mapping?: NonNullable<Json>
           name?: string
           org_id?: string
           updated_at?: string
@@ -574,15 +509,7 @@ export type Database = {
           {
             foreignKeyName: "import_profiles_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "import_profiles_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -595,6 +522,7 @@ export type Database = {
           user_id: string
           version: string
         }
+        ComputedFields: never
         Insert: {
           accepted_at?: string
           document_type: string
@@ -611,101 +539,71 @@ export type Database = {
         }
         Relationships: []
       }
-      org_invites: {
+      member_roles: {
         Row: {
           created_at: string
-          created_by: string
-          expires_at: string
-          id: string
           org_id: string
-          revoked_at: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          token_hash: string
-          used_at: string | null
-          used_by: string | null
+          role: string
+          user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
-          created_by: string
-          expires_at: string
-          id: string
           org_id: string
-          revoked_at?: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          token_hash: string
-          used_at?: string | null
-          used_by?: string | null
+          role: string
+          user_id: string
         }
         Update: {
           created_at?: string
-          created_by?: string
-          expires_at?: string
-          id?: string
           org_id?: string
-          revoked_at?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
-          token_hash?: string
-          used_at?: string | null
-          used_by?: string | null
+          role?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "org_invites_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      organizations: {
+      org_settings: {
         Row: {
           ai_pdf_enabled: boolean
           books_locked_through: string | null
-          created_at: string
-          created_by: string
           currency: string
           fiscal_year_start_month: number
-          id: string
-          name: string
-          org_type: Database["public"]["Enums"]["org_type"]
+          org_id: string
+          org_type: Database["ledger"]["Enums"]["org_type"]
           recurring_mode: string
           require_mfa: boolean
-          term_overrides: Json
+          term_overrides: NonNullable<Json>
           terminology: string
           timezone: string
+          updated_at: string
         }
+        ComputedFields: never
         Insert: {
           ai_pdf_enabled?: boolean
           books_locked_through?: string | null
-          created_at?: string
-          created_by: string
           currency?: string
           fiscal_year_start_month?: number
-          id?: string
-          name: string
-          org_type?: Database["public"]["Enums"]["org_type"]
+          org_id: string
+          org_type?: Database["ledger"]["Enums"]["org_type"]
           recurring_mode?: string
           require_mfa?: boolean
-          term_overrides?: Json
+          term_overrides?: NonNullable<Json>
           terminology?: string
           timezone?: string
+          updated_at?: string
         }
         Update: {
           ai_pdf_enabled?: boolean
           books_locked_through?: string | null
-          created_at?: string
-          created_by?: string
           currency?: string
           fiscal_year_start_month?: number
-          id?: string
-          name?: string
-          org_type?: Database["public"]["Enums"]["org_type"]
+          org_id?: string
+          org_type?: Database["ledger"]["Enums"]["org_type"]
           recurring_mode?: string
           require_mfa?: boolean
-          term_overrides?: Json
+          term_overrides?: NonNullable<Json>
           terminology?: string
           timezone?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -719,6 +617,7 @@ export type Database = {
           org_id: string
           transaction_id: string | null
         }
+        ComputedFields: never
         Insert: {
           closed_by: string
           created_at?: string
@@ -739,16 +638,8 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "period_closes_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "period_closes_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -765,6 +656,7 @@ export type Database = {
           pledge_id: string
           transaction_id: string
         }
+        ComputedFields: never
         Insert: {
           amount_cents: number
           created_at?: string
@@ -787,23 +679,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "pledge_payments_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "pledge_payments_pledge_id_fkey"
             columns: ["pledge_id"]
-            isOneToOne: false
             referencedRelation: "pledges"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pledge_payments_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -824,6 +707,7 @@ export type Database = {
           status: string
           transaction_id: string | null
         }
+        ComputedFields: never
         Insert: {
           amount_cents: number
           created_at?: string
@@ -856,49 +740,16 @@ export type Database = {
           {
             foreignKeyName: "pledges_fund_id_fkey"
             columns: ["fund_id"]
-            isOneToOne: false
             referencedRelation: "funds"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pledges_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pledges_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          display_name: string | null
-          id: string
-          term_overrides: Json
-          terminology: string
-        }
-        Insert: {
-          created_at?: string
-          display_name?: string | null
-          id: string
-          term_overrides?: Json
-          terminology?: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          term_overrides?: Json
-          terminology?: string
-        }
-        Relationships: []
       }
       projects: {
         Row: {
@@ -909,6 +760,7 @@ export type Database = {
           org_id: string
           status: string
         }
+        ComputedFields: never
         Insert: {
           budget_cents?: number
           created_at?: string
@@ -925,15 +777,7 @@ export type Database = {
           org_id?: string
           status?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reconciliations: {
         Row: {
@@ -946,13 +790,14 @@ export type Database = {
           created_by: string | null
           ending_balance_cents: number
           id: string
-          mode: Database["public"]["Enums"]["reconcile_mode"]
+          mode: Database["ledger"]["Enums"]["reconcile_mode"]
           org_id: string
           period_end: string
           period_start: string
-          status: Database["public"]["Enums"]["reconcile_status"]
+          status: Database["ledger"]["Enums"]["reconcile_status"]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           account_id: string
           batch_id?: string | null
@@ -963,11 +808,11 @@ export type Database = {
           created_by?: string | null
           ending_balance_cents?: number
           id?: string
-          mode?: Database["public"]["Enums"]["reconcile_mode"]
+          mode?: Database["ledger"]["Enums"]["reconcile_mode"]
           org_id: string
           period_end: string
           period_start: string
-          status?: Database["public"]["Enums"]["reconcile_status"]
+          status?: Database["ledger"]["Enums"]["reconcile_status"]
           updated_at?: string
         }
         Update: {
@@ -980,33 +825,24 @@ export type Database = {
           created_by?: string | null
           ending_balance_cents?: number
           id?: string
-          mode?: Database["public"]["Enums"]["reconcile_mode"]
+          mode?: Database["ledger"]["Enums"]["reconcile_mode"]
           org_id?: string
           period_end?: string
           period_start?: string
-          status?: Database["public"]["Enums"]["reconcile_status"]
+          status?: Database["ledger"]["Enums"]["reconcile_status"]
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "reconciliations_account_id_fkey"
             columns: ["account_id"]
-            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reconciliations_batch_id_fkey"
             columns: ["batch_id"]
-            isOneToOne: false
             referencedRelation: "import_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reconciliations_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1021,6 +857,7 @@ export type Database = {
           template_id: string
           transaction_id: string | null
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           due_date: string
@@ -1041,23 +878,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "recurring_occurrences_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "recurring_occurrences_template_id_fkey"
             columns: ["template_id"]
-            isOneToOne: false
             referencedRelation: "transaction_templates"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "recurring_occurrences_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1071,6 +899,7 @@ export type Database = {
           name: string
           org_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1085,26 +914,22 @@ export type Database = {
           name?: string
           org_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tags_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transaction_tags: {
         Row: {
+          org_id: string
           tag_id: string
           transaction_id: string
         }
+        ComputedFields: never
         Insert: {
+          org_id: string
           tag_id: string
           transaction_id: string
         }
         Update: {
+          org_id?: string
           tag_id?: string
           transaction_id?: string
         }
@@ -1112,14 +937,12 @@ export type Database = {
           {
             foreignKeyName: "transaction_tags_tag_id_fkey"
             columns: ["tag_id"]
-            isOneToOne: false
             referencedRelation: "tags"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transaction_tags_transaction_id_fkey"
             columns: ["transaction_id"]
-            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1132,19 +955,20 @@ export type Database = {
           description: string
           frequency: string | null
           id: string
-          lines: Json
+          lines: NonNullable<Json>
           name: string
           next_due: string | null
           org_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           active?: boolean
           created_at?: string
           description: string
           frequency?: string | null
           id: string
-          lines?: Json
+          lines?: NonNullable<Json>
           name: string
           next_due?: string | null
           org_id: string
@@ -1156,21 +980,13 @@ export type Database = {
           description?: string
           frequency?: string | null
           id?: string
-          lines?: Json
+          lines?: NonNullable<Json>
           name?: string
           next_due?: string | null
           org_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "transaction_templates_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transactions: {
         Row: {
@@ -1181,11 +997,12 @@ export type Database = {
           idempotency_key: string | null
           org_id: string
           posted_date: string | null
-          source: Database["public"]["Enums"]["transaction_source"]
-          status: Database["public"]["Enums"]["transaction_status"]
+          source: Database["ledger"]["Enums"]["transaction_source"]
+          status: Database["ledger"]["Enums"]["transaction_status"]
           transaction_date: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           created_by?: string | null
@@ -1194,8 +1011,8 @@ export type Database = {
           idempotency_key?: string | null
           org_id: string
           posted_date?: string | null
-          source?: Database["public"]["Enums"]["transaction_source"]
-          status?: Database["public"]["Enums"]["transaction_status"]
+          source?: Database["ledger"]["Enums"]["transaction_source"]
+          status?: Database["ledger"]["Enums"]["transaction_status"]
           transaction_date: string
           updated_at?: string
         }
@@ -1207,49 +1024,34 @@ export type Database = {
           idempotency_key?: string | null
           org_id?: string
           posted_date?: string | null
-          source?: Database["public"]["Enums"]["transaction_source"]
-          status?: Database["public"]["Enums"]["transaction_status"]
+          source?: Database["ledger"]["Enums"]["transaction_source"]
+          status?: Database["ledger"]["Enums"]["transaction_status"]
           transaction_date?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      user_roles: {
+      user_preferences: {
         Row: {
-          id: string
-          org_id: string
-          role: Database["public"]["Enums"]["app_role"]
+          term_overrides: NonNullable<Json>
+          terminology: string
+          updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
-          id?: string
-          org_id: string
-          role: Database["public"]["Enums"]["app_role"]
+          term_overrides?: NonNullable<Json>
+          terminology?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          id?: string
-          org_id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          term_overrides?: NonNullable<Json>
+          terminology?: string
+          updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -1264,48 +1066,31 @@ export type Database = {
         Args: { p_audit: Json; p_ops: Json; p_org: string; p_user?: string }
         Returns: Json
       }
-      can_close_books: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      can_write_org: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      delete_organization_atomic: {
-        Args: { p_confirm: string; p_org: string; p_user: string }
+      can_close_books: { Args: { p_org: string }; Returns: boolean }
+      can_edit: { Args: { p_org: string }; Returns: boolean }
+      can_read: { Args: { p_org: string }; Returns: boolean }
+      is_admin: { Args: { p_org: string }; Returns: boolean }
+      is_treasurer: { Args: { p_org: string }; Returns: boolean }
+      log_org_deletion: { Args: { p_org: string }; Returns: undefined }
+      mfa_ok: { Args: { p_org: string }; Returns: boolean }
+      normalize_name: { Args: { p: string }; Returns: string }
+      on_invitation_accepted: {
+        Args: { p_invitation_id: string }
         Returns: undefined
       }
-      has_org_role: {
-        Args: {
-          _org_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_org_member: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_org_member_any_aal: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      mfa_ok: { Args: { _org_id: string }; Returns: boolean }
-      normalize_name: { Args: { p: string }; Returns: string }
       post_transaction_atomic: {
         Args: { p_audit: Json; p_entries: Json; p_tags: Json; p_tx: Json }
         Returns: undefined
       }
+      readable_org_ids: { Args: Record<PropertyKey, never>; Returns: string[] }
       void_transaction_atomic: {
         Args: { p_audit: Json; p_id: string; p_org: string }
         Returns: boolean
       }
+      writable_org_ids: { Args: Record<PropertyKey, never>; Returns: string[] }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
-      app_role: "admin" | "treasurer" | "member" | "viewer"
       import_format: "csv" | "ofx" | "qfx" | "pdf"
       org_type: "nonprofit" | "business"
       reconcile_mode: "simple" | "full"
@@ -1320,6 +1105,283 @@ export type Database = {
         | "release"
         | "pledge"
       transaction_status: "posted" | "void"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      instance_settings: {
+        Row: {
+          billing_enabled: boolean
+          hub_url: string | null
+          id: boolean
+        }
+        ComputedFields: never
+        Insert: {
+          billing_enabled?: boolean
+          hub_url?: string | null
+          id?: boolean
+        }
+        Update: {
+          billing_enabled?: boolean
+          hub_url?: string | null
+          id?: boolean
+        }
+        Relationships: []
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          app: string | null
+          app_payload: NonNullable<Json>
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          invited_by: string | null
+          org_id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["org_role"] | null
+          token_hash: string
+        }
+        ComputedFields: never
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          app?: string | null
+          app_payload?: NonNullable<Json>
+          created_at?: string
+          email?: string | null
+          expires_at: string
+          id?: string
+          invited_by?: string | null
+          org_id: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["org_role"] | null
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          app?: string | null
+          app_payload?: NonNullable<Json>
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          org_id?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["org_role"] | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_org_id_fkey"
+            columns: ["org_id"]
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          org_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          org_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          name: string
+          slug: string | null
+          time_zone: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          name: string
+          slug?: string | null
+          time_zone?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          name?: string
+          slug?: string | null
+          time_zone?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      _clean_org_name: { Args: { p_name: string }; Returns: string }
+      _is_active_user: { Args: { p_user: string }; Returns: boolean }
+      _member_confirm_text: { Args: { p_user: string }; Returns: string }
+      _require_uid: { Args: Record<PropertyKey, never>; Returns: string }
+      _token_hash: { Args: { p_token: string }; Returns: string }
+      accept_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          app: string
+          app_payload: Json
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["org_role"]
+        }[]
+      }
+      can_write: { Args: { p_app: string; p_org: string }; Returns: boolean }
+      create_invitation: {
+        Args: {
+          p_app?: string
+          p_days?: number
+          p_email: string
+          p_org: string
+          p_payload?: Json
+          p_role: Database["public"]["Enums"]["org_role"]
+        }
+        Returns: {
+          invitation_id: string
+          token: string
+        }[]
+      }
+      create_organization: { Args: { p_name: string }; Returns: string }
+      delete_organization: {
+        Args: { p_confirm_name: string; p_org: string }
+        Returns: undefined
+      }
+      get_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          app: string
+          email: string
+          org_name: string
+          role: Database["public"]["Enums"]["org_role"]
+          status: string
+        }[]
+      }
+      has_app_access: {
+        Args: { p_app: string; p_org: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          p_org: string
+          p_roles: Database["public"]["Enums"]["org_role"][]
+        }
+        Returns: boolean
+      }
+      is_member: { Args: { p_org: string }; Returns: boolean }
+      list_invitations: {
+        Args: { p_org: string }
+        Returns: {
+          app: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          invited_by_name: string
+          role: Database["public"]["Enums"]["org_role"]
+          status: string
+        }[]
+      }
+      org_member_directory: {
+        Args: { p_org: string }
+        Returns: {
+          display_name: string
+          email: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }[]
+      }
+      ownership_transfer_candidates: {
+        Args: { p_org: string }
+        Returns: {
+          display_name: string
+          email: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }[]
+      }
+      rename_organization: {
+        Args: { p_name: string; p_org: string }
+        Returns: undefined
+      }
+      revoke_invitation: { Args: { p_id: string }; Returns: undefined }
+      set_organization_preferences: {
+        Args: { p_currency: string; p_org: string; p_time_zone: string }
+        Returns: undefined
+      }
+      shares_org: { Args: { p_user: string }; Returns: boolean }
+      transfer_ownership:
+        | { Args: { p_new_owner: string; p_org: string }; Returns: undefined }
+        | {
+            Args: { p_confirm: string; p_new_owner: string; p_org: string }
+            Returns: undefined
+          }
+    }
+    Enums: {
+      org_role: "owner" | "admin" | "member" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1445,10 +1507,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  ledger: {
     Enums: {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
-      app_role: ["admin", "treasurer", "member", "viewer"],
       import_format: ["csv", "ofx", "qfx", "pdf"],
       org_type: ["nonprofit", "business"],
       reconcile_mode: ["simple", "full"],
@@ -1464,6 +1525,11 @@ export const Constants = {
         "pledge",
       ],
       transaction_status: ["posted", "void"],
+    },
+  },
+  public: {
+    Enums: {
+      org_role: ["owner", "admin", "member", "viewer"],
     },
   },
 } as const
