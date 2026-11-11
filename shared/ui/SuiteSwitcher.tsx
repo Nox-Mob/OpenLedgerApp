@@ -1,6 +1,7 @@
 // Switch between the suite's apps (SHARED-SPEC §9). Shown when VITE_SUITE_URLS
 // lists other apps (hosted, or a self-hoster who sets it); hidden otherwise.
-import { APP_MARKS, APP_NAMES, APP_TAGLINES, appOrgUrl } from "../apps";
+import { APP_NAMES, APP_TAGLINES, appOrgUrl } from "../apps";
+import { AppLogo } from "./AppLogo";
 import { ALL_APPS, suiteUrls, type AppId, type SuiteUrls } from "../supabase/hosted";
 import { Dropdown, itemClass } from "./Dropdown";
 import { CheckIcon, ChevronDownIcon, GridIcon } from "./icons";
@@ -47,9 +48,7 @@ export function SuiteSwitcher({
                 aria-current={id === current ? "page" : undefined}
                 className={itemClass}
               >
-                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-app-accent text-xs font-bold text-app-accent-foreground">
-                  {APP_MARKS[id]}
-                </span>
+                <AppLogo app={id} size={28} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{APP_NAMES[id]}</span>
                   <span className="block truncate text-xs text-muted-foreground">
