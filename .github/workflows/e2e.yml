@@ -30,7 +30,10 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: 24, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chrome
+      # GitHub's Ubuntu runners ship Google Chrome stable; install it (and its system packages
+      # through apt) only when it's missing, so an apt mirror outage doesn't fail the run.
+      - name: Google Chrome
+        run: command -v google-chrome || npx playwright install --with-deps chrome
       - name: Run end-to-end tests
         run: npm run test:e2e
         env:
