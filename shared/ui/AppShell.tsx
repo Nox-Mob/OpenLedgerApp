@@ -295,7 +295,7 @@ export function AppShell(props: AppShellProps) {
           >
             <MenuIcon />
           </button>
-          <SuiteSwitcher current={app} />
+          <SuiteSwitcher current={app} orgId={currentOrgId} />
           <OrgSwitcher
             orgs={orgs}
             currentOrgId={currentOrgId}

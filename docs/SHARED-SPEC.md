@@ -523,9 +523,9 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 | | Production | Staging |
 |---|---|---|
 | Hub | `openapphub.org` | `staging.openapphub.org` |
-| Charter | `charter.openapphub.org` | `charter-staging.openapphub.org` |
-| Board | `board.openapphub.org` | `board-staging.openapphub.org` |
-| Ledger | `ledger.openapphub.org` | `ledger-staging.openapphub.org` |
+| Charter | `charter.openapphub.org` | `staging.charter.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Board | `board.openapphub.org` | `staging.board.staging.openapphub.org` (Worker preview of branch `staging`) |
+| Ledger | `ledger.openapphub.org` | `staging.ledger.staging.openapphub.org` (Worker preview of branch `staging`) |
 | Docs | `docs.openapphub.org` | — |
 
 Old domains (for example `opencharterapp.org`) redirect to the new ones once the app is live there.
@@ -551,11 +551,15 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 - **Production has no demo accounts, demo orgs or seed data.** Delete any that exist (owner step).
 - **Demo runs on staging** (`staging.openapphub.org` and the `*-staging` apps), seeded by each repo's `db/seed/*.sql` through `staging.yml`.
 - Seed files are idempotent and must refuse to run when the database has real (non-demo) organizations.
-- Demo accounts use addresses on a reserved domain such as `@demo.openapphub.org`. Their password is shown publicly only on staging's sign-in page; it's never in a repo.
+- **One suite demo, the same in every app** (owner decision 2026-11-10). The hub's `db/seed/0002_suite_demo.sql` defines `hub.reset_suite_demo()`:
+  - `demo@demo.openapphub.org` (Alex Morgan) owns **Riverside Community Association**, with about three months of history: members and dues in Charter, books, reports and reconciliations in Ledger, meetings, minutes and motions in Board.
+  - `test@demo.openapphub.org` (Test Account) is active with no organization and no data, for trying things as a new customer.
+  - Both use the password `OpenAppHubDemo2026`. It is public on purpose (staging only, reset every 12 hours) and lives in the seed files. There is no `DEMO_PASSWORD` secret any more.
+  - Each app supplies its part as `<app>.demo_fill(org, owner)` in its own `db/seed/0001_<app>_demo.sql`. The reset calls the ones that are installed, so an app's seed works with or without the hub (a self-hosted staging database creates the accounts itself).
+  - Apps sign in through the hub (hosted mode), so demonstrations go through OpenAppHub as production does. Staging's hub sign-in page has buttons for both accounts (`VITE_DEMO_LOGIN`).
 - The hub owns demo organizations and platform operators (`hub` schema). Apps don't recreate Charter's old platform-operator tables. Charter's "create demo organization" screens stay out of routing until the hub offers it.
-- Scheduled demo resets (Board's `pg_cron` job) run on staging only, as a scheduled `staging.yml` run, not `pg_cron`.
+- The hub's `demo-reset.yml` runs `hub.reset_suite_demo()` every 12 hours (05:17 and 17:17 UTC) and on demand. No `pg_cron`. The function refuses any database not marked staging.
 - The free staging project pauses after a week without traffic; demo visits keep it awake.
-- The owner provides suite-wide seed content later (Charter Q5). Until then each repo's seed is minimal.
 
 ---
 

@@ -1,9 +1,9 @@
 // Switch between the suite's apps (SHARED-SPEC §9). Shown when VITE_SUITE_URLS
 // lists other apps (hosted, or a self-hoster who sets it); hidden otherwise.
-import { APP_MARKS, APP_NAMES, APP_TAGLINES } from "../apps";
+import { APP_MARKS, APP_NAMES, APP_TAGLINES, appOrgUrl } from "../apps";
 import { ALL_APPS, suiteUrls, type AppId, type SuiteUrls } from "../supabase/hosted";
 import { Dropdown, itemClass } from "./Dropdown";
-import { CheckIcon, GridIcon } from "./icons";
+import { CheckIcon, ChevronDownIcon, GridIcon } from "./icons";
 
 /** Apps to list: those with a URL, in suite order. Empty when only this app is known. */
 export function switcherApps(current: AppId, urls: SuiteUrls): { id: AppId; url: string }[] {
@@ -14,20 +14,26 @@ export function switcherApps(current: AppId, urls: SuiteUrls): { id: AppId; url:
 export function SuiteSwitcher({
   current,
   urls = suiteUrls(),
+  orgId,
 }: {
   current: AppId;
   urls?: SuiteUrls;
+  /** The current organization: other apps open straight into it. */
+  orgId?: string | null | undefined;
 }) {
   const apps = switcherApps(current, urls);
   if (apps.length === 0) return null;
   return (
     <Dropdown
       label={`Switch app (current: ${APP_NAMES[current]})`}
-      triggerClassName="inline-flex h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-foreground hover:bg-accent focus-visible:outline-2"
+      triggerClassName="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background pl-1 pr-2 text-sm font-medium text-foreground shadow-xs hover:bg-accent focus-visible:outline-2"
       trigger={
         <>
-          <GridIcon className="text-muted-foreground" />
-          <span className="hidden sm:inline">{APP_NAMES[current]}</span>
+          <span className="grid size-7 place-items-center rounded bg-app-accent text-app-accent-foreground">
+            <GridIcon className="size-4" />
+          </span>
+          <span className="hidden sm:inline">Switch app</span>
+          <ChevronDownIcon className="size-4 text-muted-foreground" />
         </>
       }
     >
@@ -36,7 +42,7 @@ export function SuiteSwitcher({
           {apps.map(({ id, url }) => (
             <li key={id} data-app={id}>
               <a
-                href={url}
+                href={id === current ? url : appOrgUrl(id, url, orgId)}
                 onClick={close}
                 aria-current={id === current ? "page" : undefined}
                 className={itemClass}
