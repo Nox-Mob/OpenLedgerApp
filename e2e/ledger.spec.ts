@@ -82,6 +82,19 @@ test.describe("the demo owner", () => {
     ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("main")).toContainText("Alex Morgan");
   });
+
+  test("bank import takes CSV, OFX and QFX files only (no AI PDF reading)", async ({ page }) => {
+    await page.goto("/import");
+    await expect(page.getByRole("heading", { name: "Import Bank File" })).toBeVisible();
+    await expect(page.locator('input[type="file"]')).toHaveAttribute(
+      "accept",
+      ".csv,.ofx,.qfx,text/csv",
+    );
+    await expect(page.getByRole("main")).not.toContainText(/AI service|PDF reads left/);
+    await page.goto("/settings");
+    await expect(page.getByRole("main").getByText("Timezone", { exact: true })).toBeVisible();
+    await expect(page.getByText("Allow AI to read PDF bank statements")).toHaveCount(0);
+  });
 });
 
 test("the test account is asked to accept the terms first", async ({ page }) => {

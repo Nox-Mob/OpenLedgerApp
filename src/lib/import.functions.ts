@@ -1,7 +1,6 @@
 import { desktopAware } from "@/lib/desktop/bridge";
 import type { CsvMapping } from "./parsers/csv";
 import type { Json } from "@/integrations/supabase/types";
-import type { Db } from "@/lib/db";
 import { newId } from "./domain/ledger";
 import { createSupabaseRepositories } from "./adapters/supabase";
 import { postBankRow } from "./services/ledger";
@@ -9,7 +8,6 @@ import { auditedWrite } from "./audited-write";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { checkStatementBalance, PDF_LIMITS } from "@/lib/parsers/statement-balance";
 import { assertCan } from "./permissions";
 
 const rowSchema = z.object({
@@ -84,35 +82,19 @@ const importBankRowsCloud = createServerFn({ method: "POST" })
         orgId: z.string().uuid(),
         accountId: z.string().uuid(),
         fileName: z.string().min(1).max(255),
-        format: z.enum(["csv", "ofx", "qfx", "pdf"]),
+        format: z.enum(["csv", "ofx", "qfx"]),
         rows: z.array(rowSchema).min(1).max(5000),
         errorCount: z.number().int().min(0).default(0),
         statementStart: dateStr.nullish(),
         statementEnd: dateStr.nullish(),
         beginningBalanceCents: z.number().int().nullish(),
         endingBalanceCents: z.number().int().nullish(),
-        acceptMismatch: z.boolean().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCan(supabase, userId, data.orgId, "write");
-    let mismatch: number | null = null;
-    if (data.format === "pdf") {
-      const check = checkStatementBalance(
-        data.beginningBalanceCents,
-        data.rows.map((r) => r.amountCents),
-        data.endingBalanceCents,
-      );
-      if (check.status === "mismatch") {
-        if (!data.acceptMismatch)
-          throw new Error(
-            "The rows don't add up to the statement's closing balance. Fix them or confirm you'll review.",
-          );
-        mismatch = check.gapCents;
-      }
-    }
     const batchId = newId();
     const seen = new Set<string>();
     const records = [];
@@ -130,7 +112,6 @@ const importBankRowsCloud = createServerFn({ method: "POST" })
         fingerprint: fp,
         row_seq: i,
         batch_id: batchId,
-        needs_review: data.format === "pdf",
       });
     }
 
@@ -169,7 +150,7 @@ const importBankRowsCloud = createServerFn({ method: "POST" })
               statement_end: data.statementEnd ?? null,
               beginning_balance_cents: data.beginningBalanceCents ?? null,
               ending_balance_cents: data.endingBalanceCents ?? null,
-              balance_mismatch_cents: mismatch,
+              balance_mismatch_cents: null,
               rows_total: data.rows.length + data.errorCount,
               rows_error: data.errorCount,
               rows_imported: imported,
@@ -376,175 +357,6 @@ const saveImportProfileCloud = createServerFn({ method: "POST" })
     return { ok: true };
   });
 export const saveImportProfile = desktopAware("saveImportProfile", saveImportProfileCloud);
-
-async function pdfUsage(supabase: Db, orgId: string, userId: string) {
-  const now = Date.now();
-  const since = (ms: number) => new Date(now - ms).toISOString();
-  const count = async (ms: number) => {
-    const { count, error } = await supabase
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("user_id", userId)
-      .eq("kind", "pdf_extract")
-      .gte("created_at", since(ms));
-    if (error) throw new Error(error.message);
-    return count ?? 0;
-  };
-  const day = await count(86_400_000);
-  const month = await count(30 * 86_400_000);
-  return {
-    dayUsed: day,
-    monthUsed: month,
-    remaining: Math.max(0, Math.min(PDF_LIMITS.perDay - day, PDF_LIMITS.perMonth - month)),
-    limits: PDF_LIMITS,
-  };
-}
-
-const getPdfUsageCloud = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ orgId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => pdfUsage(context.supabase, data.orgId, context.userId));
-export const getPdfUsage = desktopAware("getPdfUsage", getPdfUsageCloud);
-
-/** AI-assisted extraction of a statement's text. Opt-in per org, acknowledged per upload, rate-limited per person. Result is always reviewed before import. */
-const extractPdfStatementCloud = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input) =>
-    z
-      .object({
-        orgId: z.string().uuid(),
-        text: z.string().min(20).max(120_000),
-        pageCount: z
-          .number()
-          .int()
-          .min(1)
-          .max(PDF_LIMITS.maxPages, `PDFs over ${PDF_LIMITS.maxPages} pages aren't supported`),
-        byteSize: z
-          .number()
-          .int()
-          .min(1)
-          .max(PDF_LIMITS.maxBytes, "PDFs over 10 MB aren't supported"),
-        acknowledged: z.literal(true, {
-          error: "Please confirm the AI notice first",
-        }),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: org, error: oErr } = await supabase
-      .from("org_settings")
-      .select("ai_pdf_enabled")
-      .eq("org_id", data.orgId)
-      .maybeSingle();
-    if (oErr) throw new Error("Organization not found");
-    if (!org?.ai_pdf_enabled)
-      throw new Error("An admin needs to turn on AI PDF reading in Settings first.");
-    const { data: canWrite } = await supabase.rpc("can_edit", { p_org: data.orgId });
-    if (!canWrite) throw new Error("You don't have permission to import here.");
-    const usage = await pdfUsage(supabase, data.orgId, userId);
-    if (usage.remaining <= 0)
-      throw new Error(
-        usage.dayUsed >= PDF_LIMITS.perDay
-          ? `You've read ${PDF_LIMITS.perDay} PDFs today. Try again tomorrow.`
-          : `You've read ${PDF_LIMITS.perMonth} PDFs in the last 30 days.`,
-      );
-    const usageId = newId();
-    // cloud-only-write: per-user or service record, not organization books
-    const { error: uErr } = await supabase.from("ai_usage").insert({
-      id: usageId,
-      org_id: data.orgId,
-      user_id: userId,
-      kind: "pdf_extract",
-      page_count: data.pageCount,
-      ok: false,
-    });
-    if (uErr) throw new Error(uErr.message);
-
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("AI service is not configured");
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You extract bank statement data. Return every transaction line exactly once. amount is signed: deposits/credits to the account positive, withdrawals/debits/fees negative. Dates as YYYY-MM-DD. Balances in major currency units. Omit fields you cannot find. Never invent transactions.",
-          },
-          { role: "user", content: data.text },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "statement",
-              parameters: {
-                type: "object",
-                properties: {
-                  statement_start: { type: "string" },
-                  statement_end: { type: "string" },
-                  beginning_balance: { type: "number" },
-                  ending_balance: { type: "number" },
-                  transactions: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        date: { type: "string" },
-                        description: { type: "string" },
-                        amount: { type: "number" },
-                      },
-                      required: ["date", "description", "amount"],
-                    },
-                  },
-                },
-                required: ["transactions"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "statement" } },
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`AI extract failed [${res.status}]: ${body}`);
-      if (res.status === 429) throw new Error("The reader is busy. Try again in a minute.");
-      if (res.status === 402) throw new Error("AI credits are used up for this workspace.");
-      throw new Error("Couldn't read this PDF automatically.");
-    }
-    const json = (await res.json()) as {
-      choices?: { message?: { tool_calls?: { function?: { arguments?: unknown } }[] } }[];
-    };
-    const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    const parsed = (typeof args === "string" ? JSON.parse(args) : args) as
-      | {
-          statement_start?: string;
-          statement_end?: string;
-          beginning_balance?: unknown;
-          ending_balance?: unknown;
-          transactions?: { date?: unknown; description?: unknown; amount?: unknown }[];
-        }
-      | undefined;
-    const c = (n: unknown) =>
-      typeof n === "number" && Number.isFinite(n) ? Math.round(n * 100) : null;
-    return {
-      statementStart: parsed?.statement_start ?? null,
-      statementEnd: parsed?.statement_end ?? null,
-      beginningBalanceCents: c(parsed?.beginning_balance),
-      endingBalanceCents: c(parsed?.ending_balance),
-      transactions: (parsed?.transactions ?? []).map((t) => ({
-        date: String(t.date ?? ""),
-        description: String(t.description ?? ""),
-        amountCents: c(t.amount) ?? 0,
-      })),
-    };
-  });
-export const extractPdfStatement = desktopAware("extractPdfStatement", extractPdfStatementCloud);
 
 const listBankTransactionsCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

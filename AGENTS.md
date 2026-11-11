@@ -106,7 +106,7 @@ SHARED-SPEC §13 is satisfied; Ledger runs on the shared project; a hub sign-in 
 - Reports: pure math; retained earnings derived; year-end close is virtual (no closing tx; legacy source='closing' excluded).
 - Currency: two-decimal only, frozen once transactions exist.
 - Idempotency keys: one per form submit; `bank:<id>`, `opening:<acct>:...`.
-- AI PDF: org opt-in, upload ack, limits, balance or acceptMismatch.
+- AI PDF import is off (L-01, 2026-11-11): bank import takes CSV, OFX and QFX only. `ledger.ai_usage` and `org_settings.ai_pdf_enabled` stay for when a provider is chosen; old PDF rows keep `needs_review`.
 - Legal acceptance append-only/versioned; U.S.-first; no GDPR claim. Demo login: manual dev seed only.
 - CI, tests and migration-safety rules: see scripts/ci/AGENTS.md.
 - Server functions: use createServerFn().validator(), never deprecated .inputValidator().

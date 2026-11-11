@@ -90,7 +90,6 @@ The database is the OpenAppHub core (`db/core`: organizations, members, invitati
    SUPABASE_PUBLISHABLE_KEY=<publishable/anon key>
    BACKUP_SIGNING_SEED=<64+ random characters, keep it stable; signs backups>
    SUPABASE_SERVICE_ROLE_KEY=<service-role key>
-   LOVABLE_API_KEY=<optional, enables AI PDF import>
    ```
 
 7. _(Optional, dev/test only)_ load sample data: `DATABASE_URL="<connection string>" npm run db:migrate -- --seed`.
@@ -149,7 +148,6 @@ Runs Postgres, Auth, Storage and the API on your own machine. Allow **4 GB+ RAM*
    SUPABASE_PUBLISHABLE_KEY=<ANON_KEY>
    BACKUP_SIGNING_SEED=<64+ random characters, keep it stable; signs backups>
    SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY>
-   LOVABLE_API_KEY=<optional, enables AI PDF import>
    ```
 
 6. **Check the sign-in URLs.** If your app's URL differs from what you entered during setup, edit `SITE_URL` and `ADDITIONAL_REDIRECT_URLS` (include `<app-url>/reset-password`) in `supabase-project/.env`, then `docker compose restart auth`.
@@ -306,7 +304,7 @@ The database checks (`db/tests/*.sql`) build a throwaway database with the migra
 | `src/routes/`            | Pages (TanStack Router file-based routing)                |
 | `src/lib/*.functions.ts` | Server functions — all org data access goes through these |
 | `src/lib/report-math.ts` | Pure report calculations (unit-tested)                    |
-| `src/lib/parsers/`       | CSV / OFX / QFX / PDF bank-statement parsers              |
+| `src/lib/parsers/`       | CSV / OFX / QFX bank-file parsers                         |
 | `db/core/`               | Suite core (vendored from OpenAppHub; never edited here)  |
 | `db/migrations/`         | Schema `ledger`: tables, RLS policies, triggers           |
 | `db/tests/`, `db/perf/`  | SQL-level rule tests and the performance check            |

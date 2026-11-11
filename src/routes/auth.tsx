@@ -6,7 +6,6 @@ import { hostedAuthRedirect } from "@/lib/hosted";
 import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { MfaCodeForm } from "@/components/MfaCodeForm";
 
 export const Route = createFileRoute("/auth")({
@@ -158,10 +157,11 @@ function AuthPage() {
 
   async function signInWithGoogle() {
     setError(null);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth` },
     });
-    if (result.error) setError(result.error.message ?? "Google sign-in failed");
+    if (error) setError(error.message || "Google sign-in failed");
   }
 
   if (needsCode)

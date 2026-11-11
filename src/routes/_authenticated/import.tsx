@@ -8,8 +8,6 @@ import { useOrgContext } from "@/hooks/use-org-context";
 import { listAccounts } from "@/lib/taxonomy.functions";
 import {
   checkDuplicates,
-  extractPdfStatement,
-  getPdfUsage,
   importBankRows,
   listBankTransactions,
   listImportBatches,
@@ -28,7 +26,6 @@ import {
   type ParsedRow,
 } from "@/lib/parsers/csv";
 import { parseOfx } from "@/lib/parsers/ofx";
-import { checkStatementBalance, PDF_LIMITS } from "@/lib/parsers/statement-balance";
 import { formatCents } from "@/lib/money";
 import { Upload, CheckCircle2, AlertTriangle, Copy, Undo2, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,12 +36,12 @@ export const Route = createFileRoute("/_authenticated/import")({
       { title: "Import Bank File - OpenLedgerApp" },
       {
         name: "description",
-        content: "Import CSV, OFX/QFX or PDF bank statements and post rows to your ledger.",
+        content: "Import CSV or OFX/QFX bank files and post rows to your ledger.",
       },
       { property: "og:title", content: "Import Bank File - OpenLedgerApp" },
       {
         property: "og:description",
-        content: "Import CSV, OFX/QFX or PDF bank statements and post rows to your ledger.",
+        content: "Import CSV or OFX/QFX bank files and post rows to your ledger.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -57,7 +54,7 @@ const inputCls =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 const smallInput = "rounded border border-input bg-background px-2 py-1 text-xs";
 
-type Format = "csv" | "ofx" | "qfx" | "pdf";
+type Format = "csv" | "ofx" | "qfx";
 type RowStatus = "valid" | "duplicate" | "error";
 interface PreviewRow extends ParsedRow {
   status: RowStatus;
@@ -86,8 +83,6 @@ function ImportPage() {
   const [posting, setPosting] = useState<Set<string>>(new Set());
   const [offsets, setOffsets] = useState<Record<string, string>>({});
   const [profileName, setProfileName] = useState("");
-  const [aiAck, setAiAck] = useState(false);
-  const [acceptMismatch, setAcceptMismatch] = useState(false);
 
   const enabled = !!org;
   const accountsQuery = useQuery({
@@ -110,11 +105,6 @@ function ImportPage() {
     queryFn: () => listImportProfiles({ data: { orgId: org!.id } }),
     enabled,
   });
-  const pdfUsageQuery = useQuery({
-    queryKey: ["pdf-usage", org?.id],
-    queryFn: () => getPdfUsage({ data: { orgId: org!.id } }),
-    enabled: enabled && !!org?.aiPdfEnabled,
-  });
 
   const accounts = (accountsQuery.data ?? []).filter((account) => account.isActive);
   const bankAccounts = accounts.filter((a) => a.type === "asset" || a.type === "liability");
@@ -130,17 +120,6 @@ function ImportPage() {
     [rows],
   );
 
-  const balanceCheck = useMemo(() => {
-    if (format !== "pdf") return null;
-    const c = (v: string) => (v.trim() ? parseAmount(v) : null);
-    return checkStatementBalance(
-      c(statement.beginning),
-      rows.filter((r) => r.status !== "error").map((r) => r.amountCents),
-      c(statement.ending),
-    );
-  }, [format, rows, statement]);
-  const blockedByBalance = balanceCheck?.status === "mismatch" && !acceptMismatch;
-
   function reset() {
     setFileName("");
     setFormat(null);
@@ -148,7 +127,6 @@ function ImportPage() {
     setMapping(null);
     setRows([]);
     setStatement(emptyStatement);
-    setAcceptMismatch(false);
   }
 
   async function markDuplicates(parsed: ParsedRow[]): Promise<PreviewRow[]> {
@@ -203,50 +181,6 @@ function ImportPage() {
           ending: centsToInput(meta.endingBalanceCents),
         });
         setRows(await markDuplicates(parsed));
-      } else if (ext === "pdf") {
-        if (!org?.aiPdfEnabled)
-          throw new Error(
-            "Reading PDF statements uses AI and is off for this organization. An admin can turn it on in Settings.",
-          );
-        if (!aiAck)
-          throw new Error("Tick the AI notice under the file box before uploading a PDF.");
-        if (file.size > PDF_LIMITS.maxBytes) throw new Error("PDFs over 10 MB aren't supported.");
-        if (pdfUsageQuery.data && pdfUsageQuery.data.remaining <= 0)
-          throw new Error("You've reached your PDF reading limit for now.");
-        setFormat("pdf");
-        setBusy("Reading the PDF…");
-        const { extractPdfText } = await import("@/lib/parsers/pdf-text");
-        const text = await extractPdfText(file);
-        if (text.replace(/--- Page \d+ ---/g, "").trim().length < 40)
-          throw new Error(
-            "This PDF has no readable text (it may be a scanned image). Try the bank's CSV or OFX download instead.",
-          );
-        setBusy("Finding transactions…");
-        const pageCount = Math.max(1, (text.match(/--- Page \d+ ---/g) ?? []).length);
-        const result = await extractPdfStatement({
-          data: { orgId: org.id, text, pageCount, byteSize: file.size, acknowledged: true },
-        }).finally(() => queryClient.invalidateQueries({ queryKey: ["pdf-usage"] }));
-        setStatement({
-          start: result.statementStart ?? "",
-          end: result.statementEnd ?? "",
-          beginning: centsToInput(result.beginningBalanceCents),
-          ending: centsToInput(result.endingBalanceCents),
-        });
-        const parsed: ParsedRow[] = result.transactions.map((t, i) => {
-          const date = parseDate(t.date, "auto");
-          return {
-            line: i + 1,
-            date: date ?? "",
-            description: t.description || "Bank transaction",
-            amountCents: t.amountCents,
-            error: !date ? "Can't read date" : t.amountCents === 0 ? "Amount is zero" : undefined,
-          };
-        });
-        if (!parsed.length) throw new Error("No transactions found in this PDF.");
-        setRows(await markDuplicates(parsed));
-        toast.message(
-          "Please check each row against your statement. PDF reading can make mistakes.",
-        );
       } else {
         setFormat("csv");
         const tokens = tokenizeCsv(await file.text());
@@ -335,7 +269,6 @@ function ImportPage() {
           statementEnd: statement.end || null,
           beginningBalanceCents: toCents(statement.beginning),
           endingBalanceCents: toCents(statement.ending),
-          acceptMismatch,
         },
       });
       toast.success(
@@ -440,7 +373,8 @@ function ImportPage() {
       <h1 className="font-display text-2xl font-bold">Import Bank File</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Bank rows are evidence. Nothing enters your books until you post it to the ledger. Supports
-        CSV, OFX/QFX and PDF statements.
+        CSV and OFX/QFX files. For a PDF statement, download your bank's CSV, OFX or QFX export
+        instead.
       </p>
 
       <div className="mt-6 rounded-lg border bg-card p-6">
@@ -470,42 +404,15 @@ function ImportPage() {
               className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent/40 ${!accountId ? "opacity-50" : ""}`}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {busy ?? (fileName || "Choose CSV, OFX, QFX or PDF")}
+              {busy ?? (fileName || "Choose CSV, OFX or QFX")}
               <input
                 type="file"
-                accept=".csv,.ofx,.qfx,.pdf,text/csv,application/pdf"
+                accept=".csv,.ofx,.qfx,text/csv"
                 className="hidden"
                 onChange={onFile}
                 disabled={!accountId || !!busy}
               />
             </label>
-            {org.aiPdfEnabled ? (
-              <div className="mt-2 text-xs text-muted-foreground">
-                <label className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={aiAck}
-                    onChange={(e) => setAiAck(e.target.checked)}
-                  />
-                  <span>
-                    For PDFs: I understand the statement's text is sent to an AI service to find
-                    transactions (not used for training), and that I must check every row.
-                  </span>
-                </label>
-                {pdfUsageQuery.data && (
-                  <p className="mt-1">
-                    {pdfUsageQuery.data.remaining} PDF reads left (limit {PDF_LIMITS.perDay}/day,{" "}
-                    {PDF_LIMITS.perMonth}/30 days).
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-muted-foreground">
-                PDF reading uses AI and is off for this organization. An admin can turn it on in
-                Settings.
-              </p>
-            )}
           </div>
         </div>
 
@@ -716,38 +623,6 @@ function ImportPage() {
                   />
                 </div>
               </div>
-              {balanceCheck?.status === "match" && (
-                <p className="mt-3 flex items-center gap-1 text-sm text-primary">
-                  <CheckCircle2 className="h-4 w-4" /> Opening balance + rows = closing balance. The
-                  statement adds up.
-                </p>
-              )}
-              {balanceCheck?.status === "unknown" && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Enter both balances from the statement to check that the rows add up.
-                </p>
-              )}
-              {balanceCheck?.status === "mismatch" && (
-                <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                  <p className="flex items-center gap-1 font-medium text-destructive">
-                    <AlertTriangle className="h-4 w-4" /> The rows don't add up: off by{" "}
-                    {formatCents(balanceCheck.gapCents)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Opening balance + rows = {formatCents(balanceCheck.expectedCents)}, but the
-                    statement's closing balance is different. A row may be missing, doubled or have
-                    the wrong sign. Fix the rows below, or:
-                  </p>
-                  <label className="mt-2 flex items-center gap-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={acceptMismatch}
-                      onChange={(e) => setAcceptMismatch(e.target.checked)}
-                    />
-                    Import anyway. I'll review every row before posting
-                  </label>
-                </div>
-              )}
             </div>
 
             <div className="mt-6">
@@ -788,7 +663,7 @@ function ImportPage() {
                         className={`border-b last:border-0 ${r.status === "error" ? "bg-destructive/5" : r.status === "duplicate" ? "opacity-60" : ""}`}
                       >
                         <td className="tnum px-3 py-1 text-muted-foreground">{r.line}</td>
-                        {r.status === "error" || format === "pdf" ? (
+                        {r.status === "error" ? (
                           <>
                             <td className="px-3 py-1">
                               <input
@@ -840,7 +715,7 @@ function ImportPage() {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={runImport}
-                  disabled={!!busy || counts.valid === 0 || blockedByBalance}
+                  disabled={!!busy || counts.valid === 0}
                   className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {busy ?? `Import ${counts.valid} rows`}

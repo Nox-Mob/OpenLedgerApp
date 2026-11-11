@@ -41,8 +41,8 @@ Status: storage layer done and tested; the Tauri shell itself is not built yet.
 - Ready for the desktop UI through `src/lib/services/`: transactions, opening balances,
   bank rows (`ledger.ts`), statement checks (`reconciliation.ts`), reports (`reports.ts`),
   and organization settings, books lock and year-end close (`settings.ts`).
-- Still cloud-only: member management, sign-in/legal acceptance, file import parsing and
-  AI PDF reading, categories/tags/funds setup. These need ports before the desktop UI can use them.
+- Still cloud-only: member management, sign-in/legal acceptance, file import parsing,
+  categories/tags/funds setup. These need ports before the desktop UI can use them.
 - Sync between desktop and cloud is not designed yet; app-generated UUIDs keep that possible.
 
 ## Startup flow
@@ -54,4 +54,4 @@ Status: storage layer done and tested; the Tauri shell itself is not built yet.
 - Every exported server function is wrapped with `desktopAware(name, fn)` (`src/lib/desktop/bridge.ts`). On desktop the call goes to `callLocal` in `src/lib/desktop/local-api.ts`, which runs the same `src/lib/services/*` workflow against the local SQLite file; on the web it calls the server as before. Pages need no changes.
 - Answered locally: organizations and settings, account setup, accounts and opening balances, transactions (post, void, list), bank rows (list, post), all reports, books lock, month and year close, reopen, and statement checks.
 - Local since v0.1.1: templates and recurring drafts, transaction search and filters, budgets (whole org or project), board package, first-run checklist, tutorial and diagnostics.
-- Not yet local (shows "isn't available in the desktop app yet. Nothing was recorded."): members and invites, account deletion, bank file import and PDF reading, funds and pledges (fund budgets need local funds), categories and tags (lists are empty), backups, exports and history. Each needs a port and SQLite tables first.
+- Not yet local (shows "isn't available in the desktop app yet. Nothing was recorded."): members and invites, account deletion, bank file import, funds and pledges (fund budgets need local funds), categories and tags (lists are empty), backups, exports and history. Each needs a port and SQLite tables first.

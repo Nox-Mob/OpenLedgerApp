@@ -69,7 +69,6 @@ function OrgProfileSettings() {
   const [timezone, setTimezone] = useState<string | null>(null);
   const [term, setTerm] = useState<"simplest" | "simple" | "accounting" | null>(null);
   const [overrides, setOverrides] = useState<TermOverrides | null>(null);
-  const [aiPdf, setAiPdf] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
   if (!org) return <OrgPending inShell={false} />;
@@ -82,8 +81,7 @@ function OrgProfileSettings() {
     fyMonth !== null ||
     timezone !== null ||
     term !== null ||
-    overrides !== null ||
-    aiPdf !== null;
+    overrides !== null;
 
   async function saveOrg() {
     if (!org) return;
@@ -99,7 +97,6 @@ function OrgProfileSettings() {
           timezone: timezone ?? org.timezone,
           terminology: term ?? org.terminology ?? "simplest",
           termOverrides: overrides ?? org.termOverrides ?? {},
-          aiPdfEnabled: aiPdf ?? org.aiPdfEnabled,
         },
       });
       queryClient.invalidateQueries({ queryKey: ["orgs"] });
@@ -110,7 +107,6 @@ function OrgProfileSettings() {
       setTimezone(null);
       setTerm(null);
       setOverrides(null);
-      setAiPdf(null);
       toast.success("Organization settings saved");
     } catch (err) {
       showError(err, "Could not save");
@@ -291,26 +287,6 @@ function OrgProfileSettings() {
                 Decides what "today" is for new transactions and for report dates, for everyone in
                 this organization.
               </p>
-            </div>
-            <div className="sm:col-span-2 rounded-md border p-3">
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={aiPdf ?? org.aiPdfEnabled}
-                  onChange={(e) => setAiPdf(e.target.checked)}
-                  disabled={!isAdmin}
-                />
-                <span>
-                  <span className="font-medium">Allow AI to read PDF bank statements</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    When on, the text of an uploaded PDF statement is sent to an AI service to find
-                    the transactions. It isn't used for training, and every row must still be
-                    checked before it's imported. Each person can read up to 10 PDFs a day and 50 a
-                    month. CSV and OFX imports never use AI.
-                  </span>
-                </span>
-              </label>
             </div>
           </div>
           <div className="flex items-center justify-between">
