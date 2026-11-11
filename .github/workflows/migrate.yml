@@ -28,10 +28,10 @@ jobs:
     env:
       DATABASE_URL: ${{ inputs.target == 'production' && secrets.PROD_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - name: Migrate ${{ inputs.target }}
