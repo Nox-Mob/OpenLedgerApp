@@ -33,9 +33,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 function createSupabaseAdminClient() {
   const { url: SUPABASE_URL, runtimeMatchesBuild } = serverSupabaseEnv();
   // The service-role key is a runtime secret: refuse it when it belongs to another project than
-  // this build (a staging preview on the production Worker).
+  // this build (for example a preview whose secrets were copied from production).
   if (!runtimeMatchesBuild) {
-    throw new Error('Server tasks are not available on this preview: the Worker\'s keys are for a different Supabase project.');
+    throw new Error('Server tasks are unavailable: the Worker\'s keys are for a different Supabase project than this build.');
   }
   const SUPABASE_SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 

@@ -1,11 +1,11 @@
 // Which Supabase project server code talks to.
 //
 // The browser bundle is built for one project (VITE_SUPABASE_URL / _PUBLISHABLE_KEY). A Worker's
-// runtime vars and secrets (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY) can
-// belong to another: a staging preview built from a branch runs on the production Worker, with
-// production's runtime settings. Server code follows the build, and uses the runtime values only
-// when they are for the same project (same publishable key), for example a self-hosted server
-// that reaches Supabase on an internal address.
+// runtime vars and secrets (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY) are
+// set separately and can drift from the build: a branch preview's runtime vars come from the
+// `previews` block, or are missing, and its secrets from Cloudflare's Preview settings. Server code
+// follows the build, and uses the runtime values only when they are for the same project (same
+// publishable key), for example a self-hosted server that reaches Supabase on an internal address.
 export type ServerSupabaseEnv = {
   url: string | undefined;
   publishableKey: string | undefined;

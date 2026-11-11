@@ -7,8 +7,9 @@
 // Staging is this Worker's PREVIEW of the `staging` branch: Cloudflare builds every other branch
 // with the same build command, and `build:hosted` picks `env.staging` below for any branch but
 // `main` (WORKERS_CI_BRANCH). Previews are served at <branch>.ledger.staging.openapphub.org; the
-// stable staging site is https://staging.ledger.staging.openapphub.org. `env.staging` is used only
-// for those build values: a preview runs with this Worker's production runtime vars and secrets.
+// stable staging site is https://staging.ledger.staging.openapphub.org. Previews don't inherit the
+// production settings: their runtime vars are the `previews` block below, and their secrets are
+// set in Cloudflare's Preview base config (none by default).
 //
 // `vars` are PUBLIC: the VITE_* values are also built into the browser bundle
 // (scripts/deploy/build-env.mjs). Publishable keys are public by design.
@@ -40,6 +41,27 @@
     "VITE_DOCS_URL": "https://docs.openapphub.org",
   },
   // Wrangler doesn't inherit top-level vars into an env, so staging lists everything.
+  // Worker Previews (<branch>.<app>.staging.openapphub.org) don't inherit the production
+  // settings above: they get these, the same values as env.staging. Preview secrets are set in
+  // Cloudflare (Workers Builds → Previews → base config), never here.
+  "previews": {
+    "vars": {
+      "VITE_SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+      "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
+      "VITE_SUPABASE_PROJECT_ID": "mbloxixlykmbuuoaprnx",
+      "SUPABASE_URL": "https://mbloxixlykmbuuoaprnx.supabase.co",
+      "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_XsbfqXRDX-L_TwmtYGvjDg_qiLKka2X",
+      "VITE_HOSTED": "true",
+      "VITE_APP_ID": "ledger",
+      "VITE_APP_SCHEMA": "ledger",
+      "VITE_HUB_URL": "https://staging.openapphub.org",
+      "VITE_COOKIE_DOMAIN": ".openapphub.org",
+      "VITE_SUITE_URLS": "{\"hub\":\"https://staging.openapphub.org\",\"charter\":\"https://staging.charter.staging.openapphub.org\",\"board\":\"https://staging.board.staging.openapphub.org\",\"ledger\":\"https://staging.ledger.staging.openapphub.org\"}",
+      "VITE_DOCS_URL": "https://docs.openapphub.org",
+      "VITE_ALLOW_DEMO_LOGIN": "true",
+    },
+  },
+
   "env": {
     "staging": {
       "name": "openledgerapp-staging",
