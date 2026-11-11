@@ -49,7 +49,12 @@ files here: change them in Nox-Mob/OpenAppHub and sync.
 2. ~~Steps 4, 5 and 7~~ **done** (§0.4): runner, `migrate.yml`, baseline, DB tests, performance test.
 3. ~~Step 8, the client on `ledger`~~, staging seed and org scoping (step 9) **done** (§0.5).
 4. ~~Step 10, hosted vs self-hosted, and the AppShell restyle~~ **done** (§0.6).
-5. Next: step 3b (AI PDF import off), integration views for the hub dashboard, help links.
+5. Done 2026-11-11 (§0.7): the suite demo, Worker previews, opening from OpenAppHub, end-to-end tests.
+6. **What's left:** [`docs/epic.md`](epic.md) §1 (the suite items S-01 to S-11, the same in every app).
+
+### 0.7 Suite demo, Worker previews, opening from OpenAppHub, end-to-end tests (2026-11-11)
+
+Settings pages sit in the left sidebar under Settings, like Charter; Ledger opens straight from OpenAppHub in the right organization (`?org=`); `/` has no landing page; Cloudflare builds `main` for production and every other branch as a preview on `<branch>.ledger.staging.openapphub.org` (staging is branch `staging`); end-to-end tests on staging (`e2e/`, `.github/workflows/e2e.yml`). The remaining migration work is listed in `docs/epic.md`.
 
 ### 0.6 Step 10 and the restyle: hosted vs self-hosted, suite design (2026-11-10)
 
