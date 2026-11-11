@@ -1,45 +1,76 @@
 # OpenLedgerApp
 
-#### !! OpenLedgerApp is Pre-Release Software. OpenLedgerApp is Partially AI-Generated Software !!
+> **Pre-release software, partly AI-generated.** Test it with sample data before trusting it with real books.
 
----
+Open-source double-entry accounting for very small nonprofits and businesses: accounts, transactions, funds and budgets, bank import and reconciliation, reports and year-end close.
 
-Open-source, self-hostable double-entry accounting for very small businesses and nonprofits.
+OpenLedgerApp is one of the apps of **[OpenAppHub](https://openapphub.org)**: one sign-in, organization and billing across OpenCharterApp, OpenBoardApp and OpenLedgerApp. It also runs on its own when self-hosted, and as a free desktop app for one person (Ledger Solo).
 
-- Double-entry is enforced twice: in the app and again by a database trigger (every posted transaction needs at least 2 entries that sum to zero, with at least one debit and one credit).
-- Bank imports are evidence only — they never change the ledger until you post them.
-- Posted records are never edited in place: void and re-enter, so the audit trail stays intact.
-- Every organization's data is isolated by row-level security in the database.
+## What it does
 
-Built with React 19 + TanStack Start (Vite), Tailwind CSS v4, and Supabase (Postgres, Auth, Storage).
+- **Double entry, enforced twice:** in the app and again by a database trigger. Every posted transaction needs at least two entries that sum to zero, with at least one debit and one credit.
+- **Bank import is evidence only:** CSV, OFX and QFX files never change the ledger until you post their rows. Reconciliation checks your statements.
+- **Posted records are never edited in place:** you void and re-enter them, so the audit trail stays intact.
+- **Nonprofit-ready:** funds (restricted and unrestricted), pledges, budgets by organization or project, and a board package.
+- **Reports:** general ledger, account activity, funds, statement check, drill-down, year-end close, and Export all (Excel and PDF) with signed backups.
+- **Isolation:** every organization's data is separated by row-level security in the database.
 
-## Public website and release notes
+Release notes: [`CHANGELOG.md`](CHANGELOG.md). What's left and what's next: [`docs/epic.md`](docs/epic.md).
 
-The public website is at `/`; account holders use `/auth` to sign in and `/ledger` for the dashboard. `/get-started` describes the two backend setup paths and offers a development source archive. It is not a desktop installer. Desktop preview installers (Linux, Windows, macOS) are attached to GitHub releases as drafts first; see [docs/desktop.md](docs/desktop.md). The website does not advertise the preview or development demo.
+## Editions
 
-See [CHANGELOG.md](CHANGELOG.md) for release notes and [BLUEPRINT.md](BLUEPRINT.md) for the original website and storage design, and [docs/architecture.md](docs/architecture.md) for the current architecture. The future free standalone desktop edition, managed cloud offering, optional donations, and synchronization are goals, not shipped features or pricing commitments.
+|                 | Hosted (OpenAppHub)                                   | Self-hosted                                    | Desktop (Ledger Solo)           |
+| --------------- | ----------------------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| Address         | `ledger.openapphub.org`                               | your own                                       | an app on your computer         |
+| Sign-in and org | the hub (`openapphub.org`): one account for every app | Ledger's own sign-in, organizations, invites   | none: one person, one file      |
+| Database        | the suite's shared Supabase project, schema `ledger`  | your own Supabase or Postgres, schema `ledger` | SQLite on your computer         |
+| Billing         | the hub's plans; read-only when a plan lapses         | none: always writable                          | free                            |
+| Build           | `npm run build:hosted`                                | `npm run build` (`VITE_HOSTED=false`)          | `npm run build:desktop` (Tauri) |
 
-Source ZIP downloads point to the GitHub `main` branch archive (github.com/Nox-Mob/OpenLedgerApp); the /get-started page links to it.
+The desktop app doesn't have everything yet: [`docs/desktop.md`](docs/desktop.md).
 
----
+## Try it
 
-## Sample data (staging and development only)
+Staging is at **https://staging.ledger.staging.openapphub.org**, with the suite demo (reset every 12 hours):
 
-The suite demo, the sign-in `demo@demo.openapphub.org` / `OpenAppHubDemo2026` with the organization Riverside Community Association and about three months of its books, is in `db/seed/0001_ledger_demo.sql` (an empty test sign-in, `test@demo.openapphub.org`, comes with it). On staging OpenAppHub resets it every 12 hours. It is **not** a migration: it runs only when you ask for it, once per database (the runner records it):
+| Account                    | Password             | What you see                                                      |
+| -------------------------- | -------------------- | ----------------------------------------------------------------- |
+| `demo@demo.openapphub.org` | `OpenAppHubDemo2026` | owns Riverside Community Association, about three months of books |
+| `test@demo.openapphub.org` | `OpenAppHubDemo2026` | no organization (a first visit)                                   |
+
+These are public on purpose and exist only on staging. To load the same demo into your own development database: `DATABASE_URL="<dev or staging connection string>" npm run db:migrate -- --seed`. It runs once per database and refuses one that holds real organizations. **Never load it into production:** it creates a publicly known sign-in.
+
+## Development
+
+You need Node.js 22.22+ and **npm** 11+ (the only package manager this repo uses).
 
 ```sh
-DATABASE_URL="<dev or staging connection string>" npm run db:migrate -- --seed
+git clone https://github.com/Nox-Mob/OpenLedgerApp.git
+cd OpenLedgerApp
+npm ci
+cp .env.example .env.local   # your Supabase project's URL and publishable key
+npm run dev                  # http://localhost:8080
 ```
 
-It refuses to run on a database that holds real organizations (or, on the OpenAppHub database, one not marked staging). **Never load it into production:** it creates a publicly known sign-in.
+Checks (CI runs the same): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test`, `npm run check:migrations`, `npm run build`. More in [Running the tests](#running-the-tests).
 
----
+End-to-end tests: `npm run test:e2e` (Playwright, `e2e/`).
 
-## Tests
+- It starts the app on a local dev server, self-hosted (its own sign-in page), and signs in to **staging** as the suite demo accounts.
+- Staging's public settings come from `wrangler.jsonc` `env.staging`, so no secrets are needed.
+- In the Claude cloud sandbox: `E2E_NO_SANDBOX=1 E2E_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run test:e2e`.
 
-Unit tests: `npm test`. Database tests and the performance check: see `db/` and `.github/workflows/ci.yml`.
+## Branches, CI and deploys
 
-End-to-end tests: `npm run test:e2e` (Playwright, `e2e/`) runs the app on a local dev server, self-hosted (its own sign-in page), against **staging** as the suite demo accounts (`demo@demo.openapphub.org` owns Riverside Community Association; `test@demo.openapphub.org` has no organization; password `OpenAppHubDemo2026`; reset every 12 hours). Staging's public settings come from `wrangler.jsonc` `env.staging`, so no secrets are needed. CI runs it in `.github/workflows/e2e.yml`. In the Claude cloud sandbox: `E2E_NO_SANDBOX=1 E2E_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run test:e2e`.
+- **Pull requests target `staging`.** Nothing merges into `main` without the owner's approval; `main` is production.
+- **Staging** is the Worker's preview of branch `staging`: `staging.ledger.staging.openapphub.org`. Any other branch builds at `<branch>.ledger.staging.openapphub.org`.
+- **Production** (`ledger.openapphub.org`) deploys when `main` changes, through Cloudflare's Git integration (`npm run build:hosted`, then `wrangler deploy`). There are no deploy workflows and no Cloudflare secrets in GitHub.
+- **Database:** the owner applies migrations to staging and production with Actions → **Migrate** (`migrate.yml`).
+- **CI** runs on every pull request and on pushes to `staging`, and on a schedule:
+  - `ci.yml`: the checks under [Continuous integration](#continuous-integration); also weekly.
+  - `e2e.yml`: end-to-end on staging; also daily.
+  - `desktop-check.yml`: on pull requests.
+  - Only `desktop-release.yml` runs on pushes to `main`. It drafts the desktop installers.
 
 ## Self-hosting: full reproduction guide
 
@@ -209,7 +240,7 @@ The app is server-rendered: pages **and** server functions run on the server, so
 
 ### Hosted edition (OpenAppHub)
 
-The hosted edition at `ledger.openapphub.org` runs as a Cloudflare Worker configured by `wrangler.jsonc` (top level = production, `env.staging` = staging) and shares one Supabase project with the other OpenAppHub apps (see `docs/SHARED-SPEC.md` and `docs/MIGRATION-NOTES.md`). Cloudflare's Git integration builds `main` with `npm run build:hosted` and deploys with `npx wrangler deploy --config wrangler.jsonc`. **Self-hosters can ignore this section and `wrangler.jsonc`:** `npm run build` builds the self-hosted app from your own `.env`.
+See [Branches, CI and deploys](#branches-ci-and-deploys). **Self-hosters can ignore it and `wrangler.jsonc`:** `npm run build` builds the self-hosted app from your own `.env`.
 
 ### Option A — a single server (small office, home lab)
 
@@ -293,7 +324,16 @@ The database checks (`db/tests/*.sql`) build a throwaway database with the migra
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on every push, pull request, and weekly. It **only reports** — it never formats, fixes, commits, or pushes. Blocking jobs: unit tests, type check, production build, database rules (Postgres 17, the runner applying core and `db/migrations`, then `db/tests`), performance (5,000, 20,000 and 50,000 transactions under a 3 s budget, plus a security catalogue check), and high/critical dependency vulnerabilities. Lint is reported but not blocking yet. Each failure explains which rule broke in the run summary and as inline annotations.
+CI only reports: it never formats, fixes, commits or pushes. Each failure says which rule broke, in the run summary and as inline annotations.
+
+- **Blocking jobs:**
+  - unit tests, type check and the production build
+  - database rules: Postgres 17, the runner applying core and `db/migrations`, then `db/tests`
+  - performance: 5,000, 20,000 and 50,000 transactions under a 3 s budget, plus a security catalogue check
+  - high and critical dependency vulnerabilities
+- **Reported, not blocking yet:** lint.
+
+When it runs: [Branches, CI and deploys](#branches-ci-and-deploys).
 
 ---
 
@@ -314,7 +354,7 @@ The database checks (`db/tests/*.sql`) build a throwaway database with the migra
 
 ## License
 
-See LICENSE. This is pre-1.0 software — test it with sample data before trusting it with real books.
+Open source. The license file hasn't been added yet (owner). This is pre-1.0 software: test it with sample data before trusting it with real books.
 
 ## Before you release
 

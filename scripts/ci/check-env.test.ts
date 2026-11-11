@@ -19,7 +19,7 @@ describe("env file check", () => {
   });
   it("allows secret names with placeholder values only in .env.example mode", () => {
     const example =
-      "SUPABASE_SERVICE_ROLE_KEY=<service-role key>\nBACKUP_SIGNING_SEED=<random>\nLOVABLE_API_KEY=";
+      "SUPABASE_SERVICE_ROLE_KEY=<service-role key>\nBACKUP_SIGNING_SEED=<random>\nOTHER_API_KEY=";
     expect(privateKeyFindings(example, { allowPlaceholders: true })).toEqual([]);
     expect(privateKeyFindings(example)).toHaveLength(3);
     expect(

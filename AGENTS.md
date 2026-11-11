@@ -1,17 +1,6 @@
-<!-- LOVABLE:BEGIN -->
-
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-
-<!-- LOVABLE:END -->
-
 # AGENTS.md — OpenLedgerApp (Nox-Mob/OpenLedgerApp)
+
+> **Branches (owner rule, 2026-11-11):** pull requests target `staging`, and every merge goes to `staging`. Nothing merges into `main` (production) without the owner's approval, or the owner merging it. CI runs on pull requests and on pushes to `staging`; only workflows that must run on `main` (releases) do.
 
 ## Suite migration (v2)
 
@@ -19,7 +8,7 @@
 
 App ID `ledger` · schema `ledger` · hosted at `ledger.openapphub.org` (staging `staging.ledger.staging.openapphub.org`) · package manager **npm**.
 
-Ledger's backend today is the Lovable Cloud project `pzzmmltmghmgfwhgzlvl`. It's built fresh in the shared project; nothing is copied. The Lovable project is retired at the end.
+Ledger runs in the shared project (schema `ledger`); it was built fresh there and nothing was copied from its old project `pzzmmltmghmgfwhgzlvl`, which the owner retires (S-10).
 
 The **desktop edition** (Tauri + SQLite) keeps working throughout and stays free for one person ("Ledger Solo"); it's unaffected by the schema move except for keeping its schema in parity (D13).
 
@@ -74,7 +63,7 @@ Docs live in `Nox-Mob/OpenAppHub-docs` under `src/content/docs/ledger/` (spec §
     - `ledger/everyday/importing.md`, `ledger/help/troubleshooting.md`, `known-limits.md`, `faq.md`: **PDF statement import is off** until a provider is chosen.
     - `ledger/start/editions.md` and `ledger/index.md`: hosted status; Ledger Solo is the free desktop edition.
     - `ledger/admin/security.md`: account deletion in the hub when hosted.
-    - `ledger/help/self-hosting.md`: new setup; remove `LOVABLE_API_KEY`.
+    - `ledger/help/self-hosting.md`: new setup; no AI key.
     - Any screen renamed or moved by the restyle.
 
 From then on, every step toward desktop parity updates `ledger/start/desktop-app.md` and `ledger/help/known-limits.md`.
