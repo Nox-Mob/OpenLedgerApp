@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
 import { createFileRoute } from "@tanstack/react-router";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_authenticated/settings/close")({
 });
 
 function CloseBooksSettings() {
+  const access = useAccess();
   const { org } = useOrgContext();
   const queryClient = useQueryClient();
   const [lockDate, setLockDate] = useState("");
@@ -63,7 +65,7 @@ function CloseBooksSettings() {
   });
 
   if (!org) return <OrgPending inShell={false} />;
-  const isAdmin = org.role === "admin" || org.role === "treasurer";
+  const isAdmin = access.can("close_books");
   const status = statusQuery.data;
   const accounts = accountsQuery.data ?? [];
   const equityAccounts = accounts.filter((a) => a.type === "equity" && a.isActive);

@@ -25,6 +25,18 @@ export const CAPABILITIES: Readonly<Record<OrgAction, readonly OrgRole[]>> = {
   close_books: ["admin", "treasurer"],
 };
 
+/** What still works while billing makes Ledger read-only (S-05); the database refuses the rest. */
+export const READ_ONLY_SAFE: readonly OrgAction[] = ["read"];
+
+/** `can()`, and off for writes while the organization's plan makes Ledger read-only. */
+export function canNow(
+  role: string | null | undefined,
+  action: OrgAction,
+  readOnly: boolean,
+): boolean {
+  return can(role, action) && (!readOnly || READ_ONLY_SAFE.includes(action));
+}
+
 export function can(role: string | null | undefined, action: OrgAction): boolean {
   return !!role && (CAPABILITIES[action] as readonly string[]).includes(role);
 }

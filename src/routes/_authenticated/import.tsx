@@ -1,3 +1,5 @@
+import { useAccess } from "@/hooks/use-access";
+import { WriteGuard } from "@/components/WriteGuard";
 import { errorMessage } from "@/lib/errors";
 import { showError } from "@/lib/show-error";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -70,6 +72,7 @@ const emptyStatement: Statement = { start: "", end: "", beginning: "", ending: "
 const centsToInput = (c: number | null | undefined) => (c == null ? "" : (c / 100).toFixed(2));
 
 function ImportPage() {
+  const access = useAccess();
   const { org, terms } = useOrgContext();
   const queryClient = useQueryClient();
   const [accountId, setAccountId] = useState("");
@@ -377,360 +380,366 @@ function ImportPage() {
         instead.
       </p>
 
-      <div className="mt-6 rounded-lg border bg-card p-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium">1. Bank account</label>
-            <select
-              aria-label="1. Bank account"
-              value={accountId}
-              onChange={(e) => {
-                setAccountId(e.target.value);
-                reset();
-              }}
-              className={inputCls}
-            >
-              <option value="">Choose account…</option>
-              {bankAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">2. Statement file</label>
-            <label
-              className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent/40 ${!accountId ? "opacity-50" : ""}`}
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {busy ?? (fileName || "Choose CSV, OFX or QFX")}
-              <input
-                type="file"
-                accept=".csv,.ofx,.qfx,text/csv"
-                className="hidden"
-                onChange={onFile}
-                disabled={!accountId || !!busy}
-              />
-            </label>
-          </div>
-        </div>
-
-        {format === "csv" && mapping && (
-          <div className="mt-6 rounded-md border p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">3. Match the columns</h3>
-              {profiles.length > 0 && (
-                <select
-                  className={smallInput}
-                  value=""
-                  onChange={async (e) => {
-                    const p = profiles.find((x) => x.id === e.target.value);
-                    if (p) {
-                      setMapping(p.mapping);
-                      setRows(await markDuplicates(applyMapping(csvRows, p.mapping)));
-                    }
-                  }}
-                >
-                  <option value="">Use a saved layout…</option>
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+      <WriteGuard>
+        <div className="mt-6 rounded-lg border bg-card p-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium">1. Bank account</label>
+              <select
+                aria-label="1. Bank account"
+                value={accountId}
+                onChange={(e) => {
+                  setAccountId(e.target.value);
+                  reset();
+                }}
+                className={inputCls}
+              >
+                <option value="">Choose account…</option>
+                {bankAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Date column</label>
-                {colSelect({
-                  value: mapping.dateCol,
-                  onChange: (v) => updateMapping({ dateCol: v }),
-                  label: "Date column",
-                })}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Description column</label>
-                {colSelect({
-                  value: mapping.descCol,
-                  onChange: (v) => updateMapping({ descCol: v }),
-                  label: "Description column",
-                })}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Date format</label>
-                <select
-                  aria-label="Date format"
-                  value={mapping.dateFormat}
-                  onChange={(e) =>
-                    updateMapping({ dateFormat: e.target.value as CsvMapping["dateFormat"] })
-                  }
-                  className={inputCls}
-                >
-                  <option value="auto">Detect automatically</option>
-                  <option value="MDY">MM/DD/YYYY</option>
-                  <option value="DMY">DD/MM/YYYY</option>
-                  <option value="YMD">YYYY-MM-DD</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Amounts are in</label>
-                <select
-                  aria-label="Amounts are in"
-                  value={mapping.amountMode}
-                  onChange={(e) =>
-                    updateMapping({ amountMode: e.target.value as CsvMapping["amountMode"] })
-                  }
-                  className={inputCls}
-                >
-                  <option value="single">One column (+ in, − out)</option>
-                  <option value="split">Separate in / out columns</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Number format</label>
-                <select
-                  aria-label="Number format"
-                  value={mapping.decimalSeparator ?? "dot"}
-                  onChange={(e) =>
-                    updateMapping({
-                      decimalSeparator: e.target.value as CsvMapping["decimalSeparator"],
-                    })
-                  }
-                  className={inputCls}
-                >
-                  <option value="dot">1,234.56 (dot decimals)</option>
-                  <option value="comma">1.234,56 (comma decimals)</option>
-                </select>
-              </div>
-              {mapping.amountMode === "single" ? (
-                <div>
-                  <label className="text-xs text-muted-foreground">Amount column</label>
-                  {colSelect({
-                    value: mapping.amountCol,
-                    onChange: (v) => updateMapping({ amountCol: v }),
-                    label: "Amount column",
-                  })}
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Money in column</label>
-                    {colSelect({
-                      value: mapping.creditCol,
-                      onChange: (v) => updateMapping({ creditCol: v }),
-                      label: "Money in column",
-                    })}
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Money out column</label>
-                    {colSelect({
-                      value: mapping.debitCol,
-                      onChange: (v) => updateMapping({ debitCol: v }),
-                      label: "Money out column",
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-              <label className="flex items-center gap-2">
+            <div>
+              <label className="text-sm font-medium">2. Statement file</label>
+              <label
+                className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent/40 ${!accountId ? "opacity-50" : ""}`}
+              >
+                {busy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {busy ?? (fileName || "Choose CSV, OFX or QFX")}
                 <input
-                  type="checkbox"
-                  checked={mapping.hasHeader}
-                  onChange={(e) => updateMapping({ hasHeader: e.target.checked })}
-                />{" "}
-                First row is a header
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={mapping.flipSign}
-                  onChange={(e) => updateMapping({ flipSign: e.target.checked })}
-                />{" "}
-                Flip signs (common for credit cards)
-              </label>
-              <div className="ml-auto flex items-center gap-2">
-                <input
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="Layout name, e.g. Chase"
-                  className={smallInput}
+                  type="file"
+                  accept=".csv,.ofx,.qfx,text/csv"
+                  className="hidden"
+                  onChange={onFile}
+                  disabled={!accountId || !!busy}
                 />
-                <button
-                  onClick={saveProfile}
-                  disabled={!profileName.trim()}
-                  className="rounded border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
-                >
-                  Save layout
-                </button>
-              </div>
+              </label>
             </div>
           </div>
-        )}
 
-        {format && rows.length > 0 && (
-          <>
+          {format === "csv" && mapping && (
             <div className="mt-6 rounded-md border p-4">
-              <h3 className="text-sm font-semibold">
-                Statement period{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional, used to check against your statement later)
-                </span>
-              </h3>
-              <div className="mt-3 grid gap-3 md:grid-cols-4">
-                <div>
-                  <label className="text-xs text-muted-foreground">From</label>
-                  <input
-                    aria-label="From"
-                    type="date"
-                    value={statement.start}
-                    onChange={(e) => setStatement({ ...statement, start: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">To</label>
-                  <input
-                    aria-label="To"
-                    type="date"
-                    value={statement.end}
-                    onChange={(e) => setStatement({ ...statement, end: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Beginning balance</label>
-                  <input
-                    aria-label="Beginning balance"
-                    inputMode="decimal"
-                    value={statement.beginning}
-                    onChange={(e) => setStatement({ ...statement, beginning: e.target.value })}
-                    className={`${inputCls} tnum`}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Ending balance</label>
-                  <input
-                    aria-label="Ending balance"
-                    inputMode="decimal"
-                    value={statement.ending}
-                    onChange={(e) => setStatement({ ...statement, ending: e.target.value })}
-                    className={`${inputCls} tnum`}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="flex items-center gap-1 text-primary">
-                  <CheckCircle2 className="h-4 w-4" /> {counts.valid} ready
-                </span>
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <Copy className="h-4 w-4" /> {counts.duplicate} already imported
-                </span>
-                <span className="flex items-center gap-1 text-destructive">
-                  <AlertTriangle className="h-4 w-4" /> {counts.error} need fixing
-                </span>
-                {counts.error > 0 && (
-                  <button
-                    onClick={downloadErrors}
-                    className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-accent"
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">3. Match the columns</h3>
+                {profiles.length > 0 && (
+                  <select
+                    className={smallInput}
+                    value=""
+                    onChange={async (e) => {
+                      const p = profiles.find((x) => x.id === e.target.value);
+                      if (p) {
+                        setMapping(p.mapping);
+                        setRows(await markDuplicates(applyMapping(csvRows, p.mapping)));
+                      }
+                    }}
                   >
-                    <Download className="h-3 w-3" /> Download problem rows
-                  </button>
+                    <option value="">Use a saved layout…</option>
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
-              <div className="mt-2 max-h-96 overflow-auto rounded border">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-muted text-left text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-1.5">Line</th>
-                      <th className="px-3 py-1.5">Date</th>
-                      <th className="px-3 py-1.5">Description</th>
-                      <th className="px-3 py-1.5 text-right">Amount</th>
-                      <th className="px-3 py-1.5">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr
-                        key={i}
-                        className={`border-b last:border-0 ${r.status === "error" ? "bg-destructive/5" : r.status === "duplicate" ? "opacity-60" : ""}`}
-                      >
-                        <td className="tnum px-3 py-1 text-muted-foreground">{r.line}</td>
-                        {r.status === "error" ? (
-                          <>
-                            <td className="px-3 py-1">
-                              <input
-                                defaultValue={r.date}
-                                onBlur={(e) => editRow(i, { date: e.target.value })}
-                                className={`${smallInput} w-28`}
-                              />
-                            </td>
-                            <td className="px-3 py-1">
-                              <input
-                                defaultValue={r.description}
-                                onBlur={(e) => editRow(i, { description: e.target.value })}
-                                className={`${smallInput} w-full`}
-                              />
-                            </td>
-                            <td className="px-3 py-1 text-right">
-                              <input
-                                defaultValue={
-                                  Number.isFinite(r.amountCents)
-                                    ? (r.amountCents / 100).toFixed(2)
-                                    : ""
-                                }
-                                onBlur={(e) => editRow(i, { amount: e.target.value })}
-                                className={`${smallInput} tnum w-24 text-right`}
-                              />
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="tnum px-3 py-1">{r.date}</td>
-                            <td className="px-3 py-1">{r.description}</td>
-                            <td className="tnum px-3 py-1 text-right">
-                              {formatCents(r.amountCents)}
-                            </td>
-                          </>
-                        )}
-                        <td className="px-3 py-1">
-                          {r.status === "valid" && <span className="text-primary">Ready</span>}
-                          {r.status === "duplicate" && <span>Already imported</span>}
-                          {r.status === "error" && (
-                            <span className="text-destructive">{r.error}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Date column</label>
+                  {colSelect({
+                    value: mapping.dateCol,
+                    onChange: (v) => updateMapping({ dateCol: v }),
+                    label: "Date column",
+                  })}
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Description column</label>
+                  {colSelect({
+                    value: mapping.descCol,
+                    onChange: (v) => updateMapping({ descCol: v }),
+                    label: "Description column",
+                  })}
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Date format</label>
+                  <select
+                    aria-label="Date format"
+                    value={mapping.dateFormat}
+                    onChange={(e) =>
+                      updateMapping({ dateFormat: e.target.value as CsvMapping["dateFormat"] })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="auto">Detect automatically</option>
+                    <option value="MDY">MM/DD/YYYY</option>
+                    <option value="DMY">DD/MM/YYYY</option>
+                    <option value="YMD">YYYY-MM-DD</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Amounts are in</label>
+                  <select
+                    aria-label="Amounts are in"
+                    value={mapping.amountMode}
+                    onChange={(e) =>
+                      updateMapping({ amountMode: e.target.value as CsvMapping["amountMode"] })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="single">One column (+ in, − out)</option>
+                    <option value="split">Separate in / out columns</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Number format</label>
+                  <select
+                    aria-label="Number format"
+                    value={mapping.decimalSeparator ?? "dot"}
+                    onChange={(e) =>
+                      updateMapping({
+                        decimalSeparator: e.target.value as CsvMapping["decimalSeparator"],
+                      })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="dot">1,234.56 (dot decimals)</option>
+                    <option value="comma">1.234,56 (comma decimals)</option>
+                  </select>
+                </div>
+                {mapping.amountMode === "single" ? (
+                  <div>
+                    <label className="text-xs text-muted-foreground">Amount column</label>
+                    {colSelect({
+                      value: mapping.amountCol,
+                      onChange: (v) => updateMapping({ amountCol: v }),
+                      label: "Amount column",
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Money in column</label>
+                      {colSelect({
+                        value: mapping.creditCol,
+                        onChange: (v) => updateMapping({ creditCol: v }),
+                        label: "Money in column",
+                      })}
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Money out column</label>
+                      {colSelect({
+                        value: mapping.debitCol,
+                        onChange: (v) => updateMapping({ debitCol: v }),
+                        label: "Money out column",
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={runImport}
-                  disabled={!!busy || counts.valid === 0}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {busy ?? `Import ${counts.valid} rows`}
-                </button>
-                <button
-                  onClick={reset}
-                  className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
-                >
-                  Cancel
-                </button>
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={mapping.hasHeader}
+                    onChange={(e) => updateMapping({ hasHeader: e.target.checked })}
+                  />{" "}
+                  First row is a header
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={mapping.flipSign}
+                    onChange={(e) => updateMapping({ flipSign: e.target.checked })}
+                  />{" "}
+                  Flip signs (common for credit cards)
+                </label>
+                <div className="ml-auto flex items-center gap-2">
+                  <input
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Layout name, e.g. Chase"
+                    className={smallInput}
+                  />
+                  <button
+                    onClick={saveProfile}
+                    disabled={!profileName.trim()}
+                    className="rounded border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+                  >
+                    Save layout
+                  </button>
+                </div>
               </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+
+          {format && rows.length > 0 && (
+            <>
+              <div className="mt-6 rounded-md border p-4">
+                <h3 className="text-sm font-semibold">
+                  Statement period{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional, used to check against your statement later)
+                  </span>
+                </h3>
+                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground">From</label>
+                    <input
+                      aria-label="From"
+                      type="date"
+                      value={statement.start}
+                      onChange={(e) => setStatement({ ...statement, start: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">To</label>
+                    <input
+                      aria-label="To"
+                      type="date"
+                      value={statement.end}
+                      onChange={(e) => setStatement({ ...statement, end: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Beginning balance</label>
+                    <input
+                      aria-label="Beginning balance"
+                      inputMode="decimal"
+                      value={statement.beginning}
+                      onChange={(e) => setStatement({ ...statement, beginning: e.target.value })}
+                      className={`${inputCls} tnum`}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Ending balance</label>
+                    <input
+                      aria-label="Ending balance"
+                      inputMode="decimal"
+                      value={statement.ending}
+                      onChange={(e) => setStatement({ ...statement, ending: e.target.value })}
+                      className={`${inputCls} tnum`}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="flex items-center gap-1 text-primary">
+                    <CheckCircle2 className="h-4 w-4" /> {counts.valid} ready
+                  </span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Copy className="h-4 w-4" /> {counts.duplicate} already imported
+                  </span>
+                  <span className="flex items-center gap-1 text-destructive">
+                    <AlertTriangle className="h-4 w-4" /> {counts.error} need fixing
+                  </span>
+                  {counts.error > 0 && (
+                    <button
+                      onClick={downloadErrors}
+                      className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-accent"
+                    >
+                      <Download className="h-3 w-3" /> Download problem rows
+                    </button>
+                  )}
+                </div>
+                <div className="mt-2 max-h-96 overflow-auto rounded border">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-muted text-left text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-1.5">Line</th>
+                        <th className="px-3 py-1.5">Date</th>
+                        <th className="px-3 py-1.5">Description</th>
+                        <th className="px-3 py-1.5 text-right">Amount</th>
+                        <th className="px-3 py-1.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r, i) => (
+                        <tr
+                          key={i}
+                          className={`border-b last:border-0 ${r.status === "error" ? "bg-destructive/5" : r.status === "duplicate" ? "opacity-60" : ""}`}
+                        >
+                          <td className="tnum px-3 py-1 text-muted-foreground">{r.line}</td>
+                          {r.status === "error" ? (
+                            <>
+                              <td className="px-3 py-1">
+                                <input
+                                  defaultValue={r.date}
+                                  onBlur={(e) => editRow(i, { date: e.target.value })}
+                                  className={`${smallInput} w-28`}
+                                />
+                              </td>
+                              <td className="px-3 py-1">
+                                <input
+                                  defaultValue={r.description}
+                                  onBlur={(e) => editRow(i, { description: e.target.value })}
+                                  className={`${smallInput} w-full`}
+                                />
+                              </td>
+                              <td className="px-3 py-1 text-right">
+                                <input
+                                  defaultValue={
+                                    Number.isFinite(r.amountCents)
+                                      ? (r.amountCents / 100).toFixed(2)
+                                      : ""
+                                  }
+                                  onBlur={(e) => editRow(i, { amount: e.target.value })}
+                                  className={`${smallInput} tnum w-24 text-right`}
+                                />
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="tnum px-3 py-1">{r.date}</td>
+                              <td className="px-3 py-1">{r.description}</td>
+                              <td className="tnum px-3 py-1 text-right">
+                                {formatCents(r.amountCents)}
+                              </td>
+                            </>
+                          )}
+                          <td className="px-3 py-1">
+                            {r.status === "valid" && <span className="text-primary">Ready</span>}
+                            {r.status === "duplicate" && <span>Already imported</span>}
+                            {r.status === "error" && (
+                              <span className="text-destructive">{r.error}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={runImport}
+                    disabled={!!busy || counts.valid === 0}
+                    className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {busy ?? `Import ${counts.valid} rows`}
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </WriteGuard>
 
       <h2 className="font-display mt-8 text-lg font-semibold">Imported files</h2>
       <div className="mt-3 overflow-hidden rounded-lg border bg-card">
@@ -865,7 +874,7 @@ function ImportPage() {
                     {!r.linkedTransactionId && (
                       <button
                         onClick={() => postRow(r.id)}
-                        disabled={posting.has(r.id)}
+                        disabled={!access.can("write") || posting.has(r.id)}
                         className="disabled:opacity-50 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                       >
                         Post

@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { checkAmount, checkName } from "@/lib/validation";
 import { showError } from "@/lib/show-error";
 import { createFileRoute } from "@tanstack/react-router";
@@ -42,6 +43,7 @@ function label(type: BudgetPeriod, start: string, end: string) {
 }
 
 function BudgetsPage() {
+  const access = useAccess();
   const { org, reportTerms: terms } = useOrgContext();
   const qc = useQueryClient();
   const [type, setType] = useState<BudgetPeriod>("year");
@@ -77,7 +79,7 @@ function BudgetsPage() {
     enabled: !!org,
   });
   if (!org) return <OrgPending />;
-  const canWrite = org.role !== "viewer";
+  const canWrite = access.can("write");
 
   async function save(accountId: string) {
     const raw = drafts[accountId];

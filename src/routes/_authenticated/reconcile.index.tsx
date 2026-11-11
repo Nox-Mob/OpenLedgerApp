@@ -1,3 +1,4 @@
+import { WriteGuard } from "@/components/WriteGuard";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
@@ -131,125 +132,127 @@ function ReconcileIndex() {
         confirming what matches.
       </p>
 
-      <div className="mt-6 max-w-3xl rounded-lg border bg-card p-6">
-        <h2 className="font-semibold">Start a new statement</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium">Account</label>
-            <select
-              aria-label="Account"
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              className={inputCls}
-            >
-              <option value="">Choose account…</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          {accountId && openForAccount ? (
-            <div className="md:col-span-2 rounded-md bg-accent/50 p-3 text-sm">
-              This account already has a statement in progress.{" "}
-              <Link
-                to="/reconcile/$id"
-                params={{ id: openForAccount.id }}
-                className="font-medium text-primary underline"
+      <WriteGuard>
+        <div className="mt-6 max-w-3xl rounded-lg border bg-card p-6">
+          <h2 className="font-semibold">Start a new statement</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Account</label>
+              <select
+                aria-label="Account"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className={inputCls}
               >
-                Continue it
-              </Link>
+                <option value="">Choose account…</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            accountId && (
-              <>
-                <div>
-                  <label className="text-sm font-medium">Statement from</label>
-                  <input
-                    aria-label="Statement from"
-                    type="date"
-                    value={form.start}
-                    onChange={(e) => setForm({ ...form, start: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Statement to</label>
-                  <input
-                    aria-label="Statement to"
-                    type="date"
-                    value={form.end}
-                    onChange={(e) => setForm({ ...form, end: e.target.value })}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Beginning balance</label>
-                  <input
-                    aria-label="Beginning balance"
-                    inputMode="decimal"
-                    value={form.beginning}
-                    onChange={(e) => setForm({ ...form, beginning: e.target.value })}
-                    className={`${inputCls} tnum`}
-                    placeholder="0.00"
-                  />
-                  {suggestQuery.data?.hasPrevious && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      From your last completed statement.
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Ending balance (from statement)</label>
-                  <input
-                    aria-label="Ending balance (from statement)"
-                    inputMode="decimal"
-                    value={form.ending}
-                    onChange={(e) => setForm({ ...form, ending: e.target.value })}
-                    className={`${inputCls} tnum`}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-sm font-medium">How do you want to check?</label>
-                  <div className="mt-2 grid gap-2 md:grid-cols-2">
-                    {(
-                      [
-                        [
-                          "simple",
-                          "Simple",
-                          "We match imported bank rows to your books automatically. You review the leftovers.",
-                        ],
-                        ["full", "Full", "Tick each item yourself, like balancing a checkbook."],
-                      ] as const
-                    ).map(([v, label, desc]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setForm({ ...form, mode: v })}
-                        className={`rounded-md border p-3 text-left text-sm ${form.mode === v ? "border-primary bg-primary/5" : "hover:bg-accent/40"}`}
-                      >
-                        <div className="font-medium">{label}</div>
-                        <div className="text-xs text-muted-foreground">{desc}</div>
-                      </button>
-                    ))}
+            {accountId && openForAccount ? (
+              <div className="md:col-span-2 rounded-md bg-accent/50 p-3 text-sm">
+                This account already has a statement in progress.{" "}
+                <Link
+                  to="/reconcile/$id"
+                  params={{ id: openForAccount.id }}
+                  className="font-medium text-primary underline"
+                >
+                  Continue it
+                </Link>
+              </div>
+            ) : (
+              accountId && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Statement from</label>
+                    <input
+                      aria-label="Statement from"
+                      type="date"
+                      value={form.start}
+                      onChange={(e) => setForm({ ...form, start: e.target.value })}
+                      className={inputCls}
+                    />
                   </div>
-                </div>
-                <div className="md:col-span-2">
-                  <button
-                    onClick={start}
-                    disabled={busy}
-                    className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {busy ? "Starting…" : "Start"}
-                  </button>
-                </div>
-              </>
-            )
-          )}
+                  <div>
+                    <label className="text-sm font-medium">Statement to</label>
+                    <input
+                      aria-label="Statement to"
+                      type="date"
+                      value={form.end}
+                      onChange={(e) => setForm({ ...form, end: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Beginning balance</label>
+                    <input
+                      aria-label="Beginning balance"
+                      inputMode="decimal"
+                      value={form.beginning}
+                      onChange={(e) => setForm({ ...form, beginning: e.target.value })}
+                      className={`${inputCls} tnum`}
+                      placeholder="0.00"
+                    />
+                    {suggestQuery.data?.hasPrevious && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        From your last completed statement.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Ending balance (from statement)</label>
+                    <input
+                      aria-label="Ending balance (from statement)"
+                      inputMode="decimal"
+                      value={form.ending}
+                      onChange={(e) => setForm({ ...form, ending: e.target.value })}
+                      className={`${inputCls} tnum`}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">How do you want to check?</label>
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                      {(
+                        [
+                          [
+                            "simple",
+                            "Simple",
+                            "We match imported bank rows to your books automatically. You review the leftovers.",
+                          ],
+                          ["full", "Full", "Tick each item yourself, like balancing a checkbook."],
+                        ] as const
+                      ).map(([v, label, desc]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setForm({ ...form, mode: v })}
+                          className={`rounded-md border p-3 text-left text-sm ${form.mode === v ? "border-primary bg-primary/5" : "hover:bg-accent/40"}`}
+                        >
+                          <div className="font-medium">{label}</div>
+                          <div className="text-xs text-muted-foreground">{desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <button
+                      onClick={start}
+                      disabled={busy}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {busy ? "Starting…" : "Start"}
+                    </button>
+                  </div>
+                </>
+              )
+            )}
+          </div>
         </div>
-      </div>
+      </WriteGuard>
 
       <h2 className="font-display mt-8 text-lg font-semibold">History</h2>
       <div className="mt-3 overflow-hidden rounded-lg border bg-card">

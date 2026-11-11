@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -18,7 +19,6 @@ import { checkAmount, checkName } from "@/lib/validation";
 import { formatCents, todayISO } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { showError } from "@/lib/show-error";
-import { can } from "@/lib/permissions";
 import { FREQUENCIES, type Frequency } from "@/lib/domain/templates";
 
 export const Route = createFileRoute("/_authenticated/templates")({
@@ -51,6 +51,7 @@ const FREQ_LABEL: Record<Frequency, string> = {
 };
 
 function TemplatesPage() {
+  const access = useAccess();
   const { org } = useOrgContext();
   const qc = useQueryClient();
   const today = todayISO(new Date(), org?.timezone);
@@ -79,8 +80,8 @@ function TemplatesPage() {
     enabled: !!org,
   });
   if (!org) return <OrgPending />;
-  const canWrite = can(org.role, "write");
-  const isAdmin = can(org.role, "manage_settings");
+  const canWrite = access.can("write");
+  const isAdmin = access.can("manage_settings");
   const names = new Map((accounts.data ?? []).map((a) => [a.id, a.name]));
 
   async function create(e: React.FormEvent) {

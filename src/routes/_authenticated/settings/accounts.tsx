@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/settings/accounts")({
 });
 
 function AccountsSetup() {
+  const access = useAccess();
   const { org, terms } = useOrgContext();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,7 +39,7 @@ function AccountsSetup() {
   });
 
   if (!org) return <OrgPending inShell={false} />;
-  const isAdmin = org.role === "admin";
+  const isAdmin = access.can("manage_settings");
   const existing = setup.data ?? [];
   const catalog = catalogFor(org.orgType);
 

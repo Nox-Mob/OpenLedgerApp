@@ -1,3 +1,4 @@
+import { WriteGuard } from "@/components/WriteGuard";
 import { checkAmount, checkName } from "@/lib/validation";
 import { showError } from "@/lib/show-error";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -240,350 +241,356 @@ function NewTransactionPage() {
         ))}
       </div>
 
-      <form onSubmit={submit} className="mt-6 max-w-2xl space-y-4 rounded-lg border bg-card p-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium">Date</label>
-            <input
-              aria-label="Date"
-              type="date"
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <input
-              aria-label="Description"
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={
-                mode === "in"
-                  ? "e.g. Donation from Smith family"
-                  : mode === "out"
-                    ? "e.g. Office supplies"
-                    : "e.g. Move to savings"
-              }
-              className={inputCls}
-            />
-          </div>
-        </div>
-
-        {mode !== "advanced" && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Amount</label>
-                <input
-                  aria-label="Amount"
-                  required
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className={`${inputCls} tnum`}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">
-                  {mode === "in" ? "Deposit into" : mode === "out" ? "Paid from" : "From account"}
-                </label>
-                <select
-                  aria-label={
-                    mode === "in" ? "Deposit into" : mode === "out" ? "Paid from" : "From account"
-                  }
-                  required
-                  value={moneyAccountId}
-                  onChange={(e) => setMoneyAccountId(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Choose account…</option>
-                  {moneyAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      <WriteGuard>
+        <form onSubmit={submit} className="mt-6 max-w-2xl space-y-4 rounded-lg border bg-card p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Date</label>
+              <input
+                aria-label="Date"
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={inputCls}
+              />
             </div>
-
-            {mode === "transfer" ? (
-              <div>
-                <label className="text-sm font-medium">To account</label>
-                <select
-                  aria-label="To account"
-                  required
-                  value={transferToId}
-                  onChange={(e) => setTransferToId(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Choose account…</option>
-                  {moneyAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                {mode === "in" && org.orgType === "nonprofit" && (
-                  <div className="mb-4">
-                    <label className="text-sm font-medium">Type of money in</label>
-                    <div className="mt-1.5 grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          {
-                            id: "donation",
-                            label: "Donation",
-                            hint: "Given freely, nothing sold",
-                            accountName: "Donations",
-                          },
-                          {
-                            id: "sale",
-                            label: "Fundraising Sale",
-                            hint: "e.g. T-shirts, bake sale",
-                            accountName: "Fundraising Sales",
-                          },
-                          {
-                            id: "other",
-                            label: "Other",
-                            hint: "Grants, program revenue…",
-                            accountName: null,
-                          },
-                        ] as const
-                      ).map((k) => (
-                        <button
-                          key={k.id}
-                          type="button"
-                          onClick={() => {
-                            setMoneyInKind(k.id);
-                            if (k.accountName) {
-                              const match = inAccounts.find((a) => a.name === k.accountName);
-                              if (match) setOtherAccountId(match.id);
-                            }
-                          }}
-                          className={`rounded-md border px-3 py-2 text-left transition-colors ${
-                            moneyInKind === k.id
-                              ? "border-primary bg-accent"
-                              : "border-input hover:bg-accent/50"
-                          }`}
-                        >
-                          <span className="block text-sm font-medium">{k.label}</span>
-                          <span className="block text-xs text-muted-foreground">{k.hint}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {moneyInKind !== "other" &&
-                      !inAccounts.some(
-                        (a) =>
-                          a.name === (moneyInKind === "sale" ? "Fundraising Sales" : "Donations"),
-                      ) && (
-                        <p className="mt-2 text-xs text-destructive">
-                          This organization doesn't have a "
-                          {moneyInKind === "sale" ? "Fundraising Sales" : "Donations"}" account yet.
-                          An admin can turn it on in Settings → Accounts.
-                        </p>
-                      )}
-                  </div>
-                )}
-                <label className="text-sm font-medium">
-                  {mode === "in"
-                    ? `Where it came from (${terms.revenue})`
-                    : `What it was for (${terms.expenses})`}
-                </label>
-                <select
-                  aria-label={mode === "in" ? "Where it came from" : "What it was for"}
-                  required
-                  value={otherAccountId}
-                  onChange={(e) => setOtherAccountId(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Choose…</option>
-                  {(mode === "in" ? inAccounts : outAccounts).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {mode !== "transfer" && (
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium">
-                    Category <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <select
-                    aria-label="Category"
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">None</option>
-                    {(categoriesQuery.data ?? []).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    Project <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <select
-                    aria-label="Project"
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">None</option>
-                    {(projectsQuery.data ?? []).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    Fund <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <select
-                    aria-label="Fund"
-                    value={fundId}
-                    onChange={(e) => setFundId(e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">None</option>
-                    {(fundsQuery.data ?? []).map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {mode === "advanced" && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Split a transaction across accounts. {terms.debit}s must equal{" "}
-              {terms.credit.toLowerCase()}s.
-            </p>
-            <div className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2 text-xs font-medium text-muted-foreground">
-              <span>Account</span>
-              <span className="text-right">{terms.debit}</span>
-              <span className="text-right">{terms.credit}</span>
-              <span>Memo</span>
-              <span></span>
-            </div>
-            {rows.map((row, i) => (
-              <div key={i} className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2">
-                <select
-                  aria-label={`Line ${i + 1} account`}
-                  value={row.accountId}
-                  onChange={(e) =>
-                    setRows(rows.map((r, j) => (j === i ? { ...r, accountId: e.target.value } : r)))
-                  }
-                  className={selectCls}
-                >
-                  <option value="">Choose…</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  aria-label={`Line ${i + 1} ${terms.debit}`}
-                  inputMode="decimal"
-                  value={row.debit}
-                  onChange={(e) =>
-                    setRows(
-                      rows.map((r, j) =>
-                        j === i ? { ...r, debit: e.target.value, credit: "" } : r,
-                      ),
-                    )
-                  }
-                  placeholder="0.00"
-                  className={`${inputCls} tnum text-right`}
-                />
-                <input
-                  aria-label={`Line ${i + 1} ${terms.credit}`}
-                  inputMode="decimal"
-                  value={row.credit}
-                  onChange={(e) =>
-                    setRows(
-                      rows.map((r, j) =>
-                        j === i ? { ...r, credit: e.target.value, debit: "" } : r,
-                      ),
-                    )
-                  }
-                  placeholder="0.00"
-                  className={`${inputCls} tnum text-right`}
-                />
-                <input
-                  aria-label={`Line ${i + 1} memo`}
-                  value={row.memo}
-                  onChange={(e) =>
-                    setRows(rows.map((r, j) => (j === i ? { ...r, memo: e.target.value } : r)))
-                  }
-                  placeholder="Optional note"
-                  className={inputCls}
-                />
-                <button
-                  type="button"
-                  onClick={() => rows.length > 2 && setRows(rows.filter((_, j) => j !== i))}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setRows([...rows, { accountId: "", debit: "", credit: "", memo: "" }])}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              <Plus className="h-4 w-4" /> Add line
-            </button>
-            <div className="flex justify-end gap-6 border-t pt-3 text-sm">
-              <span className="tnum">
-                {terms.debit}: {formatCents(advancedTotals.debit)}
-              </span>
-              <span className="tnum">
-                {terms.credit}: {formatCents(advancedTotals.credit)}
-              </span>
-              <span
-                className={
-                  advancedTotals.balanced
-                    ? "text-primary font-medium"
-                    : "text-destructive font-medium"
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <input
+                aria-label="Description"
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={
+                  mode === "in"
+                    ? "e.g. Donation from Smith family"
+                    : mode === "out"
+                      ? "e.g. Office supplies"
+                      : "e.g. Move to savings"
                 }
-              >
-                {advancedTotals.balanced ? "Balanced" : "Not balanced"}
-              </span>
+                className={inputCls}
+              />
             </div>
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={busy || (mode === "advanced" && !advancedTotals.balanced)}
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {busy ? "Saving…" : "Save transaction"}
-        </button>
-      </form>
+          {mode !== "advanced" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Amount</label>
+                  <input
+                    aria-label="Amount"
+                    required
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className={`${inputCls} tnum`}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">
+                    {mode === "in" ? "Deposit into" : mode === "out" ? "Paid from" : "From account"}
+                  </label>
+                  <select
+                    aria-label={
+                      mode === "in" ? "Deposit into" : mode === "out" ? "Paid from" : "From account"
+                    }
+                    required
+                    value={moneyAccountId}
+                    onChange={(e) => setMoneyAccountId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Choose account…</option>
+                    {moneyAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {mode === "transfer" ? (
+                <div>
+                  <label className="text-sm font-medium">To account</label>
+                  <select
+                    aria-label="To account"
+                    required
+                    value={transferToId}
+                    onChange={(e) => setTransferToId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Choose account…</option>
+                    {moneyAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  {mode === "in" && org.orgType === "nonprofit" && (
+                    <div className="mb-4">
+                      <label className="text-sm font-medium">Type of money in</label>
+                      <div className="mt-1.5 grid grid-cols-3 gap-2">
+                        {(
+                          [
+                            {
+                              id: "donation",
+                              label: "Donation",
+                              hint: "Given freely, nothing sold",
+                              accountName: "Donations",
+                            },
+                            {
+                              id: "sale",
+                              label: "Fundraising Sale",
+                              hint: "e.g. T-shirts, bake sale",
+                              accountName: "Fundraising Sales",
+                            },
+                            {
+                              id: "other",
+                              label: "Other",
+                              hint: "Grants, program revenue…",
+                              accountName: null,
+                            },
+                          ] as const
+                        ).map((k) => (
+                          <button
+                            key={k.id}
+                            type="button"
+                            onClick={() => {
+                              setMoneyInKind(k.id);
+                              if (k.accountName) {
+                                const match = inAccounts.find((a) => a.name === k.accountName);
+                                if (match) setOtherAccountId(match.id);
+                              }
+                            }}
+                            className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                              moneyInKind === k.id
+                                ? "border-primary bg-accent"
+                                : "border-input hover:bg-accent/50"
+                            }`}
+                          >
+                            <span className="block text-sm font-medium">{k.label}</span>
+                            <span className="block text-xs text-muted-foreground">{k.hint}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {moneyInKind !== "other" &&
+                        !inAccounts.some(
+                          (a) =>
+                            a.name === (moneyInKind === "sale" ? "Fundraising Sales" : "Donations"),
+                        ) && (
+                          <p className="mt-2 text-xs text-destructive">
+                            This organization doesn't have a "
+                            {moneyInKind === "sale" ? "Fundraising Sales" : "Donations"}" account
+                            yet. An admin can turn it on in Settings → Accounts.
+                          </p>
+                        )}
+                    </div>
+                  )}
+                  <label className="text-sm font-medium">
+                    {mode === "in"
+                      ? `Where it came from (${terms.revenue})`
+                      : `What it was for (${terms.expenses})`}
+                  </label>
+                  <select
+                    aria-label={mode === "in" ? "Where it came from" : "What it was for"}
+                    required
+                    value={otherAccountId}
+                    onChange={(e) => setOtherAccountId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">Choose…</option>
+                    {(mode === "in" ? inAccounts : outAccounts).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {mode !== "transfer" && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">
+                      Category <span className="text-muted-foreground">(optional)</span>
+                    </label>
+                    <select
+                      aria-label="Category"
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className={selectCls}
+                    >
+                      <option value="">None</option>
+                      {(categoriesQuery.data ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">
+                      Project <span className="text-muted-foreground">(optional)</span>
+                    </label>
+                    <select
+                      aria-label="Project"
+                      value={projectId}
+                      onChange={(e) => setProjectId(e.target.value)}
+                      className={selectCls}
+                    >
+                      <option value="">None</option>
+                      {(projectsQuery.data ?? []).map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">
+                      Fund <span className="text-muted-foreground">(optional)</span>
+                    </label>
+                    <select
+                      aria-label="Fund"
+                      value={fundId}
+                      onChange={(e) => setFundId(e.target.value)}
+                      className={selectCls}
+                    >
+                      <option value="">None</option>
+                      {(fundsQuery.data ?? []).map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {mode === "advanced" && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Split a transaction across accounts. {terms.debit}s must equal{" "}
+                {terms.credit.toLowerCase()}s.
+              </p>
+              <div className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2 text-xs font-medium text-muted-foreground">
+                <span>Account</span>
+                <span className="text-right">{terms.debit}</span>
+                <span className="text-right">{terms.credit}</span>
+                <span>Memo</span>
+                <span></span>
+              </div>
+              {rows.map((row, i) => (
+                <div key={i} className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2">
+                  <select
+                    aria-label={`Line ${i + 1} account`}
+                    value={row.accountId}
+                    onChange={(e) =>
+                      setRows(
+                        rows.map((r, j) => (j === i ? { ...r, accountId: e.target.value } : r)),
+                      )
+                    }
+                    className={selectCls}
+                  >
+                    <option value="">Choose…</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label={`Line ${i + 1} ${terms.debit}`}
+                    inputMode="decimal"
+                    value={row.debit}
+                    onChange={(e) =>
+                      setRows(
+                        rows.map((r, j) =>
+                          j === i ? { ...r, debit: e.target.value, credit: "" } : r,
+                        ),
+                      )
+                    }
+                    placeholder="0.00"
+                    className={`${inputCls} tnum text-right`}
+                  />
+                  <input
+                    aria-label={`Line ${i + 1} ${terms.credit}`}
+                    inputMode="decimal"
+                    value={row.credit}
+                    onChange={(e) =>
+                      setRows(
+                        rows.map((r, j) =>
+                          j === i ? { ...r, credit: e.target.value, debit: "" } : r,
+                        ),
+                      )
+                    }
+                    placeholder="0.00"
+                    className={`${inputCls} tnum text-right`}
+                  />
+                  <input
+                    aria-label={`Line ${i + 1} memo`}
+                    value={row.memo}
+                    onChange={(e) =>
+                      setRows(rows.map((r, j) => (j === i ? { ...r, memo: e.target.value } : r)))
+                    }
+                    placeholder="Optional note"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => rows.length > 2 && setRows(rows.filter((_, j) => j !== i))}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setRows([...rows, { accountId: "", debit: "", credit: "", memo: "" }])
+                }
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <Plus className="h-4 w-4" /> Add line
+              </button>
+              <div className="flex justify-end gap-6 border-t pt-3 text-sm">
+                <span className="tnum">
+                  {terms.debit}: {formatCents(advancedTotals.debit)}
+                </span>
+                <span className="tnum">
+                  {terms.credit}: {formatCents(advancedTotals.credit)}
+                </span>
+                <span
+                  className={
+                    advancedTotals.balanced
+                      ? "text-primary font-medium"
+                      : "text-destructive font-medium"
+                  }
+                >
+                  {advancedTotals.balanced ? "Balanced" : "Not balanced"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy || (mode === "advanced" && !advancedTotals.balanced)}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {busy ? "Saving…" : "Save transaction"}
+          </button>
+        </form>
+      </WriteGuard>
     </AppShell>
   );
 }

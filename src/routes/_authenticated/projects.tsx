@@ -1,3 +1,5 @@
+import { useAccess } from "@/hooks/use-access";
+import { WriteGuard } from "@/components/WriteGuard";
 import { checkAmount, checkName } from "@/lib/validation";
 import { showError } from "@/lib/show-error";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
@@ -36,6 +38,7 @@ const inputCls =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 function ProjectsPage() {
+  const access = useAccess();
   const { org } = useOrgContext();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -85,39 +88,41 @@ function ProjectsPage() {
       <h1 className="font-display text-2xl font-bold">Projects</h1>
       <p className="mt-1 text-sm text-muted-foreground">Budget vs actual spending, per project.</p>
 
-      <form
-        onSubmit={submit}
-        className="mt-5 flex max-w-xl items-end gap-3 rounded-lg border bg-card p-4"
-      >
-        <div className="flex-1">
-          <label className="text-sm font-medium">Project name</label>
-          <input
-            aria-label="Project name"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputCls}
-            placeholder="e.g. Summer Food Program"
-          />
-        </div>
-        <div className="w-36">
-          <label className="text-sm font-medium">Budget</label>
-          <input
-            aria-label="Budget"
-            inputMode="decimal"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            className={`${inputCls} tnum`}
-            placeholder="0.00"
-          />
-        </div>
-        <button
-          type="submit"
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      <WriteGuard>
+        <form
+          onSubmit={submit}
+          className="mt-5 flex max-w-xl items-end gap-3 rounded-lg border bg-card p-4"
         >
-          <Plus className="h-4 w-4" /> Add
-        </button>
-      </form>
+          <div className="flex-1">
+            <label className="text-sm font-medium">Project name</label>
+            <input
+              aria-label="Project name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputCls}
+              placeholder="e.g. Summer Food Program"
+            />
+          </div>
+          <div className="w-36">
+            <label className="text-sm font-medium">Budget</label>
+            <input
+              aria-label="Budget"
+              inputMode="decimal"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className={`${inputCls} tnum`}
+              placeholder="0.00"
+            />
+          </div>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" /> Add
+          </button>
+        </form>
+      </WriteGuard>
 
       <div className="mt-6 overflow-hidden rounded-lg border bg-card">
         {summaryQuery.isPending ? (
@@ -176,7 +181,8 @@ function ProjectsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        className="text-xs font-medium text-primary hover:underline"
+                        className="text-xs font-medium text-primary hover:underline disabled:pointer-events-none disabled:opacity-50"
+                        disabled={!access.can("write")}
                         aria-label={`${p.status === "archived" ? "Restore" : "Archive"} ${p.name}`}
                         onClick={() =>
                           toggleArchived(

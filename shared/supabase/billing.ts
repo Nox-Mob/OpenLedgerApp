@@ -29,6 +29,19 @@ export function hasAppAccess(billing: OrgBilling, app: AppId, now: Date = new Da
   return false;
 }
 
+/**
+ * True when billing makes this app read-only for the organization: the database refuses its
+ * writes (SHARED-SPEC §5), so the app switches its write controls off (S-05). No billing (null,
+ * self-hosted) is never read-only. Reading and exporting always stay on.
+ */
+export function isReadOnly(
+  billing: OrgBilling | null | undefined,
+  app: AppId,
+  now: Date = new Date(),
+): boolean {
+  return !!billing && !hasAppAccess(billing, app, now);
+}
+
 const DAY = 24 * 60 * 60 * 1000;
 
 export function daysLeft(until: string | null, now: Date = new Date()): number | null {
