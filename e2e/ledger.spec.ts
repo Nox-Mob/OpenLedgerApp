@@ -45,7 +45,9 @@ test.describe("the demo owner", () => {
     await page.goto("/accounts");
     const main = page.getByRole("main");
     for (const account of ["Checking", "Savings", "Membership Dues", "Donations"])
-      await expect(main.getByText(account, { exact: true }).first()).toBeVisible();
+      await expect(
+        main.getByText(account, { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
   });
 
   test("transactions list three months of activity", async ({ page }) => {
@@ -63,6 +65,7 @@ test.describe("the demo owner", () => {
       page
         .getByRole("main")
         .getByText(/Checking/)
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
   });
