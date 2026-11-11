@@ -10,7 +10,6 @@ src/integrations/supabase/
 src/routeTree.gen.ts
 supabase/
 bun.lock
-.lovable/
 # Vendored from Nox-Mob/OpenAppHub (checked by scripts/check-shared.mjs)
 shared/
 db/core/

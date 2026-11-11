@@ -8,8 +8,13 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 - Every page and server response now carries security headers (content security policy limited to the app and its database, no framing, no content sniffing, strict referrer).
 
+### Removed
+
+- Reading PDF bank statements with AI. Bank import takes CSV, OFX and QFX files; download one of those from your bank instead. The Settings switch for it is gone too.
+
 ### Changed
 
+- Google sign-in goes straight through Supabase (no Lovable sign-in broker), and the Lovable build wrapper, preview helpers and error reporting are removed.
 - Deployment: the app is set up to run as a Cloudflare Worker for the OpenAppHub hosted edition (`wrangler.jsonc`, `npm run build:hosted`). Self-hosting is unchanged: `npm run build` with your own `.env`.
 - `.env` is no longer tracked. Copy `.env.example` to `.env` or `.env.local` and fill it in.
 - Installs no longer depend on Lovable's private package cache.
