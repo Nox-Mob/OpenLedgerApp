@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { SettingsSidebar } from "@/components/SettingsNav";
 import { AppShell as SuiteShell } from "@shared/ui/AppShell";
 import { getOrgBilling } from "@shared/supabase/billing";
 import { hubUrl, isHosted } from "@shared/supabase/hosted";
@@ -101,28 +102,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const items = NAV.filter((item) => !("write" in item && item.write) || org?.role !== "viewer");
   const active = currentNav(pathname, items);
-  const nav = items
-    .filter((item) => item.to !== "/settings")
-    .map((item) => ({
-      label: item.to === "/reconcile" ? terms.reconcile : item.label,
-      href: item.to,
-      icon: <item.icon aria-hidden="true" />,
-      current: item.to === active,
-    }));
+  // Settings is the menu's last item (NAV); its pages open under it (SettingsSidebar).
+  const nav = items.map((item) => ({
+    label: item.to === "/reconcile" ? terms.reconcile : item.label,
+    href: item.to,
+    icon: <item.icon aria-hidden="true" />,
+    current: item.to === active,
+  }));
   const createHref = isHosted() ? hubUrl("/orgs/new") : "/onboarding";
 
   return (
     <SuiteShell
       app="ledger"
       nav={nav}
-      navFooter={[
-        {
-          label: "Settings",
-          href: "/settings",
-          icon: <Settings aria-hidden="true" />,
-          current: active === "/settings",
-        },
-      ]}
+      sidebar={<SettingsSidebar pathname={pathname} />}
       user={desktop ? null : (user.data ?? null)}
       orgs={orgs.map((o) => ({ id: o.id, name: o.name, role: o.role }))}
       currentOrgId={org?.id ?? null}

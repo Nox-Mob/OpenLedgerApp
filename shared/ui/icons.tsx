@@ -30,6 +30,7 @@ export const GridIcon = (p: P) => (
 );
 export const ChevronsIcon = (p: P) => <Svg d="m7 15 5 5 5-5M7 9l5-5 5 5" {...p} />;
 export const CheckIcon = (p: P) => <Svg d="M20 6 9 17l-5-5" {...p} />;
+export const ChevronDownIcon = (p: P) => <Svg d="m6 9 6 6 6-6" {...p} />;
 export const PlusIcon = (p: P) => <Svg d="M12 5v14M5 12h14" {...p} />;
 export const HelpIcon = (p: P) => (
   <Svg

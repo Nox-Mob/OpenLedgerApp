@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCurrentOrgCookie, setCurrentOrg } from "../../shared/supabase/org";
+import { getCurrentOrgCookie, setCurrentOrg, takeOrgFromUrl } from "../../shared/supabase/org";
 
 // The current organization is the suite's `oah_org` cookie (SHARED-SPEC §4.1): set on
 // .openapphub.org when hosted, so choosing an organization in any app chooses it in
@@ -18,6 +18,16 @@ function readLocal(): string | null {
 
 export function getStoredOrgId(): string | null {
   if (typeof window === "undefined") return null;
+  // A link from OpenAppHub (?org=) opens that organization; then the suite cookie.
+  const fromLink = takeOrgFromUrl();
+  if (fromLink) {
+    try {
+      window.localStorage.setItem(KEY, fromLink);
+    } catch {
+      // Private mode: the cookie holds the choice.
+    }
+    return fromLink;
+  }
   return getCurrentOrgCookie() ?? readLocal();
 }
 

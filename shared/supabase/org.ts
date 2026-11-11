@@ -59,6 +59,36 @@ export function getCurrentOrgCookie(): string | null {
   return readOrgCookie(document.cookie);
 }
 
+/** The `org` search parameter of a URL, when it's an organization id. */
+export function orgFromSearch(search: string): string | null {
+  const value = new URLSearchParams(search).get("org") ?? "";
+  return UUID.test(value) ? value.toLowerCase() : null;
+}
+
+/** A link that opens `url` in organization `orgId` (`?org=`, read by takeOrgFromUrl). */
+export function withOrg(url: string, orgId: string): string {
+  if (!UUID.test(orgId)) return url;
+  const u = new URL(url, "http://placeholder.invalid");
+  u.searchParams.set("org", orgId);
+  return url.startsWith("http") ? u.toString() : `${u.pathname}${u.search}${u.hash}`;
+}
+
+/**
+ * Browser only: if the address has `?org=<id>` (a link from OpenAppHub), make it the
+ * current org and remove it from the address. Returns the id, or null. Like the cookie,
+ * it's only a preference: callers still check it against the user's memberships.
+ */
+export function takeOrgFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const orgId = orgFromSearch(window.location.search);
+  if (!orgId) return null;
+  setCurrentOrg(orgId);
+  const u = new URL(window.location.href);
+  u.searchParams.delete("org");
+  window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}${u.hash}`);
+  return orgId;
+}
+
 type MembershipRow = {
   role: OrgRole;
   organizations: { id: string; name: string; slug: string | null } | null;
