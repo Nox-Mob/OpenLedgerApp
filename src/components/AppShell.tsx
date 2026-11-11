@@ -5,7 +5,7 @@ import { SettingsSidebar } from "@/components/SettingsNav";
 import { AppShell as SuiteShell } from "@shared/ui/AppShell";
 import { getOrgBilling } from "@shared/supabase/billing";
 import { hubUrl, isHosted } from "@shared/supabase/hosted";
-import { docsUrl } from "@shared/docs";
+import { helpHrefFor } from "@/config/help";
 import { RouterLink } from "@/lib/router-link";
 import { setStoredOrgId } from "@/lib/current-org";
 import {
@@ -127,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       billing={billing.data ?? null}
       canManageBilling={org?.role === "admin"}
       billingHref={hubUrl("/billing")}
-      helpHref={docsUrl("ledger/")}
+      helpHref={helpHrefFor(pathname)}
       onSignOut={() => void signOut()}
       LinkComponent={RouterLink}
     >
