@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -9,6 +9,7 @@
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
     "shared/apps.ts": "c86f693701d1dde50e1ead214a64dcca2d7534dfcb5552069527e8723ea97f0a",
+    "shared/brand/marks.ts": "53c8e91891d0311bf6d4a8e565f48a23e638b20aee15b3bd5cfb1cf5187ecdce",
     "shared/consent.ts": "8516284e683693a1fc8e28db61a8f88ea52308a88f10e6577309e32017217b2d",
     "shared/design/DESIGN.md": "4bfef588e516716d61e12d263f5ac46d5a6cc49014fa68d40238292c256d0578",
     "shared/design/tailwind-preset.ts": "ffcfa6e99f784546d2845ec65d6860a9b21fe0ed3ebb1f374cc17d06a0f58e73",
@@ -17,25 +18,26 @@
     "shared/docs.ts": "530b2beae06f9e4229f6f114fb1bfc05d1070211939f6e19261d0bfa1db2d784",
     "shared/env.d.ts": "017b3af393af4da6d1008071ca8092293fc8709e7478ee2fdf10c8f79456b945",
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
-    "shared/README.md": "75e48090dc4ab2f9853591bb2c17b773bb3304926e5250c4444766bb16cb799e",
+    "shared/README.md": "866323297631892848a7971cabeddfac297641d586aca84bfa2c14f78b9fc76c",
     "shared/supabase/billing.ts": "8b99dffdfa37ebef1338ee6b53d82e47572bece132f0a5eabe072ffcc38a413d",
     "shared/supabase/client.ts": "ddf8f272e5906402125f55277da3beb4f28c6bafeddba0193d3f68210ee88a4d",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
     "shared/supabase/org.ts": "e29cbaea1c1c77c9cfde943ee5f59fb3145b7fee77cb4b45c552783c99088ce2",
     "shared/theme.ts": "e3e82dd7001c74561430ad88cbf7306b17adb0295cc7bb083e8a33d00d52bc34",
-    "shared/ui/AppShell.tsx": "2d764210008422cec0e8642d57bcb594862d5bd21156763b4f24d93177d875f8",
+    "shared/ui/AppLogo.tsx": "370c0cf5b237a7522b3fa15e37b0b7262af9604b7d0e8c34980e058597d493b8",
+    "shared/ui/AppShell.tsx": "8f2602f221163ac99919ba3e097135d98cc1e5cafd9b6e17578db86dd8224fe7",
     "shared/ui/BillingBanner.tsx": "4ef0e002678ed6481d6317e678f7b82d7f1b32f23270b7459772bb160e18c7ae",
     "shared/ui/CookieConsent.tsx": "b42d2788bcefbd0cf7541c455ba3c34b80bd8c4ac9f9d2631387e212f3b38091",
     "shared/ui/Dropdown.tsx": "e7409411f862b892e5aa158b25611ec06d1caeb5088ac8aa1b860b897c47ef00",
     "shared/ui/HelpLink.tsx": "0dfc2f2e2081816eefa1f45ce50068099173b98a0d7db1882a879028be5469fa",
     "shared/ui/icons.tsx": "665dba33b054bb4040d9d95f42029a686f8f9dc6758c8290c4dfcf082402c44a",
-    "shared/ui/index.ts": "2e22d3b63555a1f7264dcfdf9be884cbc1fbf86c3994f7226ddb1143f6346852",
+    "shared/ui/index.ts": "3e0480ad089de961155875f27106458cf097e7840c72db24346b99cf9cf59511",
     "shared/ui/InvitationPage.tsx": "ce510a696788d96783787f8480bb3e14a8470b01949cdccc2ede17f0fd720291",
     "shared/ui/link.tsx": "3651f4b8159ba551875c54bda4009c9c06a12fae3dacf9be11cd39f5fa85113f",
     "shared/ui/OrgSwitcher.tsx": "88bf3caa61b5781fb2d96f6d1dffec339960d72289b704e86d63c4638a080170",
-    "shared/ui/SuiteSwitcher.tsx": "18e62bb9416282a62950c99e8b153967737d0aa24f407715a891cd73c0670e8f",
+    "shared/ui/SuiteSwitcher.tsx": "a9cbc7f634e495db8712d894c2d49f8fe8a3fdfbe91e4f91da4c438e0a379804",
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "7d072b48526b023950e4c48db01e8c273554a6401119f5691e7589ba9bc65d9d"
+    "shared/VERSION": "acb57a7135b2d7d6e665f67f056e21353023b93835f54def1ae523bf76f1bfb3"
   }
 }

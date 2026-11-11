@@ -40,6 +40,10 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.5.0`: the suite's logos. `shared/brand/marks.ts` draws one family of marks (H, C, B, L on each
+  app's accent tile, with the suite's "open" dot); `AppLogo` shows it in the shell, the app
+  switcher and the hub. The hub's `scripts/brand-assets.ts` writes each app's favicon (SVG, ICO,
+  apple-touch) and transparent PNGs (16–1024 px) into its `public/`.
 - `1.4.1`: docs only. SHARED-SPEC §2 says the old build tooling is removed (no editor-specific packages,
   preview helpers or hosts); no code changes.
 - `1.4.0`: open apps straight into an organization. `appOrgUrl()` (`shared/apps.ts`) gives each

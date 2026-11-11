@@ -3,7 +3,8 @@
 // BillingBanner underneath. Below 768px the sidebar becomes a drawer.
 // Router-agnostic (pass your router's Link as LinkComponent) and SSR-safe.
 import { useRef, useState, type ReactNode } from "react";
-import { APP_MARKS, APP_NAMES } from "../apps";
+import { APP_NAMES } from "../apps";
+import { AppLogo } from "./AppLogo";
 import type { OrgBilling } from "../supabase/billing";
 import type { AppId } from "../supabase/hosted";
 import { BillingBanner } from "./BillingBanner";
@@ -90,9 +91,7 @@ function SideNav({
   return (
     <div className="flex h-full flex-col gap-5 px-3 py-4">
       <div className="flex items-center gap-2.5 px-2 font-semibold">
-        <span className="grid size-7 place-items-center rounded-md bg-app-accent text-sm font-bold text-app-accent-foreground">
-          {APP_MARKS[app]}
-        </span>
+        <AppLogo app={app} size={28} />
         {APP_NAMES[app]}
       </div>
       <nav aria-label={APP_NAMES[app]} className="flex-1 overflow-y-auto">
