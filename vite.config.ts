@@ -5,6 +5,7 @@
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { configDefaults } from "vitest/config";
 
 // Desktop (Tauri) loads files from disk, so it builds as a static single-page app.
 const desktop = process.argv.includes("desktop");
@@ -18,5 +19,9 @@ export default defineConfig({
   },
   // Pre-bundle recharts with React up front so a late discovery doesn't produce
   // two React copies (null useRef crash).
-  vite: { optimizeDeps: { include: ["recharts"] } },
+  vite: {
+    optimizeDeps: { include: ["recharts"] },
+    // Unit tests only: e2e/ is Playwright's (npm run test:e2e).
+    test: { exclude: [...configDefaults.exclude, "e2e/**"] },
+  },
 });

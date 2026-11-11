@@ -1,5 +1,7 @@
 # OpenLedgerApp — Roadmap
 
+The to-do list, with what's left for the OpenAppHub suite migration, is [`docs/epic.md`](docs/epic.md). This file keeps the version history.
+
 ## Road to v1.0 (plan approved 2026-10-08, updated 2026-10-10)
 
 - v0.0.6 Safety, controls and reports (released 2026-10-08): MFA, delete my account, session safety, rollback tests, structural direct-write rule, .env check, full dependency audit, keyboard walk-through, release checklist, plus early items: general ledger, account activity, fund and statement check reports, drill-down, cash basis labels, 50k speed test, Export all (Excel and PDF), accounting-format Excel, plain report names, treasurer role, plain-language error pop-ups with on-screen and nothing-recorded tests.
@@ -28,4 +30,4 @@
 
 ## Notes
 
-- Demo login (demo@demo.org) is signed out automatically on published sites unless VITE_ALLOW_DEMO_LOGIN=true.
+- The demo is the suite demo: demo@demo.openapphub.org (Riverside Community Association) and test@demo.openapphub.org, password OpenAppHubDemo2026, on staging only, reset every 12 hours.
