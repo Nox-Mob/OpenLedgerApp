@@ -112,8 +112,7 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 - Server-side code runs as TanStack Start **server functions and server routes** on the Worker. Supabase Edge Functions are not used.
 - Browser auth uses `@supabase/ssr`'s `createBrowserClient` (cookie sessions, §4.1). Server functions keep receiving the user's access token from the browser (each repo's existing `auth-attacher` / `auth-middleware`) and act as that user.
 - Package managers stay as they are: **Charter: Bun.** **Board, Ledger, hub: npm.** Check the lockfile; never switch.
-- **Remove Lovable:** `@lovable.dev/*` packages (including the Vite config wrapper and the OAuth broker), `previewAuthStorage`, Lovable hosts, `.lovable/`, the Lovable notes in `AGENTS.md`, `drizzle/` once nothing reads it, and `supabase/config.toml` pointing at old projects. Google sign-in uses plain `supabase.auth.signInWithOAuth` (self-hosted) or the hub (hosted).
-- **Disconnect each repo from Lovable** (owner step) **before** its Phase 2 database work reaches `main`. Moving tables out of `public` breaks Lovable's editor.
+- **Old build tooling removed** (done 2026-11-11): each app has a plain `vite.config.ts`, no editor-specific packages, preview helpers or hosts, no `drizzle/`, and no `supabase/config.toml` pointing at old projects. Google sign-in uses plain `supabase.auth.signInWithOAuth` (self-hosted) or the hub (hosted).
 - Money: `bigint` cents, or `numeric(14,2)`. Never `float`/`real`.
 - Timestamps: `timestamptz`, UTC. IDs: `uuid`, `default gen_random_uuid()` as a fallback where the app supplies its own ids.
 - App IDs: `hub`, `charter`, `board`, `ledger`.
@@ -612,7 +611,7 @@ When they ship, update in the docs repo:
 - [ ] Invitations, ownership and org management use core functions only (§4).
 - [ ] Service-role use matches §7.2.
 - [ ] No secrets in code or history (or the owner was told). `.env` untracked.
-- [ ] Old migration and deploy tooling switched off (§3.3, §10.2). Lovable removed and disconnected.
+- [ ] Old migration and deploy tooling switched off (§3.3, §10.2). Old build tooling removed (§2).
 - [ ] `.env.example`, `README.md` (self-hosting + hosted notes), `docs/INTEGRATION.md`, `docs/MIGRATION-NOTES.md` up to date.
 - [ ] Uses `shared/` at the current version; no hard-coded colours.
 - [ ] Owners/admins can export all org data in this app, including when read-only.

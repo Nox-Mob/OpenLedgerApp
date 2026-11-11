@@ -6,9 +6,9 @@ name: End-to-end
 # OpenCharterApp). Daily as well, to catch staging changes made outside this repository.
 on:
   push:
-    branches: [main]
+    branches: [staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
   schedule:
     - cron: "23 7 * * *"
   workflow_dispatch:

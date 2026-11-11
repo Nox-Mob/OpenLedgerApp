@@ -14,10 +14,10 @@ Notable changes to OpenLedgerApp are recorded here. This project follows the str
 
 ### Changed
 
-- Google sign-in goes straight through Supabase (no Lovable sign-in broker), and the Lovable build wrapper, preview helpers and error reporting are removed.
+- Google sign-in goes straight through Supabase, and the old build wrapper, preview helpers and error reporting are removed.
 - Deployment: the app is set up to run as a Cloudflare Worker for the OpenAppHub hosted edition (`wrangler.jsonc`, `npm run build:hosted`). Self-hosting is unchanged: `npm run build` with your own `.env`.
 - `.env` is no longer tracked. Copy `.env.example` to `.env` or `.env.local` and fill it in.
-- Installs no longer depend on Lovable's private package cache.
+- Installs no longer depend on a private package cache.
 
 ## [0.1.1] - 2026-10-28
 

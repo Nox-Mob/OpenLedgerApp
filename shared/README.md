@@ -40,6 +40,8 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.4.1`: docs only. SHARED-SPEC §2 says the old build tooling is removed (no editor-specific packages,
+  preview helpers or hosts); no code changes.
 - `1.4.0`: open apps straight into an organization. `appOrgUrl()` (`shared/apps.ts`) gives each
   app's address for one organization; `takeOrgFromUrl()` (`shared/supabase/org.ts`) makes a link's
   `?org=` the current org. The app switcher is a clear button (bordered, the app's accent colour,
