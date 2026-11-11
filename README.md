@@ -35,6 +35,12 @@ It refuses to run on a database that holds real organizations (or, on the OpenAp
 
 ---
 
+## Tests
+
+Unit tests: `npm test`. Database tests and the performance check: see `db/` and `.github/workflows/ci.yml`.
+
+End-to-end tests: `npm run test:e2e` (Playwright, `e2e/`) runs the app on a local dev server, self-hosted (its own sign-in page), against **staging** as the suite demo accounts (`demo@demo.openapphub.org` owns Riverside Community Association; `test@demo.openapphub.org` has no organization; password `OpenAppHubDemo2026`; reset every 12 hours). Staging's public settings come from `wrangler.jsonc` `env.staging`, so no secrets are needed. CI runs it in `.github/workflows/e2e.yml`. In the Claude cloud sandbox: `E2E_NO_SANDBOX=1 E2E_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run test:e2e`.
+
 ## Self-hosting: full reproduction guide
 
 Pick **one** path for the database and sign-in service, then finish with the shared steps.
