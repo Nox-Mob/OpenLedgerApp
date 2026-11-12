@@ -1,10 +1,12 @@
 # AGENTS.md — OpenLedgerApp (Nox-Mob/OpenLedgerApp)
 
+**Docs:** every internal document is in OpenAppHub's `docs/` (reader: `OpenAppHub/docs/README.md`; this app's: `OpenAppHub/docs/ledger/`; roadmap: `OpenAppHub/docs/ROADMAP.md`). Only `docs/SHARED-SPEC.md` (vendored) stays here.
+
 > **Branches (owner rule, 2026-11-11):** pull requests target `staging`, and every merge goes to `staging`. Nothing merges into `main` (production) without the owner's approval, or the owner merging it. CI runs on pull requests and on pushes to `staging`; only workflows that must run on `main` (releases) do.
 
 ## Suite migration (v2)
 
-**Read `docs/SHARED-SPEC.md` (v2) first.** Your step plan, inventory and status are `docs/MIGRATION-NOTES.md` (§7 is the plan; §7.1 lists which codebase rules below are replaced and in which step). This section gives the owner's answers and the changes v2 makes to the plan.
+**Read `docs/SHARED-SPEC.md` (v2) first.** Your step plan, inventory and status are `OpenAppHub/docs/ledger/MIGRATION-NOTES.md` (§7 is the plan; §7.1 lists which codebase rules below are replaced and in which step). This section gives the owner's answers and the changes v2 makes to the plan.
 
 App ID `ledger` · schema `ledger` · hosted at `ledger.openapphub.org` (staging `staging.ledger.staging.openapphub.org`) · package manager **npm**.
 
@@ -80,7 +82,7 @@ SHARED-SPEC §13 is satisfied; Ledger runs on the shared project; a hub sign-in 
 
 ---
 
-## Codebase rules (in force until `docs/MIGRATION-NOTES.md` §7.1 says a step replaces one)
+## Codebase rules (in force until `OpenAppHub/docs/ledger/MIGRATION-NOTES.md` §7.1 says a step replaces one)
 
 - Double-entry: ≥2 entries, sum=0, both signs (deferred trigger; void exempt). amount_cents >0 debit, <0 credit.
 - DB-enforced immutability: transactions only posted→void; entries only reconciliation_id; bank rows are evidence (FITID/hash+row_seq; link must match amount/account).

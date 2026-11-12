@@ -15,7 +15,7 @@ OpenLedgerApp is one of the apps of **[OpenAppHub](https://openapphub.org)**: on
 - **Reports:** general ledger, account activity, funds, statement check, drill-down, year-end close, and Export all (Excel and PDF) with signed backups.
 - **Isolation:** every organization's data is separated by row-level security in the database.
 
-Release notes: [`CHANGELOG.md`](CHANGELOG.md). What's left and what's next: [`docs/epic.md`](docs/epic.md).
+Release notes: [`CHANGELOG.md`](CHANGELOG.md). What's left and what's next: [`OpenAppHub/docs/ROADMAP.md`](https://github.com/Nox-Mob/OpenAppHub/blob/staging/docs/ROADMAP.md).
 
 ## Editions
 
@@ -27,7 +27,7 @@ Release notes: [`CHANGELOG.md`](CHANGELOG.md). What's left and what's next: [`do
 | Billing         | the hub's plans; read-only when a plan lapses         | none: always writable                          | free                            |
 | Build           | `npm run build:hosted`                                | `npm run build` (`VITE_HOSTED=false`)          | `npm run build:desktop` (Tauri) |
 
-The desktop app doesn't have everything yet: [`docs/desktop.md`](docs/desktop.md).
+The desktop app doesn't have everything yet: [`OpenAppHub/docs/ledger/desktop.md`](https://github.com/Nox-Mob/OpenAppHub/blob/staging/docs/ledger/desktop.md).
 
 ## Try it
 
@@ -340,18 +340,18 @@ When it runs: [Branches, CI and deploys](#branches-ci-and-deploys).
 
 ## Project layout
 
-| Path                     | What it is                                                |
-| ------------------------ | --------------------------------------------------------- |
-| `src/routes/`            | Pages (TanStack Router file-based routing)                |
-| `src/lib/*.functions.ts` | Server functions — all org data access goes through these |
-| `src/lib/report-math.ts` | Pure report calculations (unit-tested)                    |
-| `src/lib/parsers/`       | CSV / OFX / QFX bank-file parsers                         |
-| `db/core/`               | Suite core (vendored from OpenAppHub; never edited here)  |
-| `db/migrations/`         | Schema `ledger`: tables, RLS policies, triggers           |
-| `db/tests/`, `db/perf/`  | SQL-level rule tests and the performance check            |
-| `db/seed/`               | Demo data for staging and development (`--seed`)          |
-| `AGENTS.md`              | Architecture rules and invariants                         |
-| `roadmap.md`             | Planned work                                              |
+| Path                     | What it is                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `src/routes/`            | Pages (TanStack Router file-based routing)                                       |
+| `src/lib/*.functions.ts` | Server functions — all org data access goes through these                        |
+| `src/lib/report-math.ts` | Pure report calculations (unit-tested)                                           |
+| `src/lib/parsers/`       | CSV / OFX / QFX bank-file parsers                                                |
+| `db/core/`               | Suite core (vendored from OpenAppHub; never edited here)                         |
+| `db/migrations/`         | Schema `ledger`: tables, RLS policies, triggers                                  |
+| `db/tests/`, `db/perf/`  | SQL-level rule tests and the performance check                                   |
+| `db/seed/`               | Demo data for staging and development (`--seed`)                                 |
+| `AGENTS.md`              | Architecture rules and invariants                                                |
+| `docs/README.md`         | Where the docs moved: OpenAppHub's `docs/` (roadmap, architecture, database map) |
 
 ## License
 
