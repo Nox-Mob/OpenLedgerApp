@@ -24,7 +24,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.{mjs,ts}\"",
     "tauri": "tauri",
     "dev:desktop": "vite dev --mode desktop",
-    "build:desktop": "vite build --mode desktop && node scripts/desktop/prepare-dist.mjs"
+    "build:desktop": "vite build --mode desktop && node scripts/desktop/prepare-dist.mjs",
+    "gen:types": "bash scripts/db/gen-types.sh"
   },
   "overrides": {
     "rolldown": "1.2.1",
@@ -141,5 +142,5 @@
     "node": ">=22.22.2",
     "npm": ">=11"
   },
-  "oahShared": "1.11.0"
+  "oahShared": "1.13.0"
 }

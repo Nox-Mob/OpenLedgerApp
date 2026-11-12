@@ -94,6 +94,50 @@ export async function loadOrg(sb: Db, orgId: string): Promise<LedgerOrgRow | nul
   return merge(org, (await settingsFor(sb, [orgId])).get(orgId));
 }
 
+/**
+ * Roles set for Ledger only (core 0010): someone's role here, when an owner or admin made it
+ * different from their OpenAppHub role. The owner is the owner everywhere.
+ */
+async function ledgerOverrides(sb: Db, orgIds: string[], userId?: string) {
+  const out = new Map<string, CoreRole>();
+  if (orgIds.length === 0) return out;
+  // app_role_overrides isn't in the generated types until they're regenerated (H-06).
+  const pub = sb.schema("public") as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (
+          k: string,
+          v: string,
+        ) => {
+          in: (
+            k: string,
+            v: string[],
+          ) => PromiseLike<{
+            data: Array<{ org_id: string; user_id: string; role: CoreRole }> | null;
+            error: unknown;
+          }>;
+        };
+      };
+    };
+  };
+  try {
+    const { data, error } = await pub
+      .from("app_role_overrides")
+      .select("org_id, user_id, role")
+      .eq("app", "ledger")
+      .in("org_id", orgIds);
+    if (error) return out; // missing until core 0010 is applied
+    for (const r of data ?? [])
+      if (!userId || r.user_id === userId) out.set(`${r.org_id}:${r.user_id}`, r.role);
+  } catch {
+    // A client without the table (tests, older databases): everyone has their OpenAppHub role.
+  }
+  return out;
+}
+
+const effective = (core: CoreRole, override: CoreRole | undefined): CoreRole =>
+  core === "owner" ? "owner" : (override ?? core);
+
 /** The caller's organizations with their Ledger role, alphabetical. */
 export async function loadMyOrgs(
   sb: Db,
@@ -107,11 +151,12 @@ export async function loadMyOrgs(
   if (error) throw new Error(error.message);
   const rows = (data ?? []).filter((r) => r.organizations);
   const ids = rows.map((r) => r.organizations!.id);
-  const [settings, overlay] = await Promise.all([
+  const [settings, overlay, overrides] = await Promise.all([
     settingsFor(sb, ids),
     ids.length
       ? sb.from("member_roles").select("org_id, role").eq("user_id", userId).in("org_id", ids)
       : Promise.resolve({ data: [], error: null }),
+    ledgerOverrides(sb, ids, userId),
   ]);
   if (overlay.error) throw new Error(overlay.error.message);
   const treasurerIn = new Set(
@@ -122,7 +167,10 @@ export async function loadMyOrgs(
       const org = r.organizations!;
       return {
         ...merge(org, settings.get(org.id)),
-        role: ledgerRole(r.role as CoreRole, treasurerIn.has(org.id))!,
+        role: ledgerRole(
+          effective(r.role as CoreRole, overrides.get(`${org.id}:${userId}`)),
+          treasurerIn.has(org.id),
+        )!,
         // False for an organization made in the hub that hasn't set up its books yet.
         configured: settings.has(org.id),
       };
@@ -136,7 +184,7 @@ export async function loadRole(
   userId: string,
   orgId: string,
 ): Promise<{ role: OrgRole | null; requireMfa: boolean }> {
-  const [m, t, s] = await Promise.all([
+  const [m, t, s, overrides] = await Promise.all([
     sb
       .schema("public")
       .from("memberships")
@@ -146,18 +194,24 @@ export async function loadRole(
       .maybeSingle(),
     sb.from("member_roles").select("role").eq("user_id", userId).eq("org_id", orgId).maybeSingle(),
     sb.from("org_settings").select("require_mfa").eq("org_id", orgId).maybeSingle(),
+    ledgerOverrides(sb, [orgId], userId),
   ]);
+  const core = m.data?.role as CoreRole | undefined;
   return {
-    role: ledgerRole(m.data?.role as CoreRole | undefined, t.data?.role === "treasurer"),
+    role: ledgerRole(
+      core ? effective(core, overrides.get(`${orgId}:${userId}`)) : undefined,
+      t.data?.role === "treasurer",
+    ),
     requireMfa: !!s.data?.require_mfa,
   };
 }
 
 /** Everyone in an org with their Ledger role and name (core directory + overlay). */
 export async function loadMembers(sb: Db, orgId: string) {
-  const [dir, overlay] = await Promise.all([
+  const [dir, overlay, overrides] = await Promise.all([
     sb.schema("public").rpc("org_member_directory", { p_org: orgId }),
     sb.from("member_roles").select("user_id, role").eq("org_id", orgId),
+    ledgerOverrides(sb, [orgId]),
   ]);
   if (dir.error) throw new Error(dir.error.message);
   const treasurers = new Set(
@@ -166,7 +220,10 @@ export async function loadMembers(sb: Db, orgId: string) {
   return (dir.data ?? []).map((r) => ({
     userId: r.user_id,
     coreRole: r.role as CoreRole,
-    role: ledgerRole(r.role as CoreRole, treasurers.has(r.user_id))!,
+    role: ledgerRole(
+      effective(r.role as CoreRole, overrides.get(`${orgId}:${r.user_id}`)),
+      treasurers.has(r.user_id),
+    )!,
     displayName: r.display_name,
     email: r.email,
   }));

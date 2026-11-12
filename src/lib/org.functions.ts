@@ -187,18 +187,20 @@ const updateMemberRoleCloud = createServerFn({ method: "POST" })
       );
     }
 
-    // The core role (owner and admins only, enforced by the database), then Ledger's
-    // treasurer overlay with its history entry.
-    const core: CoreRole =
-      target.coreRole === "owner" ? "owner" : coreRoleFor(data.role as OrgRole);
-    if (core !== target.coreRole) {
-      const { error } = await supabase
-        .schema("public")
-        .from("memberships")
-        // cloud-only-write: core membership (schema public), not organization books
-        .update({ role: core })
-        .eq("org_id", data.orgId)
-        .eq("user_id", data.userId);
+    // The Ledger role (core 0010: only here; their OpenAppHub role and the other apps stay as
+    // they are; owners and admins only, enforced by the database), then Ledger's treasurer
+    // overlay with its history entry.
+    if (target.coreRole !== "owner") {
+      const rpc = supabase.schema("public").rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => PromiseLike<{ error: { message: string } | null }>;
+      const { error } = await rpc("set_app_role", {
+        p_org: data.orgId,
+        p_user: data.userId,
+        p_app: "ledger",
+        p_role: coreRoleFor(data.role as OrgRole),
+      });
       if (error) throw new Error(error.message);
     }
     await auditedWrite(

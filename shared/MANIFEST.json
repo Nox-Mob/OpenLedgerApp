@@ -1,5 +1,5 @@
 {
-  "version": "1.11.0",
+  "version": "1.13.0",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -9,10 +9,13 @@
     "db/core/0006_core_child_orgs.sql": "42f414d9613ae8424b1e032791506a4d47127dcf091b6cd260246c3bfb50a932",
     "db/core/0007_core_digest.sql": "5bb014d91384c3312041b13f9135825a6ae007de3ca3befae423f039ec6f6560",
     "db/core/0008_core_automations.sql": "0d57521848b8fed15e3a2fd06052244e8b666a7a63d800b0190b72556b8a4b2e",
+    "db/core/0009_core_workflows.sql": "8a83d7d786801dbe4e0c3d00e96dbc3c26a1b4b3128c0889be3d1be67de0e23e",
+    "db/core/0010_core_app_roles.sql": "3e7caee1f13c2572805299cad2f735c175c269146b7eb029f4e03b224685a0c4",
     "docs/SHARED-SPEC.md": "7a99272ce930b62214e0f8baee86b1ff7f2b932c7b7670d757fa53dfe2c4aae5",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
     "shared/apps.ts": "c86f693701d1dde50e1ead214a64dcca2d7534dfcb5552069527e8723ea97f0a",
+    "shared/automation/run.ts": "9c49b576af4cd68874ec7c5f8e28e4fa836585a87263130b81636b7c86728829",
     "shared/brand/marks.ts": "53c8e91891d0311bf6d4a8e565f48a23e638b20aee15b3bd5cfb1cf5187ecdce",
     "shared/consent.ts": "8516284e683693a1fc8e28db61a8f88ea52308a88f10e6577309e32017217b2d",
     "shared/design/DESIGN.md": "4bfef588e516716d61e12d263f5ac46d5a6cc49014fa68d40238292c256d0578",
@@ -26,14 +29,14 @@
     "shared/email/secret.ts": "a0fd2543df32fefac7bb31ba93648f47243d01ade013034b25cac022c1c527ea",
     "shared/email/selfhost.ts": "3860c5fa803a46c19c8882de9d3590bfd523575a50581cf1993e602be3ed4a2a",
     "shared/email/smtp.ts": "18eedadd9692b2b4c8b7ec0935505d7b67d3c05daffe15227c321c46a903d28a",
-    "shared/email/templates.ts": "5627ac04d557228d9405bbbe96cb9284f3d953e6de1a003e32141bf54b7679d5",
+    "shared/email/templates.ts": "48edcd53104c76289f6560e0ed9967ccf8a9945a80cfd3f102f8c862e3d1cb99",
     "shared/email/types.ts": "60429bb827b06f72185e9101728273ae7ba12d21d2fd862334789e4c63974078",
     "shared/email/unsubscribe.ts": "2f40dc47a4ccd52838eb57c2eedf5ed1656e09a1fd1d6bcf03bb4f7f5c79b838",
     "shared/env.d.ts": "017b3af393af4da6d1008071ca8092293fc8709e7478ee2fdf10c8f79456b945",
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/README.md": "fc4ba3e81efb642fc4c170e9be97c9f91693ec5ee0a4db89d01f79c397d3b172",
+    "shared/README.md": "523239dd456d5b0795e7b7193d009c13c4cc1cf9b55dfdc05c5b95c3573ef5e7",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
     "shared/supabase/client.ts": "ddf8f272e5906402125f55277da3beb4f28c6bafeddba0193d3f68210ee88a4d",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
@@ -57,6 +60,6 @@
     "shared/ui/SuiteSwitcher.tsx": "a9cbc7f634e495db8712d894c2d49f8fe8a3fdfbe91e4f91da4c438e0a379804",
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "74ee4d121463989183f9a9b848577eb2434f3f5d095de2a4b197bf29ffa2399b"
+    "shared/VERSION": "b4a9545a385e9701482be56a0efee678d467d9c586ec476f2c5986cfaa24e96c"
   }
 }

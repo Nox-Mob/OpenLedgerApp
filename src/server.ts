@@ -78,6 +78,11 @@ async function handle(request: Request, env: unknown, ctx: unknown): Promise<Res
       const { ledgerUnsubscribe } = await import("./lib/email.server");
       return await ledgerUnsubscribe(request);
     }
+    // Workflow actions the hub's scheduler asks this app to carry out (S-25), signed.
+    if (new URL(request.url).pathname === "/automation/run") {
+      const { ledgerAutomationEndpoint } = await import("./lib/automation.server");
+      return await ledgerAutomationEndpoint(request);
+    }
     const handler = await getServerEntry();
     const response = await handler.fetch(request, env, ctx);
     return await normalizeCatastrophicSsrResponse(response, request);

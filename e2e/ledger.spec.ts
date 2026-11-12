@@ -162,3 +162,14 @@ test("when the plan makes Ledger read-only, writing is switched off", async ({ p
   await page.goto("/reports");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
+
+// This round: funds and projects explain themselves (in-app explanations).
+test("funds and projects say what they're for", async ({ page }) => {
+  await signIn(page, "owner");
+  await page.goto("/funds");
+  await expect(page.getByText(/Money without a fund is unrestricted/)).toBeVisible();
+  await page.goto("/projects");
+  await expect(
+    page.getByText(/Unlike a fund, a project doesn.t restrict how money may be used/),
+  ).toBeVisible();
+});

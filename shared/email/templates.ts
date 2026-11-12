@@ -153,6 +153,26 @@ const TEMPLATES: Record<string, Template> = {
     };
   },
 
+  // A workflow the organization built (S-25): its own subject and message, already filled in.
+  "automation.message": (row, ctx) => {
+    const d = row.data;
+    const link = str(d["link"]);
+    return {
+      subject: str(d["subject"]) || "A message from your organization",
+      heading: str(d["subject"]) || "A message from your organization",
+      lines: [
+        ...str(d["message"])
+          .split(/\n{2,}/)
+          .map((p) => p.trim())
+          .filter(Boolean),
+        ...(d["workflow"] ? [`Sent by the "${str(d["workflow"])}" workflow.`] : []),
+      ],
+      ...(link
+        ? { action: { label: "Open it", href: appUrl(ctx, str(d["link_app"]) || "hub", link) } }
+        : {}),
+    };
+  },
+
   // OpenCharterApp: a chapter asks to use OpenBoardApp
   "charter.chapter_board_request": (row, ctx) => {
     const d = row.data;
