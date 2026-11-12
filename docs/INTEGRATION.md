@@ -59,3 +59,22 @@ select sum(revenue_cents) as revenue, sum(expense_cents) as expenses, sum(net_ce
 from ledger.api_period_summaries
 where org_id = :org and month >= date_trunc('year', current_date);
 ```
+
+## `ledger.api_tasks` (S-15)
+
+What needs doing in Ledger, for the hub's task list.
+
+| Column    | Type | Meaning                                                                |
+| --------- | ---- | ---------------------------------------------------------------------- |
+| `org_id`  | uuid | The OpenAppHub organization                                            |
+| `kind`    | text | `recurring_due`: a recurring transaction due within 7 days, or overdue |
+| `title`   | text | Ready to show, for example "Record Rent"                               |
+| `due_on`  | date |                                                                        |
+| `item_id` | uuid | The template                                                           |
+| `link`    | text | Path in OpenLedgerApp where it's done (`/templates`)                   |
+
+## Uses from other apps (S-13)
+
+Reports → **Add to a board package** puts the board package PDF (income, balance, budget vs actual,
+funds) into an upcoming OpenBoardApp meeting through `board.add_report_to_meeting` (shared
+`AddToBoardPackage`). Hidden when OpenBoardApp isn't on this database.
