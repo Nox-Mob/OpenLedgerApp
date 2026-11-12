@@ -41,6 +41,17 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.12.0`: workflows each organization builds (S-25 part 2). Core `0009_core_workflows.sql`: When → If → Then
+  workflows as data (`save_workflow`, validated by `_validate_workflow`; branches with conditions on any field
+  the trigger carries, ordered fields like rank compared by place), run by the `core.workflows` email job
+  (`run_workflows`) with a history per run; actions email, task (`automation_tasks`, on the task summary) and
+  app actions queued in `automation_jobs`. The engine knows no app: apps register triggers
+  (`register_automation_trigger`, events via `emit_automation_event` or date scans), actions
+  (`register_automation_action`) and recipients (`register_automation_recipient`). Owners and admins edit,
+  and may let others (`grant_automation_editor`); a national shares workflows its chapters' organizations
+  may use on their own data (`adopt_workflow`), and decides whether they may build their own. New
+  `automation/run.ts` (apps run their queued actions; the hub's scheduler asks them, signed) and the
+  `automation.message` email template.
 - `1.11.0`: the automation engine, first part (S-25). Core `0008_core_automations.sql`: apps
   register kinds of automation (`register_automation_kind`: defaults and a schema of what can
   change); organizations' choices are `public.automations` (no row = the defaults; owners and
