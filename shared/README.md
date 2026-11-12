@@ -41,6 +41,11 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.13.0`: a different role in each app. Core `0010_core_app_roles.sql`: `public.app_role_overrides`
+  (an owner or admin sets someone's role for one app: admin, member or viewer; the owner is the owner
+  everywhere), `public.app_role(org, app)`, `public.has_app_role`, `public.my_app_memberships(app)`
+  and `public.set_app_role`; `public.can_write(org, app)` follows the app role. Apps check their
+  role instead of the OpenAppHub role (Board 0013, Ledger 0007, Charter 0010).
 - `1.12.0`: workflows each organization builds (S-25 part 2). Core `0009_core_workflows.sql`: When → If → Then
   workflows as data (`save_workflow`, validated by `_validate_workflow`; branches with conditions on any field
   the trigger carries, ordered fields like rank compared by place), run by the `core.workflows` email job
