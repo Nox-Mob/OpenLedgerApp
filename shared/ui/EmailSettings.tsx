@@ -7,6 +7,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { EmailSettingsInput, EmailSettingsView } from "../email/selfhost";
+import {
+  DigestFields,
+  digestIncomplete,
+  loadDigest,
+  saveDigest,
+  type DigestPrefs,
+} from "./DigestSettings";
 
 const input =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-60";
@@ -30,7 +37,8 @@ function Status({ msg }: { msg: Msg }) {
 type Digest = "off" | "daily" | "weekly";
 
 export function EmailPreferencesPanel({ client }: { client: SupabaseClient | null }) {
-  const [prefs, setPrefs] = useState<{ reminders: boolean; digest: Digest } | null>(null);
+  const [reminders, setReminders] = useState<boolean | null>(null);
+  const [digest, setDigest] = useState<DigestPrefs | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
@@ -38,14 +46,14 @@ export function EmailPreferencesPanel({ client }: { client: SupabaseClient | nul
   useEffect(() => {
     if (!client) return;
     let live = true;
-    void client
-      .schema("public")
-      .rpc("get_email_preferences")
-      .then(({ data, error }) => {
-        if (!live) return;
-        const row = (data as Array<{ reminders: boolean; digest: Digest }> | null)?.[0];
-        setPrefs(error || !row ? { reminders: true, digest: "weekly" } : row);
-      });
+    void (async () => {
+      const { data, error } = await client.schema("public").rpc("get_email_preferences");
+      const row = (data as Array<{ reminders: boolean; digest: Digest }> | null)?.[0];
+      const d = await loadDigest(client, error || !row ? "weekly" : row.digest);
+      if (!live) return;
+      setReminders(error || !row ? true : row.reminders);
+      setDigest(d);
+    })();
     return () => {
       live = false;
     };
@@ -53,31 +61,33 @@ export function EmailPreferencesPanel({ client }: { client: SupabaseClient | nul
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!client || !prefs) return;
+    if (!client || reminders === null || !digest) return;
     setBusy(true);
     const { error } = await client
       .schema("public")
-      .rpc("set_email_preferences", { p_reminders: prefs.reminders, p_digest: prefs.digest });
+      .rpc("set_email_preferences", { p_reminders: reminders, p_digest: digest.digest });
+    const err = error ? error.message : await saveDigest(client, digest);
     setBusy(false);
-    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved." });
-    if (!error) setDirty(false);
+    setMsg(err ? { ok: false, text: err } : { ok: true, text: "Saved." });
+    if (!err) setDirty(false);
   }
 
   return (
     <section className={card} aria-label="Your email">
       <h2 className="text-base font-semibold">Your email</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        What this app emails you. Account and security emails always arrive.
+        What the suite emails you. These choices are yours alone and apply in every app. Account and
+        security emails always arrive.
       </p>
-      <form className="mt-4 space-y-4" onSubmit={save}>
+      <form className="mt-4 space-y-5" onSubmit={save}>
         <label className="flex items-start gap-3 text-sm">
           <input
             type="checkbox"
             className="mt-1 size-4 accent-primary"
-            checked={prefs?.reminders ?? true}
-            disabled={!prefs}
+            checked={reminders ?? true}
+            disabled={reminders === null}
             onChange={(e) => {
-              if (prefs) setPrefs({ ...prefs, reminders: e.target.checked });
+              setReminders(e.target.checked);
               setDirty(true);
             }}
           />
@@ -88,27 +98,18 @@ export function EmailPreferencesPanel({ client }: { client: SupabaseClient | nul
             </span>
           </span>
         </label>
-        <label className="block text-sm">
-          <span className="font-medium">Task summary</span>
-          <span className="block text-muted-foreground">
-            Your open tasks in one email. Coming soon: your choice is saved now and used when it
-            starts.
-          </span>
-          <select
-            className="mt-2 h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={prefs?.digest ?? "weekly"}
-            disabled={!prefs}
-            onChange={(e) => {
-              if (prefs) setPrefs({ ...prefs, digest: e.target.value as Digest });
-              setDirty(true);
-            }}
-          >
-            <option value="weekly">Weekly (Monday morning)</option>
-            <option value="daily">Daily</option>
-            <option value="off">Off</option>
-          </select>
-        </label>
-        <button type="submit" className={primary} disabled={!dirty || busy}>
+        <DigestFields
+          value={digest}
+          onChange={(d) => {
+            setDigest(d);
+            setDirty(true);
+          }}
+        />
+        <button
+          type="submit"
+          className={primary}
+          disabled={!dirty || busy || digestIncomplete(digest)}
+        >
           {busy ? "Saving…" : "Save"}
         </button>
       </form>

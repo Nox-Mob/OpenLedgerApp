@@ -6,6 +6,8 @@ import { formatDate } from "../format";
 import type { AppId } from "../supabase/hosted";
 import type { OutboxRow, RenderContext } from "./types";
 
+export type EmailItem = { text: string; note?: string; href?: string; urgent?: boolean };
+
 export type EmailContent = {
   subject: string;
   heading: string;
@@ -13,7 +15,9 @@ export type EmailContent = {
   /** Label and value rows, e.g. When / Where. */
   details?: Array<[string, string]>;
   /** A short list (the digest's tasks). */
-  items?: Array<{ text: string; note?: string; href?: string; urgent?: boolean }>;
+  items?: EmailItem[];
+  /** Titled lists, one after the other (the digest: one per organization). */
+  sections?: Array<{ heading: string; items: EmailItem[] }>;
   action?: { label: string; href: string };
 };
 
@@ -95,39 +99,56 @@ const TEMPLATES: Record<string, Template> = {
     };
   },
 
-  // OpenAppHub task digest (S-17)
+  // OpenAppHub task digest (S-17): data.orgs = [{ org_name, tasks: [...], meetings: [...] }]
+  // (public.digest_for). Older rows put tasks and meetings at the top level, for row.org_name.
   digest: (row, ctx) => {
     const d = row.data;
-    const tasks = Array.isArray(d["tasks"]) ? (d["tasks"] as Array<Record<string, unknown>>) : [];
-    const meetings = Array.isArray(d["meetings"])
-      ? (d["meetings"] as Array<Record<string, unknown>>)
-      : [];
     const period = str(d["period"]) === "daily" ? "today" : "this week";
-    const items = [
-      ...tasks.map((t) => ({
-        text: str(t["title"]),
-        note: [
-          APP_NAMES[str(t["app"]) as AppId] ?? "",
-          t["due_on"] ? `due ${when(row, t["due_on"], false)}` : "",
-        ]
-          .filter(Boolean)
-          .join(" · "),
-        href: appUrl(ctx, str(t["app"]), str(t["link"]) || "/"),
-        urgent: Boolean(t["overdue"]),
-      })),
-      ...meetings.map((m) => ({
-        text: `Meeting: ${str(m["title"])}`,
-        note: when(row, m["starts_at"]),
-        href: appUrl(ctx, "board", str(m["link"]) || "/board/meetings"),
-      })),
-    ];
+    const list = (v: unknown) => (Array.isArray(v) ? (v as Array<Record<string, unknown>>) : []);
+    const orgs = Array.isArray(d["orgs"])
+      ? list(d["orgs"])
+      : [{ org_name: row.org_name ?? "", tasks: d["tasks"], meetings: d["meetings"] }];
+    let taskCount = 0;
+    const sections = orgs
+      .map((o) => {
+        const tasks = list(o["tasks"]);
+        taskCount += tasks.length;
+        const items: EmailItem[] = [
+          ...tasks.map((t) => ({
+            text: str(t["title"]),
+            note: [
+              APP_NAMES[str(t["app"]) as AppId] ?? "",
+              t["due_on"] ? `due ${when(row, t["due_on"], false)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: appUrl(ctx, str(t["app"]) || "hub", str(t["link"]) || "/"),
+            urgent: Boolean(t["overdue"]),
+          })),
+          ...list(o["meetings"]).map((m) => ({
+            text: `Meeting: ${str(m["title"])}`,
+            note: m["meeting_date"]
+              ? [when(row, m["meeting_date"], false), str(m["start_time"])]
+                  .filter(Boolean)
+                  .join(", ")
+              : when(row, m["starts_at"]),
+            href: appUrl(ctx, "board", str(m["link"]) || "/board/meetings"),
+          })),
+        ];
+        return { heading: str(o["org_name"]) || "Your organization", items };
+      })
+      .filter((sec) => sec.items.length > 0);
+    const where = sections.length === 1 ? sections[0]!.heading : `${sections.length} organizations`;
     return {
-      subject: `${row.org_name ?? "Your organization"}: ${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"} ${period}`,
+      subject:
+        taskCount > 0
+          ? `${taskCount} open ${taskCount === 1 ? "task" : "tasks"} ${period}: ${where}`
+          : `Coming up ${period}: ${where}`,
       heading: `Your tasks ${period}`,
-      lines: items.length
-        ? [`What's open for you at ${row.org_name ?? "your organization"}.`]
+      lines: sections.length
+        ? ["What's open for you, from every app you use. Select an item to open it."]
         : ["Nothing is open for you right now."],
-      items,
+      ...(sections.length === 1 ? { items: sections[0]!.items } : { sections }),
       action: { label: "Open your dashboard", href: appUrl(ctx, "hub", "/") },
     };
   },
@@ -195,6 +216,23 @@ const REASON: Record<string, string> = {
   org_activity: "You get these because you're an owner or admin of this organization.",
 };
 
+function itemsHtml(items: EmailItem[]): string {
+  const li = items.map((it) => {
+    const text = it.href
+      ? `<a href="${esc(it.href)}" style="color:#18181b">${esc(it.text)}</a>`
+      : esc(it.text);
+    const note = it.note
+      ? ` <span style="color:${it.urgent ? "#b91c1c" : "#71717a"}">· ${esc(it.note)}${it.urgent ? " (overdue)" : ""}</span>`
+      : "";
+    return `<li style="margin:0 0 6px">${text}${note}</li>`;
+  });
+  return `<ul style="margin:4px 0 12px;padding-left:20px;font-size:15px;line-height:1.5">${li.join("")}</ul>`;
+}
+
+function itemText(it: EmailItem): string {
+  return `- ${it.text}${it.note ? ` (${it.note}${it.urgent ? ", overdue" : ""})` : ""}${it.href ? `\n  ${it.href}` : ""}`;
+}
+
 /** Renders an outbox row. Throws for an unknown template (the sender marks it failed). */
 export function renderEmail(row: OutboxRow, ctx: RenderContext): RenderedEmail {
   const template = TEMPLATES[row.template];
@@ -227,18 +265,10 @@ export function renderEmail(row: OutboxRow, ctx: RenderContext): RenderedEmail {
       );
     html.push(`</table>`);
   }
-  if (c.items?.length) {
-    html.push(`<ul style="margin:4px 0 12px;padding-left:20px;font-size:15px;line-height:1.5">`);
-    for (const it of c.items) {
-      const text = it.href
-        ? `<a href="${esc(it.href)}" style="color:#18181b">${esc(it.text)}</a>`
-        : esc(it.text);
-      const note = it.note
-        ? ` <span style="color:${it.urgent ? "#b91c1c" : "#71717a"}">· ${esc(it.note)}${it.urgent ? " (overdue)" : ""}</span>`
-        : "";
-      html.push(`<li style="margin:0 0 6px">${text}${note}</li>`);
-    }
-    html.push(`</ul>`);
+  if (c.items?.length) html.push(itemsHtml(c.items));
+  for (const sec of c.sections ?? []) {
+    html.push(`<h2 style="margin:16px 0 6px;font-size:16px">${esc(sec.heading)}</h2>`);
+    html.push(itemsHtml(sec.items));
   }
   if (c.action) {
     html.push(
@@ -257,14 +287,8 @@ export function renderEmail(row: OutboxRow, ctx: RenderContext): RenderedEmail {
 
   const text: string[] = [c.heading, "", ...c.lines];
   if (details.length) text.push("", ...details.map(([k, v]) => `${k}: ${v}`));
-  if (c.items?.length)
-    text.push(
-      "",
-      ...c.items.map(
-        (it) =>
-          `- ${it.text}${it.note ? ` (${it.note}${it.urgent ? ", overdue" : ""})` : ""}${it.href ? `\n  ${it.href}` : ""}`,
-      ),
-    );
+  if (c.items?.length) text.push("", ...c.items.map(itemText));
+  for (const sec of c.sections ?? []) text.push("", sec.heading, ...sec.items.map(itemText));
   if (c.action) text.push("", `${c.action.label}: ${c.action.href}`);
   text.push("", "--", sentFor, reason, `Email choices: ${ctx.preferencesUrl}`);
   if (ctx.unsubscribeUrl) text.push(`Unsubscribe: ${ctx.unsubscribeUrl}`);

@@ -86,7 +86,11 @@ function ProjectsPage() {
   return (
     <AppShell>
       <h1 className="font-display text-2xl font-bold">Projects</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Budget vs actual spending, per project.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        A project is a piece of work with its own budget, like a renovation or an event. Tag a
+        transaction with its project to compare budget and actual spending here. Unlike a fund, a
+        project doesn&apos;t restrict how money may be used.
+      </p>
 
       <WriteGuard>
         <form

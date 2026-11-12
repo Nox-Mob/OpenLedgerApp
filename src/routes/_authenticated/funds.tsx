@@ -255,7 +255,9 @@ function FundsPage() {
         <div>
           <h1 className="font-display text-2xl font-bold">Funds</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Track money given for a specific purpose, and release it once the purpose is met.
+            Track money given for a specific purpose (a building fund, a scholarship), and release
+            it once the purpose is met. Money without a fund is unrestricted: the organization can
+            use it for anything. Funds show on the reports a nonprofit's donors and auditors expect.
           </p>
         </div>
         <Link to="/pledges" className="text-sm font-medium text-primary hover:underline">
@@ -490,7 +492,7 @@ function FundsPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <SimpleListManager
           title="Categories"
-          description="Extra detail on money in and out."
+          description="Extra detail on money in and out, under an account (for example, Supplies split into Office and Events). Reports can group by category."
           items={categoriesQuery.data ?? []}
           placeholder="e.g. Office Supplies"
           onAdd={async (name) => {
@@ -519,7 +521,7 @@ function FundsPage() {
         />
         <SimpleListManager
           title="Tags"
-          description="Flexible labels for any transaction."
+          description="Flexible labels for any transaction, several at once if you like (for example, Annual gala). Use them to find and filter transactions."
           items={tagsQuery.data ?? []}
           placeholder="e.g. annual-gala"
           onAdd={async (name) => {

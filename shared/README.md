@@ -41,6 +41,22 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.11.0`: the automation engine, first part (S-25). Core `0008_core_automations.sql`: apps
+  register kinds of automation (`register_automation_kind`: defaults and a schema of what can
+  change); organizations' choices are `public.automations` (no row = the defaults; owners and
+  admins change them with `set_automation` / `reset_automation`; members read them with
+  `list_automations`); jobs read `automation_settings(org, kind)` and record what they did with
+  `log_automation` (kept a year). New `ui/Automations.tsx` (`AutomationsPanel`), on the hub's
+  organization settings page and in each app. Board's reminders are the first automations.
+- `1.10.0`: the task summary is sent (S-17). Core `0007_core_digest.sql`: each person chooses
+  how often (daily, weekly or off), the day, the time and time zone, which of their organizations,
+  and whether it includes tasks, meetings or both (`get_digest_preferences`,
+  `set_digest_preferences`); `public.digest_for(user)` builds it from every app's `api_*` views
+  under each app's rules, and the `core.digest` email job (`public.queue_digests`, every 15
+  minutes) queues it once per local day, skipping people with nothing open. The `digest` template
+  groups items by organization (`EmailContent.sections`). New `ui/DigestSettings.tsx`
+  (`DigestFields`, `loadDigest`, `saveDigest`), used by `EmailPreferencesPanel` and the hub's
+  account page.
 - `1.9.2`: docs only. SHARED-SPEC: every internal doc is centralized in OpenAppHub's `docs/` (apps keep `docs/README.md` pointing there and the vendored spec).
 - `1.9.1`: `EmailPreferencesPanel` says the task summary is coming soon (S-17 isn't sent yet).
 - `1.9.0`: chapters on OpenBoardApp. Core `0006_core_child_orgs.sql`: an organization can have a
