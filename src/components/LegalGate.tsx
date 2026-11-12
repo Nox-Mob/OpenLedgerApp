@@ -38,12 +38,16 @@ export function LegalGate({ children }: { children: React.ReactNode }) {
       </div>
     );
   if (!status.data?.missing.length) return children;
+  // H-07: hosted, the Terms and Privacy Policy were accepted in OpenAppHub; only the notice shows.
+  const viaHub = !!status.data.viaHub;
 
   async function accept() {
     setBusy(true);
     setError(null);
     try {
-      await acceptCurrentLegalDocuments({ data: { terms: true, privacy: true, nonAdvice: true } });
+      await acceptCurrentLegalDocuments({
+        data: { terms: !viaHub, privacy: !viaHub, nonAdvice: true },
+      });
       await queryClient.invalidateQueries({ queryKey: ["legal-status"] });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save your acknowledgement.");
@@ -58,8 +62,9 @@ export function LegalGate({ children }: { children: React.ReactNode }) {
         <ShieldCheck className="h-8 w-8 text-primary" />
         <h1 className="mt-4 font-display text-2xl font-bold">Before you continue</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Please review the current legal terms and remember that OpenLedgerApp is a recordkeeping
-          tool, not a professional adviser.
+          {viaHub
+            ? "One thing before you start: OpenLedgerApp is a recordkeeping tool, not a professional adviser. (You already agreed to the Terms and Privacy Policy in OpenAppHub.)"
+            : "Please review the current legal terms and remember that OpenLedgerApp is a recordkeeping tool, not a professional adviser."}
         </p>
         <div className="mt-5 rounded-md border bg-muted/40 p-4 text-sm leading-6">
           OpenLedgerApp does not provide financial, accounting, tax, or legal advice. Reports and
@@ -72,25 +77,27 @@ export function LegalGate({ children }: { children: React.ReactNode }) {
             Read the full notice
           </Link>
         </div>
-        <label className="mt-5 flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(event) => setAgreed(event.target.checked)}
-            className="mt-1 h-4 w-4 accent-primary"
-          />
-          <span>
-            I agree to the{" "}
-            <Link to="/terms" className="text-primary underline">
-              Terms of Service
-            </Link>{" "}
-            and acknowledge the{" "}
-            <Link to="/privacy" className="text-primary underline">
-              Privacy Policy
-            </Link>
-            .
-          </span>
-        </label>
+        {viaHub ? null : (
+          <label className="mt-5 flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => setAgreed(event.target.checked)}
+              className="mt-1 h-4 w-4 accent-primary"
+            />
+            <span>
+              I agree to the{" "}
+              <Link to="/terms" className="text-primary underline">
+                Terms of Service
+              </Link>{" "}
+              and acknowledge the{" "}
+              <Link to="/privacy" className="text-primary underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+        )}
         <label className="mt-3 flex items-start gap-3 text-sm">
           <input
             type="checkbox"
@@ -106,7 +113,7 @@ export function LegalGate({ children }: { children: React.ReactNode }) {
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         <Button
           className="mt-6 w-full"
-          disabled={!agreed || !acknowledged || busy}
+          disabled={(!agreed && !viaHub) || !acknowledged || busy}
           onClick={accept}
         >
           {busy ? "Saving…" : "Agree and continue"}
