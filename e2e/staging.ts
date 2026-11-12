@@ -25,4 +25,6 @@ export const DEMO = {
   owner: "demo@demo.openapphub.org",
   empty: "test@demo.openapphub.org",
   org: "Riverside Community Association",
+  /** Riverside's id: the owner may also own organizations made while trying things on staging. */
+  orgId: "de000000-0000-4000-8000-0000000000a1",
 } as const;
