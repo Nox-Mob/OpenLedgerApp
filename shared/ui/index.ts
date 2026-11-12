@@ -15,3 +15,5 @@ export { ThemeToggle } from "./ThemeToggle";
 export { PlainLink, type LinkLike, type LinkLikeProps } from "./link";
 export { CookieConsent, CookieTable } from "./CookieConsent";
 export { AppLogo } from "./AppLogo";
+export { EmailPreferencesPanel, EmailServerPanel } from "./EmailSettings";
+export { AddToBoardPackage } from "./AddToBoardPackage";

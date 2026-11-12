@@ -9,6 +9,7 @@ export const SETTINGS_SECTIONS = [
   { to: "/settings/history", label: "History", exact: false },
   { to: "/settings/diagnostics", label: "Diagnostics", exact: false },
   { to: "/settings/preferences", label: "Your preferences", exact: false },
+  { to: "/settings/email", label: "Email", exact: false },
   { to: "/settings/security", label: "Security", exact: false },
 ] as const;
 
