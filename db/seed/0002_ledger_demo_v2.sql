@@ -53,9 +53,7 @@ begin
   for r in select * from (values
       ('c_ins', 'Insurance'), ('c_web', 'Website & software'), ('c_print', 'Printing & newsletter'),
       ('c_bank', 'Bank fees'), ('c_card', 'Card processing fees'), ('c_event', 'Event supplies'),
-      ('c_park', 'Parks & grounds'), ('c_food', 'Food drive'), ('c_post', 'Postage & P.O. box'),
-      ('c_travel', 'Travel'), ('c_grants', 'Grants to posts'), ('c_mag', 'Magazine'),
-      ('c_conf', 'Convention')) c(k, name) loop
+      ('c_post', 'Postage & P.O. box')) c(k, name) loop
     insert into ledger.categories (org_id, name, type) values (p_org, r.name, 'expense')
     returning jsonb_build_object(r.k, id) || v into v;
   end loop;
@@ -158,6 +156,8 @@ declare
 begin
   perform setseed(0.31415);
   a := ledger._demo_chart(p_org);
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Parks & grounds', 'expense') returning jsonb_build_object('c_park', id) || a into a;
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Food drive', 'expense') returning jsonb_build_object('c_food', id) || a into a;
   insert into ledger.funds (org_id, name, is_restricted) values (p_org, 'Park Improvement Fund', true) returning id into f_park;
   insert into ledger.projects (org_id, name, budget_cents, status) values (p_org, 'Fall Festival', 250000, 'completed') returning id into p_fest;
   insert into ledger.projects (org_id, name, budget_cents, status) values (p_org, 'Holiday Food Drive', 40000, 'active') returning id into p_food;
@@ -300,6 +300,10 @@ declare
 begin
   perform setseed(0.1919);
   a := ledger._demo_chart(p_org);
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Travel', 'expense') returning jsonb_build_object('c_travel', id) || a into a;
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Grants to posts', 'expense') returning jsonb_build_object('c_grants', id) || a into a;
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Magazine', 'expense') returning jsonb_build_object('c_mag', id) || a into a;
+  insert into ledger.categories (org_id, name, type) values (p_org, 'Convention', 'expense') returning jsonb_build_object('c_conf', id) || a into a;
   insert into ledger.funds (org_id, name, is_restricted) values (p_org, 'Veterans Relief Fund', true) returning id into f_relief;
   insert into ledger.projects (org_id, name, budget_cents, status) values (p_org, 'Annual Convention', 1800000, 'active') returning id into p_conv;
 

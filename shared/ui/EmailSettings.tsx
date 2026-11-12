@@ -90,7 +90,10 @@ export function EmailPreferencesPanel({ client }: { client: SupabaseClient | nul
         </label>
         <label className="block text-sm">
           <span className="font-medium">Task summary</span>
-          <span className="block text-muted-foreground">Your open tasks in one email.</span>
+          <span className="block text-muted-foreground">
+            Your open tasks in one email. Coming soon: your choice is saved now and used when it
+            starts.
+          </span>
           <select
             className="mt-2 h-9 rounded-md border border-input bg-background px-2 text-sm"
             value={prefs?.digest ?? "weekly"}
