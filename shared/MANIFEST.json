@@ -1,5 +1,5 @@
 {
-  "version": "1.9.2",
+  "version": "1.10.0",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -7,6 +7,7 @@
     "db/core/0004_core_org_settings.sql": "eda9d87948815f8b6d04c11c6d0a86c17c3194124038882ab6596324bfc1bba6",
     "db/core/0005_core_email.sql": "8e36201164fa582c32e49579fddc1c712dd9f7184ee186016e1943a0121451bf",
     "db/core/0006_core_child_orgs.sql": "42f414d9613ae8424b1e032791506a4d47127dcf091b6cd260246c3bfb50a932",
+    "db/core/0007_core_digest.sql": "5bb014d91384c3312041b13f9135825a6ae007de3ca3befae423f039ec6f6560",
     "docs/SHARED-SPEC.md": "7a99272ce930b62214e0f8baee86b1ff7f2b932c7b7670d757fa53dfe2c4aae5",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
@@ -24,14 +25,14 @@
     "shared/email/secret.ts": "a0fd2543df32fefac7bb31ba93648f47243d01ade013034b25cac022c1c527ea",
     "shared/email/selfhost.ts": "3860c5fa803a46c19c8882de9d3590bfd523575a50581cf1993e602be3ed4a2a",
     "shared/email/smtp.ts": "18eedadd9692b2b4c8b7ec0935505d7b67d3c05daffe15227c321c46a903d28a",
-    "shared/email/templates.ts": "ae49f5357321cceeb3df08256b7d3108a7e45336ed59777b13c48e2f48bbb4ec",
+    "shared/email/templates.ts": "5627ac04d557228d9405bbbe96cb9284f3d953e6de1a003e32141bf54b7679d5",
     "shared/email/types.ts": "60429bb827b06f72185e9101728273ae7ba12d21d2fd862334789e4c63974078",
     "shared/email/unsubscribe.ts": "2f40dc47a4ccd52838eb57c2eedf5ed1656e09a1fd1d6bcf03bb4f7f5c79b838",
     "shared/env.d.ts": "017b3af393af4da6d1008071ca8092293fc8709e7478ee2fdf10c8f79456b945",
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/README.md": "b02191dc60911349ba14c5b2a0a3e97c7c2eda566d938a6a169988748d0aac78",
+    "shared/README.md": "418af53a5ece281d224225d254430497d2ba2f6e5961797c0d78bba99496ecc2",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
     "shared/supabase/client.ts": "ddf8f272e5906402125f55277da3beb4f28c6bafeddba0193d3f68210ee88a4d",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
@@ -42,17 +43,18 @@
     "shared/ui/AppShell.tsx": "8f2602f221163ac99919ba3e097135d98cc1e5cafd9b6e17578db86dd8224fe7",
     "shared/ui/BillingBanner.tsx": "4ef0e002678ed6481d6317e678f7b82d7f1b32f23270b7459772bb160e18c7ae",
     "shared/ui/CookieConsent.tsx": "b42d2788bcefbd0cf7541c455ba3c34b80bd8c4ac9f9d2631387e212f3b38091",
+    "shared/ui/DigestSettings.tsx": "329a0e6daee34abab8038395ce6994bc47678442ccffde2440fc3b3fd1345bbe",
     "shared/ui/Dropdown.tsx": "e7409411f862b892e5aa158b25611ec06d1caeb5088ac8aa1b860b897c47ef00",
-    "shared/ui/EmailSettings.tsx": "35e8bc8561edf649e193b8113b9966b41f06d8780fd828840d1bd3bc7bbcfea6",
+    "shared/ui/EmailSettings.tsx": "261883cda96ebd9ea2f8eb19650e7c29c66de25b6c5dfd2736f8c71159baa82f",
     "shared/ui/HelpLink.tsx": "0dfc2f2e2081816eefa1f45ce50068099173b98a0d7db1882a879028be5469fa",
     "shared/ui/icons.tsx": "665dba33b054bb4040d9d95f42029a686f8f9dc6758c8290c4dfcf082402c44a",
-    "shared/ui/index.ts": "a550293dd5eb87789b76b6a7d31b26a2abbad4064cdcbe66f0820e935ef76040",
+    "shared/ui/index.ts": "eb847af699a5ba73a8dc96faefb761b5565defe3dc7c87d8ddf48be50929ec88",
     "shared/ui/InvitationPage.tsx": "ce510a696788d96783787f8480bb3e14a8470b01949cdccc2ede17f0fd720291",
     "shared/ui/link.tsx": "3651f4b8159ba551875c54bda4009c9c06a12fae3dacf9be11cd39f5fa85113f",
     "shared/ui/OrgSwitcher.tsx": "88bf3caa61b5781fb2d96f6d1dffec339960d72289b704e86d63c4638a080170",
     "shared/ui/SuiteSwitcher.tsx": "a9cbc7f634e495db8712d894c2d49f8fe8a3fdfbe91e4f91da4c438e0a379804",
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "bb59919018ee76482c23f1ce44219ce4c9c6393c65ef0ddae40d32d79d413bb5"
+    "shared/VERSION": "4f5ba6a3e380bf810cc968b58d30a8d7163eafe9e2fb1ad19bdc6d9d64a1e549"
   }
 }

@@ -16,4 +16,13 @@ export { PlainLink, type LinkLike, type LinkLikeProps } from "./link";
 export { CookieConsent, CookieTable } from "./CookieConsent";
 export { AppLogo } from "./AppLogo";
 export { EmailPreferencesPanel, EmailServerPanel } from "./EmailSettings";
+export {
+  DigestFields,
+  describeDigest,
+  digestIncomplete,
+  hourLabel,
+  loadDigest,
+  saveDigest,
+  type DigestPrefs,
+} from "./DigestSettings";
 export { AddToBoardPackage } from "./AddToBoardPackage";
