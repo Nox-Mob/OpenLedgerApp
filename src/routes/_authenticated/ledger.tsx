@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { errorMessage } from "@/lib/errors";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/ledger")({
 });
 
 function DashboardPage() {
+  const access = useAccess();
   const { org, orgs, terms, isLoading } = useOrgContext();
   const navigate = useNavigate();
 
@@ -93,12 +95,14 @@ function DashboardPage() {
           <h1 className="font-display text-2xl font-bold">{org.name}</h1>
           <p className="text-sm text-muted-foreground">{terms.orgLabel} ledger</p>
         </div>
-        <Link
-          to="/transactions/new"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <PlusCircle className="h-4 w-4" /> New Transaction
-        </Link>
+        {access.can("write") && (
+          <Link
+            to="/transactions/new"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <PlusCircle className="h-4 w-4" /> New Transaction
+          </Link>
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -125,7 +129,7 @@ function DashboardPage() {
       </div>
 
       <SetupChecklist orgId={org.id} />
-      <DueDrafts orgId={org.id} timezone={org.timezone} canWrite={org.role !== "viewer"} />
+      <DueDrafts orgId={org.id} timezone={org.timezone} canWrite={access.can("write")} />
 
       <CashChart orgId={org.id} currency={org.currency} />
 

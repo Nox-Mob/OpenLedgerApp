@@ -1,9 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { SettingsSidebar } from "@/components/SettingsNav";
 import { AppShell as SuiteShell } from "@shared/ui/AppShell";
-import { getOrgBilling } from "@shared/supabase/billing";
 import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { helpHrefFor } from "@/config/help";
 import { RouterLink } from "@/lib/router-link";
@@ -29,6 +27,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useAal } from "@/hooks/use-aal";
 import { MfaCodeForm } from "@/components/MfaCodeForm";
 import { useOrgContext } from "@/hooks/use-org-context";
+import { useBilling } from "@/hooks/use-access";
+import { isReadOnly } from "@shared/supabase/billing";
 import { ErrorState, LoadingState } from "@/components/PageStates";
 import { errorMessage } from "@/lib/errors";
 import { isDesktop } from "@/lib/edition";
@@ -86,12 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     },
   });
   // The billing banner (trial, payment problem, read-only); null when billing is off.
-  const billing = useQuery({
-    queryKey: ["billing", org?.id],
-    enabled: !!org && !desktop,
-    queryFn: () =>
-      getOrgBilling(supabase.schema("public") as unknown as SupabaseClient, org?.id ?? ""),
-  });
+  const billing = useBilling(org?.id);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -100,7 +95,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     else navigate({ to: "/auth" });
   }
 
-  const items = NAV.filter((item) => !("write" in item && item.write) || org?.role !== "viewer");
+  // Write-only pages are hidden from viewers and while the plan makes Ledger read-only (S-05).
+  const canWrite = org?.role !== "viewer" && !isReadOnly(billing.data, "ledger");
+  const items = NAV.filter((item) => !("write" in item && item.write) || canWrite);
   const active = currentNav(pathname, items);
   // Settings is the menu's last item (NAV); its pages open under it (SettingsSidebar).
   const nav = items.map((item) => ({

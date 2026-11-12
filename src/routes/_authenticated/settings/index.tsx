@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
 import { createFileRoute } from "@tanstack/react-router";
@@ -60,6 +61,7 @@ const MONTHS = [
 ];
 
 function OrgProfileSettings() {
+  const access = useAccess();
   const { org } = useOrgContext();
   const queryClient = useQueryClient();
   const [orgName, setOrgName] = useState<string | null>(null);
@@ -73,7 +75,7 @@ function OrgProfileSettings() {
 
   if (!org) return <OrgPending inShell={false} />;
 
-  const isAdmin = org.role === "admin";
+  const isAdmin = access.can("manage_settings");
   const dirty =
     orgName !== null ||
     orgType !== null ||

@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
@@ -80,6 +81,7 @@ function toFilter(s: ReturnType<typeof Route.useSearch>): TxFilter {
 }
 
 function TransactionsPage() {
+  const access = useAccess();
   const { org, terms, terminology } = useOrgContext();
   const [expanded, setExpanded] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -150,12 +152,14 @@ function TransactionsPage() {
     <AppShell>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">Transactions</h1>
-        <Link
-          to="/transactions/new"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <PlusCircle className="h-4 w-4" /> New Transaction
-        </Link>
+        {access.can("write") && (
+          <Link
+            to="/transactions/new"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <PlusCircle className="h-4 w-4" /> New Transaction
+          </Link>
+        )}
       </div>
 
       <form
@@ -331,12 +335,14 @@ function TransactionsPage() {
             title="No transactions yet"
             description="Record money coming in or going out, or import a bank file."
             action={
-              <Link
-                to="/transactions/new"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                New transaction
-              </Link>
+              access.can("write") && (
+                <Link
+                  to="/transactions/new"
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  New transaction
+                </Link>
+              )
             }
           />
         ) : (
@@ -377,7 +383,7 @@ function TransactionsPage() {
                       </td>
                       <td className="tnum px-4 py-3 text-right">{formatCents(total)}</td>
                       <td className="px-4 py-3 text-right">
-                        {t.status === "posted" && (
+                        {t.status === "posted" && access.can("write") && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

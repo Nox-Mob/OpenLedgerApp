@@ -25,7 +25,18 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".output/public", "binding": "ASSETS" },
   "observability": { "enabled": true },
-  "routes": [{ "pattern": "ledger.openapphub.org", "custom_domain": true }],
+  // Production, plus the preview-only domain: branch previews are served at
+  // <branch>.ledger.staging.openapphub.org (staging = branch `staging`). Declared here because
+  // `wrangler deploy` replaces the Worker's domains with this list.
+  "routes": [
+    { "pattern": "ledger.openapphub.org", "custom_domain": true },
+    {
+      "pattern": "ledger.staging.openapphub.org",
+      "custom_domain": true,
+      "previews_enabled": true,
+      "enabled": false
+    }
+  ],
   "vars": {
     "VITE_SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
     "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EbrHHQxIvTGPgEgjEkkpDQ_FROfdRln",

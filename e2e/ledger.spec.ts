@@ -128,3 +128,37 @@ test("the Help link follows the screen", async ({ page }) => {
     await expect(helpLink(page, path)).toBeAttached();
   }
 });
+
+// S-05: answer the hub's billing call with an ended trial, so the app is read-only (nothing on
+// staging changes; the database would refuse the writes anyway).
+async function asReadOnly(page: Page) {
+  await page.route("**/rest/v1/rpc/get_org_billing*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          plan_id: null,
+          status: "trialing",
+          apps: [],
+          trial_ends_at: "2020-01-01T00:00:00Z",
+          current_period_end: null,
+          cancel_at_period_end: false,
+        },
+      ]),
+    }),
+  );
+}
+
+test("when the plan makes Ledger read-only, writing is switched off", async ({ page }) => {
+  await asReadOnly(page);
+  await signIn(page, "owner");
+  await expect(page.getByText(/this app is read-only/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "New Transaction" })).toHaveCount(0);
+  await page.goto("/transactions/new");
+  await expect(page.getByRole("note")).toContainText("read-only");
+  await expect(page.getByRole("button", { name: "Save transaction" })).toBeDisabled();
+  // reading and exporting stay on
+  await page.goto("/reports");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});

@@ -40,6 +40,9 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.6.0`: `isReadOnly(billing, app)` (`shared/supabase/billing.ts`): true when billing makes the app
+  read-only for the organization. Apps use it to switch their write controls off (S-05); reading
+  and exporting stay on.
 - `1.5.0`: the suite's logos. `shared/brand/marks.ts` draws one family of marks (H, C, B, L on each
   app's accent tile, with the suite's "open" dot); `AppLogo` shows it in the shell, the app
   switcher and the hub. The hub's `scripts/brand-assets.ts` writes each app's favicon (SVG, ICO,

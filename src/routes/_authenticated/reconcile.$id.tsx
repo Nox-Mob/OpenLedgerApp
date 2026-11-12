@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
@@ -46,6 +47,7 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 function ReconcileWorkspace() {
+  const access = useAccess();
   const { id } = Route.useParams();
   const { org, terms } = useOrgContext();
   const qc = useQueryClient();
@@ -78,7 +80,7 @@ function ReconcileWorkspace() {
   const matchedBank = new Set(matches.map((m) => m.bankId));
   const unmatchedBank = bankRows.filter((b) => !matchedBank.has(b.id));
   const unmatchedEntries = entries.filter((e) => !matchedEntry.has(e.id));
-  const isAdmin = org.role === "admin" || org.role === "treasurer";
+  const isAdmin = access.can("reopen_reconciliation");
 
   async function run(fn: () => Promise<unknown>, ok?: string) {
     setBusy(true);

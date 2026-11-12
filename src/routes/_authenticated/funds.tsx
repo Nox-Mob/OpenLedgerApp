@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { checkAmount, checkName } from "@/lib/validation";
 import { showError } from "@/lib/show-error";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -147,9 +148,10 @@ function SimpleListManager({
 }
 
 function FundsPage() {
+  const access = useAccess();
   const { org } = useOrgContext();
   const queryClient = useQueryClient();
-  const canWrite = org?.role === "admin" || org?.role === "treasurer" || org?.role === "member";
+  const canWrite = access.can("write");
 
   const summaryQuery = useQuery({
     queryKey: ["fund-summary", org?.id],

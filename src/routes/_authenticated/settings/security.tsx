@@ -1,3 +1,4 @@
+import { useAccess } from "@/hooks/use-access";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { showError } from "@/lib/show-error";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -198,6 +199,7 @@ function TwoStep() {
 
 function RequireForOrg() {
   const { org } = useOrgContext();
+  const access = useAccess();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   if (!org || org.role !== "admin") return null;
@@ -226,7 +228,7 @@ function RequireForOrg() {
           type="checkbox"
           className="mt-1"
           checked={org.requireMfa}
-          disabled={busy}
+          disabled={busy || !access.can("manage_settings")}
           onChange={(e) => toggle(e.target.checked)}
         />
         <span>
