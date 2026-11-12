@@ -30,9 +30,10 @@ export type SmtpConnect = (
 ) => SmtpSocket;
 
 async function cloudflareConnect(): Promise<SmtpConnect> {
-  const mod = (await import(/* @vite-ignore */ "cloudflare:sockets" as string)) as {
-    connect: SmtpConnect;
-  };
+  // A variable specifier: bundlers and test runners leave it alone, and the Workers runtime
+  // resolves it (it's built in there). Elsewhere the import fails and the send is retried.
+  const specifier = "cloudflare:sockets";
+  const mod = (await import(/* @vite-ignore */ specifier)) as { connect: SmtpConnect };
   return mod.connect;
 }
 
