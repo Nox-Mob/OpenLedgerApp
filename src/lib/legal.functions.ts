@@ -45,12 +45,18 @@ const acceptCurrentLegalDocumentsCloud = createServerFn({ method: "POST" })
     z.object({ terms: z.boolean(), privacy: z.boolean(), nonAdvice: z.literal(true) }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    // Terms and privacy: agreed here, or (hosted) already accepted in OpenAppHub.
-    if (!(data.terms && data.privacy) && !(await hubAcceptedTerms(context.supabase as never)))
+    // Terms and privacy: agreed here, or (hosted) already accepted in OpenAppHub. Only what the
+    // person agreed to here is recorded: the not-advice notice always, the terms when asked here.
+    const agreedHere = data.terms && data.privacy;
+    if (!agreedHere && !(await hubAcceptedTerms(context.supabase as never)))
       throw new Error("Please agree to the Terms of Service and the Privacy Policy.");
     const rows = [
-      { user_id: context.userId, document_type: "terms", version: LEGAL_VERSIONS.terms },
-      { user_id: context.userId, document_type: "privacy", version: LEGAL_VERSIONS.privacy },
+      ...(agreedHere
+        ? [
+            { user_id: context.userId, document_type: "terms", version: LEGAL_VERSIONS.terms },
+            { user_id: context.userId, document_type: "privacy", version: LEGAL_VERSIONS.privacy },
+          ]
+        : []),
       {
         user_id: context.userId,
         document_type: "non_advice",

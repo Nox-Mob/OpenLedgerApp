@@ -41,6 +41,18 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.14.1`: `AutomationsPanel` no longer resets a card on its first render (a late first effect
+  could wipe what someone had just typed and switch Save off).
+- `1.14.0`: named roles, and each app's role decided on its own (H-09, owner decision 2026-11-12).
+  Core `0011_core_named_roles.sql`: the OpenAppHub role is for OpenAppHub only; `public.app_role`
+  is the owner, else a role set for the person in that app, else their named role's role there,
+  else viewer (`public.app_role_source` says which; `public.org_app_roles(org)` lists everyone).
+  `public.org_named_roles` (one per person, `memberships.named_role_id`): a role per app and extra
+  permissions from `public.app_permission_types` (apps register them with
+  `public.register_app_permission`); `public.has_app_permission(org, app, key)`. `save_named_role`,
+  `delete_named_role`, `set_named_role`, `set_invitation_roles` (an invitation carries a named role
+  and/or each app's role). Editors for plan limits: `public.is_org_editor` (owner, OpenAppHub admins,
+  member or admin in any app). Existing people's access is copied into roles per app once.
 - `1.13.0`: a different role in each app. Core `0010_core_app_roles.sql`: `public.app_role_overrides`
   (an owner or admin sets someone's role for one app: admin, member or viewer; the owner is the owner
   everywhere), `public.app_role(org, app)`, `public.has_app_role`, `public.my_app_memberships(app)`

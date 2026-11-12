@@ -3,7 +3,7 @@
 // Owners and admins change them; everyone else sees them. Used on the hub's organization
 // settings page and in each app's settings.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { APP_NAMES } from "../apps";
 import type { AppId } from "../supabase/hosted";
 
@@ -124,7 +124,12 @@ function AutomationCard({
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Reset the form when the automation is reloaded (after a save), not on the first render: a
+  // late first effect would otherwise wipe what someone just typed.
+  const shown = useRef(a);
   useEffect(() => {
+    if (shown.current === a) return;
+    shown.current = a;
     setD(draftFor(a));
     setDirty(false);
   }, [a]);

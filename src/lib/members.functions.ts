@@ -98,19 +98,48 @@ const createInviteCloud = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCan(context.supabase, context.userId, data.orgId, "manage_members");
-    // A core invitation link (no email): anyone with the link can join once. A
-    // treasurer joins as a member and ledger.on_invitation_accepted adds the overlay.
-    const { data: rows, error } = await context.supabase.schema("public").rpc("create_invitation", {
-      p_org: data.orgId,
-      p_email: "",
-      p_role: coreRoleFor(data.role as OrgRole),
-      p_app: "ledger",
-      p_payload: data.role === "treasurer" ? { ledger_role: "treasurer" } : {},
-      p_days: data.days,
+    // A core invitation link (no email): anyone with the link can join once. H-09: they join
+    // OpenAppHub as a member with this role in Ledger only; a treasurer is a Ledger member and
+    // ledger.on_invitation_accepted adds the overlay.
+    const ledgerRole = coreRoleFor(data.role as OrgRole);
+    const invite = async (hubRole: typeof ledgerRole) => {
+      const { data: rows, error } = await context.supabase
+        .schema("public")
+        .rpc("create_invitation", {
+          p_org: data.orgId,
+          p_email: "",
+          p_role: hubRole,
+          p_app: "ledger",
+          p_payload: data.role === "treasurer" ? { ledger_role: "treasurer" } : {},
+          p_days: data.days,
+        });
+      if (error) throw new Error(error.message);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row) throw new Error("Couldn't create the invite.");
+      return row;
+    };
+    let row = await invite("member");
+    // set_invitation_roles isn't in the generated types until they're regenerated (H-06).
+    const pub = context.supabase.schema("public") as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => PromiseLike<{ error: { code?: string; message: string } | null }>;
+    };
+    const { error: rolesError } = await pub.rpc("set_invitation_roles", {
+      p_invitation: row.invitation_id,
+      p_named_role: null,
+      p_app_roles: { ledger: ledgerRole },
     });
-    if (error) throw new Error(error.message);
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row) throw new Error("Couldn't create the invite.");
+    if (rolesError) {
+      // A database before core 0011: the role was the OpenAppHub role then.
+      if (rolesError.code !== "PGRST202" && !/set_invitation_roles/.test(rolesError.message))
+        throw new Error(rolesError.message);
+      await context.supabase
+        .schema("public")
+        .rpc("revoke_invitation", { p_id: row.invitation_id as string });
+      row = await invite(ledgerRole);
+    }
     const expiresAt = new Date(Date.now() + data.days * 86400000).toISOString();
     // The raw token is returned once and never stored.
     return { id: row.invitation_id as string, token: row.token as string, expiresAt };
