@@ -41,6 +41,8 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.14.1`: `AutomationsPanel` no longer resets a card on its first render (a late first effect
+  could wipe what someone had just typed and switch Save off).
 - `1.14.0`: named roles, and each app's role decided on its own (H-09, owner decision 2026-11-12).
   Core `0011_core_named_roles.sql`: the OpenAppHub role is for OpenAppHub only; `public.app_role`
   is the owner, else a role set for the person in that app, else their named role's role there,
