@@ -41,6 +41,15 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.15.0`: the low-code workflow designer's engine (S-28). Core `0012_core_designer.sql`: version 2
+  definitions (a trigger, then steps that nest: condition, switch, foreach, scope; variables; compose,
+  filter, select, join, aggregate; wait; terminate; email; task; the apps' steps). Every step's output
+  can be used by later steps (`{{steps.<id>.<field>}}`, `{{item.<field>}}`, `{{vars.<name>}}`,
+  `{{trigger.<field>}}`). Steps can retry and "run after" earlier steps failed or were skipped. The
+  runner records each step's status and output in the run, so runs pause (waits, retries, app jobs) and
+  carry on without repeating anything. `public.register_automation_step` (kind `query`, `call` or
+  `job`, with an output schema), `public.test_workflow` (a run that only describes what it would do),
+  `public.sample_trigger_data`. When → If → Then workflows keep running as before.
 - `1.14.1`: `AutomationsPanel` no longer resets a card on its first render (a late first effect
   could wipe what someone had just typed and switch Save off).
 - `1.14.0`: named roles, and each app's role decided on its own (H-09, owner decision 2026-11-12).
