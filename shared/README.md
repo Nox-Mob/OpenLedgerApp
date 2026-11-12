@@ -40,6 +40,10 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.7.0`: cross-app integrations (S-12, S-13). `shared/integrations/detect.ts` (`isMissing`: the other
+  app isn't on this database), `shared/integrations/board.ts` (upcoming Board meetings, add a report
+  PDF to one through `board.add_report_to_meeting`) and `AddToBoardPackage` (`shared/ui`), the
+  "Add to a board package" button every app puts next to its reports.
 - `1.6.0`: `isReadOnly(billing, app)` (`shared/supabase/billing.ts`): true when billing makes the app
   read-only for the organization. Apps use it to switch their write controls off (S-05); reading
   and exporting stay on.

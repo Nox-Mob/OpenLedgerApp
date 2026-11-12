@@ -17,6 +17,10 @@ import { fiscalYearStart } from "@/lib/dates";
 import { formatCents, todayISO } from "@/lib/money";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AddToBoardPackage } from "@shared/ui/AddToBoardPackage";
+import { suiteUrls } from "@shared/supabase/hosted";
+import { supabase } from "@/integrations/supabase/client";
 import { FundReport, LedgerReport, StatementCheckReport } from "@/components/DetailReports";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -224,9 +228,20 @@ function ReportsPage() {
   }
   /** Board package: cover, income, balance, budget vs actual, fund activity, one PDF. */
   async function boardPackage() {
-    if (!org) return;
     setExportingAll(true);
     try {
+      await buildBoardPackage("save");
+      toast.success("Board package created");
+    } catch (e) {
+      showError(e, "Could not create the board package", "No file was created.");
+    } finally {
+      setExportingAll(false);
+    }
+  }
+  /** The board package PDF: downloaded, or returned (for OpenBoardApp, S-13). */
+  async function buildBoardPackage(output: "save" | "blob") {
+    if (!org) throw new Error("No organization");
+    {
       const orgId = org.id;
       const nonprofit = org.orgType === "nonprofit";
       const [inc, bal, bud, fa] = await Promise.all([
@@ -242,7 +257,6 @@ function ReportsPage() {
         nonprofit ? getFundActivity({ data: { orgId, from, to } }).catch(() => null) : null,
       ]);
       const s = await import("@/lib/report-sheets");
-      const ex = await import("@/lib/export");
       const pdf = await import("@/lib/report-pdf");
       const body = [
         s.incomeSheet(terms.incomeStatement, inc, terms),
@@ -251,7 +265,7 @@ function ReportsPage() {
         ...(fa ? [s.fundActivitySheet(fa.funds, terms.fundActivity)] : []),
       ];
       const period = `${from} to ${to}, balances as of ${asOf}`;
-      await pdf.exportAllPdf({
+      return pdf.exportAllPdf({
         org,
         pref: terminology,
         subtitle: `${period} · Cash basis`,
@@ -263,15 +277,14 @@ function ReportsPage() {
           ),
           ...body,
         ],
-        fileName: `${ex.safeFileName(`${org.name}-board-package-${from}-to-${to}`)}.pdf`,
+        fileName: boardPackageFileName(),
+        output,
       });
-      toast.success("Board package created");
-    } catch (e) {
-      showError(e, "Could not create the board package", "No file was created.");
-    } finally {
-      setExportingAll(false);
     }
   }
+  const boardPackageFileName = () =>
+    `${org ? org.name : "organization"}-board-package-${from}-to-${to}`.replace(/[^\w.-]+/g, "-") +
+    ".pdf";
   const sheetReady =
     tab === "income" ? !!income : tab === "balance" ? !!balance : !!trialQuery.data;
   const detail = tab === "ledger" || tab === "funds" || tab === "statement";
@@ -300,6 +313,19 @@ function ReportsPage() {
             <Download className="h-4 w-4" />
             {exportingAll ? "Preparing…" : "Board package (PDF)"}
           </button>
+          {org ? (
+            <AddToBoardPackage
+              client={supabase as unknown as SupabaseClient}
+              orgId={org.id}
+              sourceApp="ledger"
+              boardUrl={suiteUrls().board}
+              makePdf={async () => ({
+                pdf: (await buildBoardPackage("blob"))!,
+                fileName: boardPackageFileName(),
+                title: `Financial reports, ${from} to ${to}`,
+              })}
+            />
+          ) : null}
           <button
             onClick={() => exportAll("xlsx")}
             disabled={exportingAll}

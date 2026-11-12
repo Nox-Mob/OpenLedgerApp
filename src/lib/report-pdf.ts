@@ -311,7 +311,9 @@ export async function exportAllPdf(p: {
   subtitle: string;
   sheets: { name: string; rows: (string | number | null | undefined)[][] }[];
   fileName: string;
-}) {
+  /** "save" (default) downloads the file; "blob" returns it (e.g. for a board package). */
+  output?: "save" | "blob";
+}): Promise<Blob | undefined> {
   const first = p.sheets[0];
   const { doc, autoTable, footer } = await setup(
     p.org,
@@ -354,5 +356,7 @@ export async function exportAllPdf(p: {
     });
   });
   footer();
+  if (p.output === "blob") return doc.output("blob");
   doc.save(p.fileName);
+  return undefined;
 }

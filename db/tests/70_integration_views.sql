@@ -52,3 +52,27 @@ begin
 end
 $$;
 rollback;
+
+-- S-15: Ledger's tasks for the hub.
+begin;
+do $$
+declare
+  owner uuid := tests.create_user('owner@tasks.l.org');
+  stranger uuid := tests.create_user('stranger@tasks.l.org');
+  org uuid;
+begin
+  perform tests.as_user(owner);
+  org := public.create_organization('Tasks Ledger');
+  perform tests.as_super();
+  insert into ledger.transaction_templates (id, org_id, name, description, frequency, next_due) values
+    (gen_random_uuid(), org, 'Rent', 'Monthly rent', 'monthly', current_date + 3),
+    (gen_random_uuid(), org, 'Insurance', 'Yearly insurance', 'yearly', current_date + 90),
+    (gen_random_uuid(), org, 'One-off', 'Not recurring', null, current_date);
+  perform tests.as_user(owner);
+  perform tests.ok(tests.count(format('select * from ledger.api_tasks where org_id = %L', org)) = 1, 'only recurring ones due within a week');
+  perform tests.ok((select title || ' ' || link from ledger.api_tasks where org_id = org) = 'Record Rent /templates', 'title and where to do it');
+  perform tests.as_user(stranger);
+  perform tests.ok(tests.count(format('select * from ledger.api_tasks where org_id = %L', org)) = 0, 'another organization sees no tasks');
+end
+$$;
+rollback;
