@@ -95,14 +95,19 @@ export async function loadOrg(sb: Db, orgId: string): Promise<LedgerOrgRow | nul
 }
 
 /**
- * Roles set for Ledger only (core 0010): someone's role here, when an owner or admin made it
- * different from their OpenAppHub role. The owner is the owner everywhere.
+ * Each person's Ledger role as the database works it out (core 0011, H-09): the owner; a role set
+ * for them in Ledger; their named role's role in Ledger; otherwise viewer. One person's
+ * organizations (userId given) or everyone in the organizations.
  */
 async function ledgerOverrides(sb: Db, orgIds: string[], userId?: string) {
   const out = new Map<string, CoreRole>();
   if (orgIds.length === 0) return out;
-  // app_role_overrides isn't in the generated types until they're regenerated (H-06).
+  // The core functions aren't in the generated types until they're regenerated (H-06).
   const pub = sb.schema("public") as unknown as {
+    rpc: (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => PromiseLike<{ data: Array<Record<string, string>> | null; error: unknown }>;
     from: (t: string) => {
       select: (c: string) => {
         eq: (
@@ -121,16 +126,36 @@ async function ledgerOverrides(sb: Db, orgIds: string[], userId?: string) {
     };
   };
   try {
+    if (userId) {
+      const { data, error } = await pub.rpc("my_app_memberships", { p_app: "ledger" });
+      if (!error && data) {
+        for (const r of data)
+          if (orgIds.includes(r["org_id"]!))
+            out.set(`${r["org_id"]}:${userId}`, r["role"] as CoreRole);
+        return out;
+      }
+    } else {
+      const all = await Promise.all(orgIds.map((org) => pub.rpc("org_app_roles", { p_org: org })));
+      if (all.every((r) => !r.error && r.data)) {
+        all.forEach((r, i) => {
+          for (const x of r.data ?? [])
+            if (x["app"] === "ledger")
+              out.set(`${orgIds[i]}:${x["user_id"]}`, x["role"] as CoreRole);
+        });
+        return out;
+      }
+    }
+    // Older databases (before core 0011): roles set for Ledger, otherwise the OpenAppHub role.
     const { data, error } = await pub
       .from("app_role_overrides")
       .select("org_id, user_id, role")
       .eq("app", "ledger")
       .in("org_id", orgIds);
-    if (error) return out; // missing until core 0010 is applied
+    if (error) return out;
     for (const r of data ?? [])
       if (!userId || r.user_id === userId) out.set(`${r.org_id}:${r.user_id}`, r.role);
   } catch {
-    // A client without the table (tests, older databases): everyone has their OpenAppHub role.
+    // A client without these (tests, older databases): everyone has their OpenAppHub role.
   }
   return out;
 }

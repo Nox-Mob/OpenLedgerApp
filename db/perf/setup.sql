@@ -16,6 +16,11 @@ from generate_series(1, 10) i;
 insert into public.memberships (org_id, user_id, role)
 select ('22222222-0000-4000-8000-' || lpad(o::text, 12, '0'))::uuid, ('11111111-0000-4000-8000-' || lpad((9 + o)::text, 12, '0'))::uuid, 'owner'
 from generate_series(2, 31) o;
+-- Their roles in this app too (H-09: separate from the OpenAppHub role).
+insert into public.app_role_overrides (org_id, user_id, app, role)
+select m.org_id, m.user_id, 'ledger', m.role from public.memberships m
+where m.role in ('admin', 'member') and m.org_id::text like '22222222-0000-4000-8000-%'
+on conflict do nothing;
 insert into ledger.member_roles (org_id, user_id, role)
 values ('22222222-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000003', 'treasurer');
 insert into ledger.org_settings (org_id, currency)

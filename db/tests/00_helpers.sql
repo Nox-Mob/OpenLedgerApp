@@ -85,8 +85,19 @@ begin
   update public.instance_settings set billing_enabled = true;
 end $$;
 
--- A member with a core role (superuser insert, as invitations would).
+-- A member with that role in OpenAppHub and in OpenLedgerApp (superuser insert, as an invitation
+-- from Ledger would). Since H-09 the two are separate: tests.add_hub_member gives only the first.
 create or replace function tests.add_member(p_org uuid, p_user uuid, p_role public.org_role) returns void language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  insert into public.memberships (org_id, user_id, role) values (p_org, p_user, p_role);
+  if p_role <> 'owner' and to_regclass('public.app_role_overrides') is not null then
+    insert into public.app_role_overrides (org_id, user_id, app, role) values (p_org, p_user, 'ledger', p_role)
+    on conflict do nothing;
+  end if;
+end $$;
+
+create or replace function tests.add_hub_member(p_org uuid, p_user uuid, p_role public.org_role) returns void language plpgsql as $$
 begin
   perform set_config('role', 'postgres', true);
   insert into public.memberships (org_id, user_id, role) values (p_org, p_user, p_role);

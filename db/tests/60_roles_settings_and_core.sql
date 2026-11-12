@@ -78,9 +78,14 @@ begin
   perform tests.throws(format('insert into ledger.accounts (org_id, name, type) values (%L, %L, %L)', org, 'Viewer acct', 'asset'),
     'a viewer cannot write', 'row-level security');
 
-  -- A treasurer demoted to viewer loses the overlay's rights.
+  -- H-09: the OpenAppHub role alone changes nothing in Ledger.
   perform tests.as_super();
   update public.memberships set role = 'viewer' where org_id = org and user_id = treas;
+  perform tests.as_user(treas);
+  perform tests.ok(ledger.can_close_books(org), 'an OpenAppHub viewer who is a Ledger member and treasurer still closes books');
+  -- A treasurer made a viewer in OpenLedgerApp loses the overlay's rights.
+  perform tests.as_super();
+  update public.app_role_overrides set role = 'viewer' where org_id = org and user_id = treas and app = 'ledger';
   perform tests.as_user(treas);
   perform tests.ok(not ledger.can_close_books(org) and not ledger.is_treasurer(org), 'a demoted treasurer cannot close books');
   perform tests.as_super();
