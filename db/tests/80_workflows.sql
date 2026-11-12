@@ -40,3 +40,31 @@ begin
 end
 $$;
 rollback;
+
+-- S-19: skipping a recurring transaction from the hub (0005).
+begin;
+do $$
+declare
+  owner uuid := tests.create_user('owner@skip.l.org');
+  outsider uuid := tests.create_user('out@skip.l.org');
+  org uuid; t uuid := gen_random_uuid(); nxt date;
+begin
+  perform tests.as_user(owner);
+  org := public.create_organization('Skip Ledger');
+  perform tests.as_super();
+  insert into ledger.org_settings (org_id, currency) values (org, 'USD');
+  insert into ledger.transaction_templates (id, org_id, name, description, frequency, next_due, active)
+  values (t, org, 'Rent', 'Monthly rent', 'monthly', '2026-01-31', true);
+  perform tests.as_user(owner);
+  perform tests.ok((select completable from ledger.api_tasks where item_id = t), 'the task can be finished from the hub');
+  nxt := ledger.skip_recurring_due(t);
+  perform tests.ok(nxt = '2026-02-28', format('the next due date keeps the month''s end (got %s)', nxt));
+  perform tests.as_super();
+  perform tests.ok(exists (select 1 from ledger.recurring_occurrences where template_id = t and due_date = '2026-01-31' and status = 'skipped'),
+    'the skipped date is recorded');
+  perform tests.ok(exists (select 1 from ledger.audit_log where action = 'template.skipped' and org_id = org), 'and audited');
+  perform tests.as_user(outsider);
+  perform tests.throws(format('select ledger.skip_recurring_due(%L)', t), 'outsiders cannot', 'not found');
+end
+$$;
+rollback;
