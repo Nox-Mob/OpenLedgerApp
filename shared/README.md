@@ -41,6 +41,13 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.11.0`: the automation engine, first part (S-25). Core `0008_core_automations.sql`: apps
+  register kinds of automation (`register_automation_kind`: defaults and a schema of what can
+  change); organizations' choices are `public.automations` (no row = the defaults; owners and
+  admins change them with `set_automation` / `reset_automation`; members read them with
+  `list_automations`); jobs read `automation_settings(org, kind)` and record what they did with
+  `log_automation` (kept a year). New `ui/Automations.tsx` (`AutomationsPanel`), on the hub's
+  organization settings page and in each app. Board's reminders are the first automations.
 - `1.10.0`: the task summary is sent (S-17). Core `0007_core_digest.sql`: each person chooses
   how often (daily, weekly or off), the day, the time and time zone, which of their organizations,
   and whether it includes tasks, meetings or both (`get_digest_preferences`,

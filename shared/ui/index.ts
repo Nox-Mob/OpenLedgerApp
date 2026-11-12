@@ -26,3 +26,4 @@ export {
   type DigestPrefs,
 } from "./DigestSettings";
 export { AddToBoardPackage } from "./AddToBoardPackage";
+export { AutomationsPanel, type Automation, type ParamSpec } from "./Automations";
