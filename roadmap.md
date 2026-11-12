@@ -30,4 +30,4 @@ The to-do list, with what's left for the OpenAppHub suite migration, is [`docs/e
 
 ## Notes
 
-- The demo is the suite demo: demo@demo.openapphub.org (Riverside Community Association) and test@demo.openapphub.org, password OpenAppHubDemo2026, on staging only, reset every 12 hours.
+- The demo is the suite demo: demo@demo.openapphub.org (Riverside Community Association), national@demo.openapphub.org (Northstar Veterans League) and test@demo.openapphub.org, password OpenAppHubDemo2026, on staging only, reset every 12 hours. Its dues are booked from OpenCharterApp's payments (`db/seed/0002_ledger_demo_v2.sql`).

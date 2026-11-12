@@ -41,6 +41,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.9.1`: `EmailPreferencesPanel` says the task summary is coming soon (S-17 isn't sent yet).
 - `1.9.0`: chapters on OpenBoardApp. Core `0006_core_child_orgs.sql`: an organization can have a
   parent (one level: a chapter's own organization under its national's), created only by an app's
   security definer function (`public._create_child_organization`, from Charter's approval).

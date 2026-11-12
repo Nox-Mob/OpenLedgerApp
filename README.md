@@ -31,12 +31,13 @@ The desktop app doesn't have everything yet: [`docs/desktop.md`](docs/desktop.md
 
 ## Try it
 
-Staging is at **https://staging.ledger.staging.openapphub.org**, with the suite demo (reset every 12 hours):
+Staging is at **https://staging.ledger.staging.openapphub.org**, with the suite demo (reset every 12 hours; the apps' data agree with each other, and every account has tasks waiting):
 
-| Account                    | Password             | What you see                                                      |
-| -------------------------- | -------------------- | ----------------------------------------------------------------- |
-| `demo@demo.openapphub.org` | `OpenAppHubDemo2026` | owns Riverside Community Association, about three months of books |
-| `test@demo.openapphub.org` | `OpenAppHubDemo2026` | no organization (a first visit)                                   |
+| Account                        | Password             | What you see                                                                                                |
+| ------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `demo@demo.openapphub.org`     | `OpenAppHubDemo2026` | owns Riverside Community Association, about three months of books                                           |
+| `national@demo.openapphub.org` | `OpenAppHubDemo2026` | owns Northstar Veterans League (a veterans national): its books, dues from OpenCharterApp, funds and budget |
+| `test@demo.openapphub.org`     | `OpenAppHubDemo2026` | no organization (a first visit)                                                                             |
 
 These are public on purpose and exist only on staging. To load the same demo into your own development database: `DATABASE_URL="<dev or staging connection string>" npm run db:migrate -- --seed`. It runs once per database and refuses one that holds real organizations. **Never load it into production:** it creates a publicly known sign-in.
 
