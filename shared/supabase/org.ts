@@ -12,7 +12,14 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type OrgRole = "owner" | "admin" | "member" | "viewer";
-export type MyOrg = { id: string; name: string; slug: string | null; role: OrgRole };
+export type MyOrg = {
+  id: string;
+  name: string;
+  slug: string | null;
+  role: OrgRole;
+  /** A chapter's own organization (core 0006): its national's organization. */
+  parent?: { id: string; name: string } | undefined;
+};
 
 export function readOrgCookie(cookieHeader: string): string | null {
   const match = cookieHeader.match(/(?:^|;\s*)oah_org=([^;]*)/);
@@ -91,21 +98,49 @@ export function takeOrgFromUrl(): string | null {
 
 type MembershipRow = {
   role: OrgRole;
-  organizations: { id: string; name: string; slug: string | null } | null;
+  organizations: {
+    id: string;
+    name: string;
+    slug: string | null;
+    parent_org_id?: string | null;
+  } | null;
 };
 
-/** The signed-in user's organizations and their role in each (RLS: own memberships). */
+/**
+ * The signed-in user's organizations and their role in each (RLS: own memberships). A chapter's
+ * organization carries its parent (core 0006; left out on a database without it).
+ */
 export async function listMyOrgs(client: SupabaseClient): Promise<MyOrg[]> {
   const { data: auth } = await client.auth.getUser();
   if (!auth.user) return [];
-  const { data, error } = await client
-    .from("memberships")
-    .select("role, organizations(id, name, slug)")
-    .eq("user_id", auth.user.id);
+  const query = (columns: string) =>
+    client
+      .from("memberships")
+      .select(`role, organizations(${columns})`)
+      .eq("user_id", auth.user!.id);
+  let { data, error } = await query("id, name, slug, parent_org_id");
+  if (error && /parent_org_id/.test(error.message))
+    ({ data, error } = await query("id, name, slug"));
   if (error) throw error;
-  return ((data ?? []) as unknown as MembershipRow[])
-    .filter((r) => r.organizations)
-    .map((r) => ({ ...r.organizations!, role: r.role }))
+  const rows = ((data ?? []) as unknown as MembershipRow[]).filter((r) => r.organizations);
+  const parentIds = [...new Set(rows.map((r) => r.organizations!.parent_org_id).filter(Boolean))];
+  const parents = new Map<string, string>();
+  if (parentIds.length) {
+    const { data: ps } = await client.from("organizations").select("id, name").in("id", parentIds);
+    for (const p of (ps ?? []) as Array<{ id: string; name: string }>) parents.set(p.id, p.name);
+  }
+  return rows
+    .map((r) => {
+      const { parent_org_id, ...org } = r.organizations!;
+      const parentName = parent_org_id ? parents.get(parent_org_id) : undefined;
+      return {
+        ...org,
+        role: r.role,
+        ...(parent_org_id
+          ? { parent: { id: parent_org_id, name: parentName ?? "your national" } }
+          : {}),
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

@@ -50,7 +50,10 @@ export default defineConfig(({ command }) => ({
       server: { entry: "server" },
     }),
     // The hosted build is a Cloudflare Worker; the desktop build is static files only.
-    ...(command === "build" && !desktop ? [nitro({ preset: "cloudflare-module" })] : []),
+    // server/email-cron.ts: the self-hosted email sender, on the Worker's cron trigger (S-16).
+    ...(command === "build" && !desktop
+      ? [nitro({ preset: "cloudflare-module", plugins: ["./server/email-cron.ts"] })]
+      : []),
     viteReact(),
   ],
   // Unit tests only: e2e/ is Playwright's (npm run test:e2e).

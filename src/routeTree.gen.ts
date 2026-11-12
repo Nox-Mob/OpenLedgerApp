@@ -37,6 +37,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsAccountsRouteImport } from './routes/_authenticated/settings/accounts'
 import { Route as AuthenticatedSettingsCloseRouteImport } from './routes/_authenticated/settings/close'
 import { Route as AuthenticatedSettingsDiagnosticsRouteImport } from './routes/_authenticated/settings/diagnostics'
+import { Route as AuthenticatedSettingsEmailRouteImport } from './routes/_authenticated/settings/email'
 import { Route as AuthenticatedSettingsExportsRouteImport } from './routes/_authenticated/settings/exports'
 import { Route as AuthenticatedSettingsHistoryRouteImport } from './routes/_authenticated/settings/history'
 import { Route as AuthenticatedSettingsMembersRouteImport } from './routes/_authenticated/settings/members'
@@ -190,6 +191,12 @@ const AuthenticatedSettingsDiagnosticsRoute =
     path: '/diagnostics',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsEmailRoute =
+  AuthenticatedSettingsEmailRouteImport.update({
+    id: '/email',
+    path: '/email',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsExportsRoute =
   AuthenticatedSettingsExportsRouteImport.update({
     id: '/exports',
@@ -259,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
+  '/settings/email': typeof AuthenticatedSettingsEmailRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -294,6 +302,7 @@ export interface FileRoutesByTo {
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
+  '/settings/email': typeof AuthenticatedSettingsEmailRoute
   '/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -332,6 +341,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
   '/_authenticated/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/_authenticated/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
+  '/_authenticated/settings/email': typeof AuthenticatedSettingsEmailRoute
   '/_authenticated/settings/exports': typeof AuthenticatedSettingsExportsRoute
   '/_authenticated/settings/history': typeof AuthenticatedSettingsHistoryRoute
   '/_authenticated/settings/members': typeof AuthenticatedSettingsMembersRoute
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/settings/accounts'
     | '/settings/close'
     | '/settings/diagnostics'
+    | '/settings/email'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/settings/accounts'
     | '/settings/close'
     | '/settings/diagnostics'
+    | '/settings/email'
     | '/settings/exports'
     | '/settings/history'
     | '/settings/members'
@@ -442,6 +454,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/accounts'
     | '/_authenticated/settings/close'
     | '/_authenticated/settings/diagnostics'
+    | '/_authenticated/settings/email'
     | '/_authenticated/settings/exports'
     | '/_authenticated/settings/history'
     | '/_authenticated/settings/members'
@@ -665,6 +678,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsDiagnosticsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/email': {
+      id: '/_authenticated/settings/email'
+      path: '/email'
+      fullPath: '/settings/email'
+      preLoaderRoute: typeof AuthenticatedSettingsEmailRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/exports': {
       id: '/_authenticated/settings/exports'
       path: '/exports'
@@ -721,6 +741,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountsRoute: typeof AuthenticatedSettingsAccountsRoute
   AuthenticatedSettingsCloseRoute: typeof AuthenticatedSettingsCloseRoute
   AuthenticatedSettingsDiagnosticsRoute: typeof AuthenticatedSettingsDiagnosticsRoute
+  AuthenticatedSettingsEmailRoute: typeof AuthenticatedSettingsEmailRoute
   AuthenticatedSettingsExportsRoute: typeof AuthenticatedSettingsExportsRoute
   AuthenticatedSettingsHistoryRoute: typeof AuthenticatedSettingsHistoryRoute
   AuthenticatedSettingsMembersRoute: typeof AuthenticatedSettingsMembersRoute
@@ -733,6 +754,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountsRoute: AuthenticatedSettingsAccountsRoute,
   AuthenticatedSettingsCloseRoute: AuthenticatedSettingsCloseRoute,
   AuthenticatedSettingsDiagnosticsRoute: AuthenticatedSettingsDiagnosticsRoute,
+  AuthenticatedSettingsEmailRoute: AuthenticatedSettingsEmailRoute,
   AuthenticatedSettingsExportsRoute: AuthenticatedSettingsExportsRoute,
   AuthenticatedSettingsHistoryRoute: AuthenticatedSettingsHistoryRoute,
   AuthenticatedSettingsMembersRoute: AuthenticatedSettingsMembersRoute,

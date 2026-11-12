@@ -70,6 +70,14 @@ export default {
 
 async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
   try {
+    // Email unsubscribe links on a self-hosted server (S-16); hosted, the hub serves them.
+    if (
+      import.meta.env["VITE_HOSTED"] !== "true" &&
+      new URL(request.url).pathname === "/email/unsubscribe"
+    ) {
+      const { ledgerUnsubscribe } = await import("./lib/email.server");
+      return await ledgerUnsubscribe(request);
+    }
     const handler = await getServerEntry();
     const response = await handler.fetch(request, env, ctx);
     return await normalizeCatastrophicSsrResponse(response, request);

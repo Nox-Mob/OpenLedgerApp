@@ -17,6 +17,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
 | `supabase/billing.ts` | `getOrgBilling()` (feature-detected), access rule, banner wording                                                                                                  |
 | `docs.ts`             | Links into docs.openapphub.org                                                                                                                                     |
 | `apps.ts`             | App names, taglines and marks                                                                                                                                      |
+| `email/`              | Suite email (S-16): templates, Resend and SMTP transports, the sender (`deliver.ts`, server-only) and self-hosted settings (`selfhost.ts`, server-only)            |
 
 ## Requirements in an app
 
@@ -40,6 +41,19 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.9.0`: chapters on OpenBoardApp. Core `0006_core_child_orgs.sql`: an organization can have a
+  parent (one level: a chapter's own organization under its national's), created only by an app's
+  security definer function (`public._create_child_organization`, from Charter's approval).
+  `listMyOrgs()` gives a chapter's organization its `parent`. The hub's billing 0004 covers a
+  chapter with its parent's plan.
+- `1.8.0`: email (S-16). Core `0005_core_email.sql`: the outbox every app queues email in
+  (`public.enqueue_email`, from an app's own security definer jobs), email jobs
+  (`public.email_jobs`), people's choices (`get_/set_email_preferences`), the self-hosted
+  instance's SMTP settings and `is_instance_owner()`. `shared/email`: templates (one look for
+  every email), Resend and a small SMTP client (Workers TCP sockets), the sender, signed
+  unsubscribe links, and the self-hosted settings and sender. `shared/ui`: `EmailPreferencesPanel`
+  and `EmailServerPanel`. Hosted: the hub sends everything through Resend. Self-hosted: each app
+  sends its own through the SMTP server its owner enters.
 - `1.7.0`: cross-app integrations (S-12, S-13). `shared/integrations/detect.ts` (`isMissing`: the other
   app isn't on this database), `shared/integrations/board.ts` (upcoming Board meetings, add a report
   PDF to one through `board.add_report_to_meeting`) and `AddToBoardPackage` (`shared/ui`), the
