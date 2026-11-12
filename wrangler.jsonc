@@ -34,8 +34,8 @@
       "pattern": "ledger.staging.openapphub.org",
       "custom_domain": true,
       "previews_enabled": true,
-      "enabled": false,
-    },
+      "enabled": false
+    }
   ],
   "vars": {
     "VITE_SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
