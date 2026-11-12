@@ -1197,6 +1197,10 @@ export type Database = {
         Args: { p_audit: Json; p_id: string; p_org: string }
         Returns: boolean
       }
+      wf_month_totals: {
+        Args: { p_org: string; p_params: Json }
+        Returns: Json
+      }
       writable_org_ids: { Args: never; Returns: string[] }
     }
     Enums: {
@@ -1300,27 +1304,36 @@ export type Database = {
         Row: {
           app: string
           description: string
+          kind: string
           label: string
+          output_schema: Json
           params_schema: Json
           requires: string[]
+          run_fn: string | null
           sort: number
           type: string
         }
         Insert: {
           app: string
           description?: string
+          kind?: string
           label: string
+          output_schema?: Json
           params_schema?: Json
           requires?: string[]
+          run_fn?: string | null
           sort?: number
           type: string
         }
         Update: {
           app?: string
           description?: string
+          kind?: string
           label?: string
+          output_schema?: Json
           params_schema?: Json
           requires?: string[]
+          run_fn?: string | null
           sort?: number
           type?: string
         }
@@ -1597,9 +1610,14 @@ export type Database = {
           id: number
           log: Json
           org_id: string
+          resume_at: string | null
           started_at: string
+          state: Json
           status: string
+          trace: Json
           trigger_type: string
+          version: number
+          wait_job: number | null
           workflow_id: string
         }
         Insert: {
@@ -1611,9 +1629,14 @@ export type Database = {
           id?: never
           log?: Json
           org_id: string
+          resume_at?: string | null
           started_at?: string
+          state?: Json
           status?: string
+          trace?: Json
           trigger_type: string
+          version?: number
+          wait_job?: number | null
           workflow_id: string
         }
         Update: {
@@ -1625,9 +1648,14 @@ export type Database = {
           id?: never
           log?: Json
           org_id?: string
+          resume_at?: string | null
           started_at?: string
+          state?: Json
           status?: string
+          trace?: Json
           trigger_type?: string
+          version?: number
+          wait_job?: number | null
           workflow_id?: string
         }
         Relationships: [
@@ -2331,6 +2359,79 @@ export type Database = {
       }
       _validate_recipient: { Args: { p: Json; p_where: string }; Returns: Json }
       _validate_workflow: { Args: { p_def: Json }; Returns: Json }
+      _validate_workflow_v2: { Args: { p_def: Json }; Returns: Json }
+      _wf2_condition: { Args: { p_c: Json; p_ctx: Json }; Returns: boolean }
+      _wf2_conditions: {
+        Args: { p_conds: Json; p_ctx: Json; p_match: string }
+        Returns: boolean
+      }
+      _wf2_continue: { Args: { p_run: number }; Returns: string }
+      _wf2_core_steps: { Args: never; Returns: string[] }
+      _wf2_empty_state: { Args: never; Returns: Json }
+      _wf2_exec_list: {
+        Args: {
+          p_ctx: Json
+          p_env: Json
+          p_iter: string
+          p_state: Json
+          p_steps: Json
+        }
+        Returns: Record<string, unknown>
+      }
+      _wf2_exec_step: {
+        Args: {
+          p_ctx: Json
+          p_env: Json
+          p_iter: string
+          p_key: string
+          p_state: Json
+          s: Json
+        }
+        Returns: Record<string, unknown>
+      }
+      _wf2_get: { Args: { p_ctx: Json; p_path: string }; Returns: Json }
+      _wf2_people: {
+        Args: { p_ctx: Json; p_org: string; p_to: Json }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      _wf2_resolve: { Args: { p_ctx: Json; p_val: Json }; Returns: Json }
+      _wf2_resume_due: { Args: never; Returns: number }
+      _wf2_start: {
+        Args: {
+          p_ctx: Json
+          p_dedupe: string
+          p_def: Json
+          p_org: string
+          p_wf: Database["public"]["Tables"]["automation_workflows"]["Row"]
+        }
+        Returns: number
+      }
+      _wf2_text: { Args: { p_v: Json }; Returns: string }
+      _wf2_trace: {
+        Args: {
+          p_detail: string
+          p_key: string
+          p_output: Json
+          p_s: Json
+          p_state: Json
+          p_status: string
+        }
+        Returns: Json
+      }
+      _wf2_validate_list: {
+        Args: {
+          p_count: number
+          p_depth: number
+          p_loops: string[]
+          p_seen: string[]
+          p_steps: Json
+          p_vars: string[]
+        }
+        Returns: Record<string, unknown>
+      }
       accept_invitation: {
         Args: { p_token: string }
         Returns: {
@@ -2675,6 +2776,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      register_automation_step: {
+        Args: {
+          p_app: string
+          p_description: string
+          p_kind: string
+          p_label: string
+          p_output_schema: Json
+          p_params_schema: Json
+          p_requires?: string[]
+          p_run_fn: string
+          p_sort?: number
+          p_type: string
+        }
+        Returns: undefined
+      }
       register_automation_trigger: {
         Args: {
           p_app: string
@@ -2702,6 +2818,10 @@ export type Database = {
       revoke_invitation: { Args: { p_id: string }; Returns: undefined }
       run_email_jobs: { Args: never; Returns: number }
       run_workflows: { Args: never; Returns: number }
+      sample_trigger_data: {
+        Args: { p_org: string; p_type: string }
+        Returns: Json
+      }
       save_named_role: {
         Args: {
           p_app_roles: Json
@@ -2779,6 +2899,10 @@ export type Database = {
         Returns: undefined
       }
       shares_org: { Args: { p_user: string }; Returns: boolean }
+      test_workflow: {
+        Args: { p_definition: Json; p_org: string; p_trigger?: Json }
+        Returns: Json
+      }
       transfer_ownership:
         | { Args: { p_new_owner: string; p_org: string }; Returns: undefined }
         | {
