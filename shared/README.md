@@ -41,6 +41,17 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.17.0`: approvals and actions from email (C-08, owner decisions 2026-11-13). Core
+  `0014_core_approvals.sql`: the designer's **Ask for approval** step (`public.approval_requests`,
+  `public.approval_approvers`; the builder chooses "first answer decides" or "everyone must approve",
+  and an optional time limit with the outcome `timed_out`; `decide_approval`, `my_approvals`,
+  `approval`). **Actions from email**: each organization allows each kind (`email_action_kinds`,
+  `email_action_settings`, off by default; `set_email_action_allowed`); `action_links_for` makes one
+  person's single-use, 7-day signed links (only their SHA-256 is stored); `action_link` /
+  `consume_action_link` serve the confirm page, which calls the app's own function as the signed-in
+  person. `notify()` takes `p_actions` and `p_action_kind`. Emails show the links as buttons
+  (`data.actions`). `ActionLinkPage` (each app's `/act/<token>`) and `EmailActionSettingsPanel`.
+  Notifications to particular people (tasks, approvals) can't be turned on by anyone else.
 - `1.16.0`: notifications (H-02, owner direction 2026-11-13), apart from the automation engine. Core
   `0013_core_notifications.sql`: `public.notification_kinds` (registered with
   `public.register_notification_kind`: who gets it by default, who may turn it on, its email kind),
