@@ -19,6 +19,8 @@ export type EmailContent = {
   /** Titled lists, one after the other (the digest: one per organization). */
   sections?: Array<{ heading: string; items: EmailItem[] }>;
   action?: { label: string; href: string };
+  /** Signed links to act from the email (C-08): shown as buttons above `action`. */
+  buttons?: Array<{ label: string; href: string }>;
 };
 
 export type RenderedEmail = { subject: string; html: string; text: string };
@@ -30,6 +32,25 @@ function appUrl(ctx: RenderContext, app: string, path: string): string {
   if (/^https?:\/\//.test(path)) return path;
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * Signed links to act from the email (core 0014, C-08), from `data.actions` ([{label, token}]).
+ * Each opens the sending app's confirm page; an empty list means the organization doesn't allow
+ * this kind of action from email, so the email only says what's waiting.
+ */
+function actionButtons(row: OutboxRow, ctx: RenderContext): Array<{ label: string; href: string }> {
+  const list = Array.isArray(row.data["actions"]) ? (row.data["actions"] as unknown[]) : [];
+  return list.flatMap((a) => {
+    const o = a as Record<string, unknown>;
+    const token = str(o["token"]);
+    return /^[0-9a-f]{64}$/.test(token) && str(o["label"])
+      ? [{ label: str(o["label"]), href: appUrl(ctx, row.app || "hub", `/act/${token}`) }]
+      : [];
+  });
+}
+
+const LINKS_NOTE =
+  "The buttons work once, for 7 days. Each asks you to sign in and confirm before anything happens.";
 
 function when(row: OutboxRow, value: unknown, time = true): string {
   const s = str(value);
@@ -85,7 +106,11 @@ const TEMPLATES: Record<string, Template> = {
         ? `Overdue: ${str(d["title"])}`
         : `Due ${when(row, d["due_date"], false)}: ${str(d["title"])}`,
       heading: overdue ? "An action item is overdue" : "An action item is due soon",
-      lines: [`"${str(d["title"])}" is assigned to you.`],
+      lines: [
+        `"${str(d["title"])}" is assigned to you and is waiting for you to finish it.`,
+        ...(actionButtons(row, ctx).length ? [LINKS_NOTE] : []),
+      ],
+      buttons: actionButtons(row, ctx),
       details: [
         ["Due", when(row, d["due_date"], false)],
         ...(str(d["meeting_title"])
@@ -186,8 +211,10 @@ const TEMPLATES: Record<string, Template> = {
           .split(/\n{2,}/)
           .map((p) => p.trim())
           .filter(Boolean),
+        ...(actionButtons(row, ctx).length ? [LINKS_NOTE] : []),
         `You can choose which notifications you get, and how, in your account settings.`,
       ],
+      buttons: actionButtons(row, ctx),
       ...(link
         ? { action: { label: "Open it", href: appUrl(ctx, str(d["link_app"]) || "hub", link) } }
         : {}),
@@ -311,6 +338,16 @@ export function renderEmail(row: OutboxRow, ctx: RenderContext): RenderedEmail {
     html.push(`<h2 style="margin:16px 0 6px;font-size:16px">${esc(sec.heading)}</h2>`);
     html.push(itemsHtml(sec.items));
   }
+  if (c.buttons?.length) {
+    html.push(
+      `<p style="margin:20px 0 8px">${c.buttons
+        .map(
+          (b, i) =>
+            `<a href="${esc(b.href)}" style="display:inline-block;margin:0 8px 8px 0;${i === 0 ? `background:${accent};color:#ffffff` : `background:#ffffff;color:#18181b;border:1px solid #d4d4d8`};text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px">${esc(b.label)}</a>`,
+        )
+        .join("")}</p>`,
+    );
+  }
   if (c.action) {
     html.push(
       `<p style="margin:20px 0 12px"><a href="${esc(c.action.href)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px">${esc(c.action.label)}</a></p>`,
@@ -330,6 +367,7 @@ export function renderEmail(row: OutboxRow, ctx: RenderContext): RenderedEmail {
   if (details.length) text.push("", ...details.map(([k, v]) => `${k}: ${v}`));
   if (c.items?.length) text.push("", ...c.items.map(itemText));
   for (const sec of c.sections ?? []) text.push("", sec.heading, ...sec.items.map(itemText));
+  for (const b of c.buttons ?? []) text.push("", `${b.label}: ${b.href}`);
   if (c.action) text.push("", `${c.action.label}: ${c.action.href}`);
   text.push("", "--", sentFor, reason, `Email choices: ${ctx.preferencesUrl}`);
   if (ctx.unsubscribeUrl) text.push(`Unsubscribe: ${ctx.unsubscribeUrl}`);
