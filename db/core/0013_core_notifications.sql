@@ -346,9 +346,15 @@ begin
        or current_setting(v_flag, true) = '1' then
       return null;
     end if;
-    if tg_table_name = 'memberships' and tg_op = 'UPDATE'
-       and new.role is not distinct from old.role and new.named_role_id is not distinct from old.named_role_id then
-      return null;
+    -- (Nested: only memberships has named_role_id, and a condition is planned as a whole.)
+    if tg_table_name = 'memberships' and tg_op = 'UPDATE' then
+      if new.role is not distinct from old.role and new.named_role_id is not distinct from old.named_role_id then
+        return null;
+      end if;
+    elsif tg_table_name = 'app_role_overrides' and tg_op = 'UPDATE' then
+      if new.role is not distinct from old.role then
+        return null;
+      end if;
     end if;
     v_kind := 'people.role_changed'; v_title := format('%s''s role changed', v_name);
   end if;

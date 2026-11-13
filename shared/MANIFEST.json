@@ -13,7 +13,7 @@
     "db/core/0010_core_app_roles.sql": "3e7caee1f13c2572805299cad2f735c175c269146b7eb029f4e03b224685a0c4",
     "db/core/0011_core_named_roles.sql": "6b057f1b0f198bc091da687bcc364c6752ce2d4fcd1792e2c302203bccb55f46",
     "db/core/0012_core_designer.sql": "98e060f30bc247f5ff99f8111b180efba2ff299e87dbfb72e113b12751781822",
-    "db/core/0013_core_notifications.sql": "a4b72ce851df35a9bba4fb6c4c9a3e7e6b2984e6145ca1ab44bf58b1b0feecce",
+    "db/core/0013_core_notifications.sql": "b436e40a93f9bb77c1a4cd6ee7a73eb4985f2958234e0b8c23761c694f3072d8",
     "docs/SHARED-SPEC.md": "7a99272ce930b62214e0f8baee86b1ff7f2b932c7b7670d757fa53dfe2c4aae5",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
