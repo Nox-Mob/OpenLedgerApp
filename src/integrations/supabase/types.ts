@@ -1241,6 +1241,78 @@ export type Database = {
         }
         Relationships: []
       }
+      action_links: {
+        Row: {
+          comment_arg: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          kind: string
+          label: string
+          open_app: string | null
+          open_link: string | null
+          org_id: string
+          rpc_args: Json
+          rpc_fn: string
+          rpc_schema: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+          what: string
+        }
+        Insert: {
+          comment_arg?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind: string
+          label: string
+          open_app?: string | null
+          open_link?: string | null
+          org_id: string
+          rpc_args?: Json
+          rpc_fn: string
+          rpc_schema: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+          what?: string
+        }
+        Update: {
+          comment_arg?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          open_app?: string | null
+          open_link?: string | null
+          org_id?: string
+          rpc_args?: Json
+          rpc_fn?: string
+          rpc_schema?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+          what?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_links_kind_fkey"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "email_action_kinds"
+            referencedColumns: ["kind"]
+          },
+          {
+            foreignKeyName: "action_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_permission_types: {
         Row: {
           app: string
@@ -1268,6 +1340,7 @@ export type Database = {
       app_role_overrides: {
         Row: {
           app: string
+          no_access: boolean
           org_id: string
           role: Database["public"]["Enums"]["org_role"]
           set_at: string
@@ -1276,6 +1349,7 @@ export type Database = {
         }
         Insert: {
           app: string
+          no_access?: boolean
           org_id: string
           role: Database["public"]["Enums"]["org_role"]
           set_at?: string
@@ -1284,6 +1358,7 @@ export type Database = {
         }
         Update: {
           app?: string
+          no_access?: boolean
           org_id?: string
           role?: Database["public"]["Enums"]["org_role"]
           set_at?: string
@@ -1297,6 +1372,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "memberships"
             referencedColumns: ["org_id", "user_id"]
+          },
+        ]
+      }
+      approval_approvers: {
+        Row: {
+          comment: string
+          decided_at: string | null
+          decision: string | null
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string
+          decided_at?: string | null
+          decision?: string | null
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          decided_at?: string | null
+          decision?: string | null
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_approvers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          details: string
+          due_at: string | null
+          id: string
+          mode: string
+          org_id: string
+          run_id: number | null
+          status: string
+          step_key: string
+          what: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          details?: string
+          due_at?: string | null
+          id?: string
+          mode?: string
+          org_id: string
+          run_id?: number | null
+          status?: string
+          step_key?: string
+          what: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          details?: string
+          due_at?: string | null
+          id?: string
+          mode?: string
+          org_id?: string
+          run_id?: number | null
+          status?: string
+          step_key?: string
+          what?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1879,6 +2043,69 @@ export type Database = {
           },
         ]
       }
+      email_action_kinds: {
+        Row: {
+          app: string
+          description: string
+          kind: string
+          label: string
+          sort: number
+        }
+        Insert: {
+          app: string
+          description?: string
+          kind: string
+          label: string
+          sort?: number
+        }
+        Update: {
+          app?: string
+          description?: string
+          kind?: string
+          label?: string
+          sort?: number
+        }
+        Relationships: []
+      }
+      email_action_settings: {
+        Row: {
+          allowed: boolean
+          kind: string
+          org_id: string
+          set_at: string
+          set_by: string | null
+        }
+        Insert: {
+          allowed?: boolean
+          kind: string
+          org_id: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Update: {
+          allowed?: boolean
+          kind?: string
+          org_id?: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_action_settings_kind_fkey"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "email_action_kinds"
+            referencedColumns: ["kind"]
+          },
+          {
+            foreignKeyName: "email_action_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_jobs: {
         Row: {
           every: unknown
@@ -2178,6 +2405,137 @@ export type Database = {
           },
         ]
       }
+      notification_kinds: {
+        Row: {
+          app: string
+          audience: string
+          default_email: boolean
+          default_in_app: boolean
+          default_roles: Database["public"]["Enums"]["org_role"][]
+          description: string
+          eligible_roles: Database["public"]["Enums"]["org_role"][]
+          email_category: string
+          kind: string
+          label: string
+          sort: number
+        }
+        Insert: {
+          app: string
+          audience?: string
+          default_email?: boolean
+          default_in_app?: boolean
+          default_roles?: Database["public"]["Enums"]["org_role"][]
+          description?: string
+          eligible_roles?: Database["public"]["Enums"]["org_role"][]
+          email_category?: string
+          kind: string
+          label: string
+          sort?: number
+        }
+        Update: {
+          app?: string
+          audience?: string
+          default_email?: boolean
+          default_in_app?: boolean
+          default_roles?: Database["public"]["Enums"]["org_role"][]
+          description?: string
+          eligible_roles?: Database["public"]["Enums"]["org_role"][]
+          email_category?: string
+          kind?: string
+          label?: string
+          sort?: number
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          email: boolean
+          in_app: boolean
+          kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email: boolean
+          in_app: boolean
+          kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email?: boolean
+          in_app?: boolean
+          kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_kind_fkey"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "notification_kinds"
+            referencedColumns: ["kind"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          dedupe_key: string | null
+          id: number
+          kind: string
+          link: string | null
+          link_app: string | null
+          org_id: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: never
+          kind: string
+          link?: string | null
+          link_app?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: never
+          kind?: string
+          link?: string | null
+          link_app?: string | null
+          org_id?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_kind_fkey"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "notification_kinds"
+            referencedColumns: ["kind"]
+          },
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_named_roles: {
         Row: {
           app_roles: Json
@@ -2214,6 +2572,35 @@ export type Database = {
             foreignKeyName: "org_named_roles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_role_settings: {
+        Row: {
+          app_admins_manage_roles: boolean
+          org_id: string
+          set_at: string
+          set_by: string | null
+        }
+        Insert: {
+          app_admins_manage_roles?: boolean
+          org_id: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Update: {
+          app_admins_manage_roles?: boolean
+          org_id?: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_role_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -2292,6 +2679,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _approval_output: { Args: { p_id: string }; Returns: Json }
       _automation_condition: {
         Args: { p_c: Json; p_ctx: Json }
         Returns: boolean
@@ -2327,6 +2715,7 @@ export type Database = {
         Args: { p_params: Json; p_schema: Json }
         Returns: Json
       }
+      _clean_named_app_roles: { Args: { p_value: Json }; Returns: Json }
       _clean_org_name: { Args: { p_name: string }; Returns: string }
       _create_child_organization: {
         Args: {
@@ -2346,6 +2735,11 @@ export type Database = {
       _is_active_user: { Args: { p_user: string }; Returns: boolean }
       _may_build_workflows: { Args: { p_org: string }; Returns: boolean }
       _member_confirm_text: { Args: { p_user: string }; Returns: string }
+      _org_owner: { Args: { p_org: string }; Returns: string }
+      _require_app_role_manager: {
+        Args: { p_app: string; p_org: string }
+        Returns: undefined
+      }
       _require_people_manager: { Args: { p_org: string }; Returns: undefined }
       _require_uid: { Args: never; Returns: string }
       _token_hash: { Args: { p_token: string }; Returns: string }
@@ -2442,6 +2836,19 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
         }[]
       }
+      action_link: { Args: { p_token: string }; Returns: Json }
+      action_links_for: {
+        Args: {
+          p_actions: Json
+          p_kind: string
+          p_open_app?: string
+          p_open_link?: string
+          p_org: string
+          p_user: string
+          p_what: string
+        }
+        Returns: Json
+      }
       adopt_workflow: {
         Args: { p_org: string; p_source: string }
         Returns: string
@@ -2454,6 +2861,7 @@ export type Database = {
         Args: { p_app: string; p_org: string; p_user?: string }
         Returns: string
       }
+      approval: { Args: { p_id: string }; Returns: Json }
       automation_settings: {
         Args: { p_kind: string; p_org: string }
         Returns: {
@@ -2462,6 +2870,10 @@ export type Database = {
         }[]
       }
       can_edit_automations: { Args: { p_org: string }; Returns: boolean }
+      can_open_app: {
+        Args: { p_app: string; p_org: string; p_user?: string }
+        Returns: boolean
+      }
       can_write: { Args: { p_app: string; p_org: string }; Returns: boolean }
       claim_automation_jobs: {
         Args: { p_app: string; p_limit?: number }
@@ -2504,6 +2916,7 @@ export type Database = {
         }[]
       }
       complete_automation_task: { Args: { p_id: string }; Returns: undefined }
+      consume_action_link: { Args: { p_token: string }; Returns: boolean }
       create_invitation: {
         Args: {
           p_app?: string
@@ -2519,6 +2932,10 @@ export type Database = {
         }[]
       }
       create_organization: { Args: { p_name: string }; Returns: string }
+      decide_approval: {
+        Args: { p_comment?: string; p_decision: string; p_id: string }
+        Returns: string
+      }
       delete_named_role: {
         Args: { p_id: string; p_org: string }
         Returns: undefined
@@ -2533,6 +2950,21 @@ export type Database = {
         Returns: Json
       }
       digest_for: { Args: { p_period?: string; p_user: string }; Returns: Json }
+      email_action_settings: {
+        Args: { p_org: string }
+        Returns: {
+          allowed: boolean
+          app: string
+          can_change: boolean
+          description: string
+          kind: string
+          label: string
+        }[]
+      }
+      email_actions_allowed: {
+        Args: { p_kind: string; p_org: string }
+        Returns: boolean
+      }
       email_unsubscribe: {
         Args: { p_category: string; p_user: string }
         Returns: undefined
@@ -2672,12 +3104,78 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_notifications_read: { Args: { p_ids?: number[] }; Returns: number }
       my_app_memberships: {
         Args: { p_app: string }
         Returns: {
           org_id: string
           role: Database["public"]["Enums"]["org_role"]
         }[]
+      }
+      my_approvals: {
+        Args: { p_org?: string }
+        Returns: {
+          created_at: string
+          details: string
+          due_at: string
+          id: string
+          mode: string
+          org_id: string
+          org_name: string
+          what: string
+          workflow: string
+        }[]
+      }
+      my_notifications: {
+        Args: { p_limit?: number; p_org?: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: number
+          kind: string
+          kind_label: string
+          link: string
+          link_app: string
+          org_id: string
+          org_name: string
+          read_at: string
+          title: string
+        }[]
+      }
+      notification_settings: {
+        Args: never
+        Returns: {
+          app: string
+          audience: string
+          by_default: boolean
+          customized: boolean
+          default_email: boolean
+          default_in_app: boolean
+          description: string
+          email: boolean
+          email_category: string
+          in_app: boolean
+          kind: string
+          label: string
+          may_turn_on: boolean
+        }[]
+      }
+      notify: {
+        Args: {
+          p_action_kind?: string
+          p_actions?: Json
+          p_actor?: string
+          p_body: string
+          p_dedupe?: string
+          p_emails?: string[]
+          p_kind: string
+          p_link: string
+          p_link_app: string
+          p_org: string
+          p_title: string
+          p_users: string[]
+        }
+        Returns: number
       }
       org_app_roles: {
         Args: { p_org: string }
@@ -2715,6 +3213,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      org_role_settings: {
+        Args: { p_org: string }
+        Returns: {
+          app_admins_manage_roles: boolean
+          can_change: boolean
+        }[]
+      }
       ownership_transfer_candidates: {
         Args: { p_org: string }
         Returns: {
@@ -2725,6 +3230,7 @@ export type Database = {
         }[]
       }
       prune_automation_log: { Args: never; Returns: number }
+      prune_notifications: { Args: never; Returns: number }
       prune_workflow_history: { Args: never; Returns: number }
       queue_digests: { Args: never; Returns: number }
       register_app_permission: {
@@ -2807,12 +3313,42 @@ export type Database = {
         }
         Returns: undefined
       }
+      register_email_action_kind: {
+        Args: {
+          p_app: string
+          p_description: string
+          p_kind: string
+          p_label: string
+          p_sort?: number
+        }
+        Returns: undefined
+      }
+      register_notification_kind: {
+        Args: {
+          p_app: string
+          p_audience: string
+          p_default_email: boolean
+          p_default_in_app: boolean
+          p_default_roles?: Database["public"]["Enums"]["org_role"][]
+          p_description: string
+          p_eligible: Database["public"]["Enums"]["org_role"][]
+          p_email_category: string
+          p_kind: string
+          p_label: string
+          p_sort?: number
+        }
+        Returns: undefined
+      }
       rename_organization: {
         Args: { p_name: string; p_org: string }
         Returns: undefined
       }
       reset_automation: {
         Args: { p_kind: string; p_org: string }
+        Returns: undefined
+      }
+      reset_notification_preference: {
+        Args: { p_kind: string }
         Returns: undefined
       }
       revoke_invitation: { Args: { p_id: string }; Returns: undefined }
@@ -2844,6 +3380,15 @@ export type Database = {
           p_shared?: boolean
         }
         Returns: string
+      }
+      set_app_access: {
+        Args: {
+          p_app: string
+          p_no_access: boolean
+          p_org: string
+          p_user: string
+        }
+        Returns: undefined
       }
       set_app_role: {
         Args: {
@@ -2878,6 +3423,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_email_action_allowed: {
+        Args: { p_allowed: boolean; p_kind: string; p_org: string }
+        Returns: undefined
+      }
       set_email_preferences: {
         Args: { p_digest: string; p_reminders: boolean }
         Returns: undefined
@@ -2888,6 +3437,14 @@ export type Database = {
       }
       set_named_role: {
         Args: { p_org: string; p_role: string; p_user: string }
+        Returns: undefined
+      }
+      set_notification_preference: {
+        Args: { p_email: boolean; p_in_app: boolean; p_kind: string }
+        Returns: undefined
+      }
+      set_org_role_settings: {
+        Args: { p_app_admins_manage_roles: boolean; p_org: string }
         Returns: undefined
       }
       set_organization_preferences: {
@@ -2909,6 +3466,7 @@ export type Database = {
             Args: { p_confirm: string; p_new_owner: string; p_org: string }
             Returns: undefined
           }
+      unread_notification_count: { Args: never; Returns: number }
       workflow_overview: { Args: { p_org: string }; Returns: Json }
       workflow_runs: {
         Args: { p_limit?: number; p_org: string; p_workflow?: string }
