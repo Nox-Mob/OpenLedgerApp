@@ -9,6 +9,7 @@ export function Dropdown({
   triggerClassName = "",
   panelClassName = "",
   align = "start",
+  onOpenChange,
   children,
 }: {
   /** Accessible name for the trigger when its content isn't descriptive. */
@@ -17,12 +18,24 @@ export function Dropdown({
   triggerClassName?: string;
   panelClassName?: string;
   align?: "start" | "end";
+  /** Called when the panel opens or closes (e.g. to load what it shows). */
+  onOpenChange?: (open: boolean) => void;
   children: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const id = useId();
+  const changed = useRef(onOpenChange);
+  changed.current = onOpenChange;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    changed.current?.(open);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

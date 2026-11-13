@@ -41,6 +41,16 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   by `npm run check:shared-strict` in CI.
 - `1.3.1`: `AppShell` takes an optional `sidebar` (desktop-only extra sidebar content, e.g. a
   page's own section menu).
+- `1.16.0`: notifications (H-02, owner direction 2026-11-13), apart from the automation engine. Core
+  `0013_core_notifications.sql`: `public.notification_kinds` (registered with
+  `public.register_notification_kind`: who gets it by default, who may turn it on, its email kind),
+  each person's choice per kind (`public.notification_preferences`, in the app and by email), the list
+  (`public.notifications`), and `public.notify(org, kind, title, body, link, link_app, users, emails,
+dedupe, actor)`, which writes the list and queues the email (template `notification`). The core
+  raises people joined, left and roles changed (to the owner), a task given to you, and a workflow
+  that couldn't finish. `NotificationBell` (the bell in `AppShell`'s top bar: pass
+  `notificationsClient`) and `NotificationSettings` (each person's choices). `Dropdown` takes
+  `onOpenChange`.
 - `1.15.0`: the low-code workflow designer's engine (S-28). Core `0012_core_designer.sql`: version 2
   definitions (a trigger, then steps that nest: condition, switch, foreach, scope; variables; compose,
   filter, select, join, aggregate; wait; terminate; email; task; the apps' steps). Every step's output

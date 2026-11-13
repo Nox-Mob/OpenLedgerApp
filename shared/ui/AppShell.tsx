@@ -2,6 +2,7 @@
 // SuiteSwitcher, OrgSwitcher, Help and the user menu (theme toggle, sign out),
 // BillingBanner underneath. Below 768px the sidebar becomes a drawer.
 // Router-agnostic (pass your router's Link as LinkComponent) and SSR-safe.
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { useRef, useState, type ReactNode } from "react";
 import { APP_NAMES } from "../apps";
 import { AppLogo } from "./AppLogo";
@@ -11,6 +12,7 @@ import { BillingBanner } from "./BillingBanner";
 import { Dropdown, itemClass } from "./Dropdown";
 import { CloseIcon, CookieIcon, HelpIcon, LogOutIcon, MenuIcon, UserIcon } from "./icons";
 import { PlainLink, type LinkLike } from "./link";
+import { NotificationBell } from "./Notifications";
 import { OrgSwitcher, type SwitcherOrg } from "./OrgSwitcher";
 import { SuiteSwitcher } from "./SuiteSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
@@ -46,6 +48,13 @@ export type AppShellProps = {
   /** The app's docs tab, e.g. docsUrl("board/"). Shown as Help. */
   helpHref: string;
   accountHref?: string;
+  /**
+   * The database client for the notification bell (core 0013). Leave it out for no bell;
+   * the bell also hides itself on a database without notifications.
+   */
+  notificationsClient?: SupabaseClient | null;
+  /** Where each person chooses their notifications (default: accountHref). */
+  notificationSettingsHref?: string;
   onSignOut: () => void;
   LinkComponent?: LinkLike;
   children: ReactNode;
@@ -248,6 +257,8 @@ export function AppShell(props: AppShellProps) {
     billingHref,
     helpHref,
     accountHref,
+    notificationsClient,
+    notificationSettingsHref,
     onSignOut,
     LinkComponent = PlainLink,
     children,
@@ -313,6 +324,14 @@ export function AppShell(props: AppShellProps) {
           >
             <HelpIcon />
           </a>
+          {notificationsClient ? (
+            <NotificationBell
+              client={notificationsClient}
+              app={app}
+              settingsHref={notificationSettingsHref ?? accountHref}
+              LinkComponent={LinkComponent}
+            />
+          ) : null}
           <UserMenu
             user={user}
             {...(accountHref ? { accountHref } : {})}

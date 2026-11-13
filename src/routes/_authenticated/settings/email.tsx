@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { EmailPreferencesPanel, EmailServerPanel } from "@shared/ui/EmailSettings";
+import { NotificationSettings } from "@shared/ui/Notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { isDesktop } from "@/lib/edition";
 import { loadEmailSettings, saveEmailSettings, sendTestEmail } from "@/lib/email.functions";
@@ -33,12 +34,19 @@ function EmailSettings() {
             Choose your reminders and task summary on your OpenAppHub account page; they apply to
             every app.
           </p>
-          <a className="mt-3 inline-block underline" href={hubUrl("/account#email")}>
-            Open your email choices
+          <a className="mt-3 inline-block underline" href={hubUrl("/account#notifications")}>
+            Open your notifications and email choices
           </a>
         </section>
       ) : (
         <>
+          <section id="notifications" className="space-y-3 rounded-md border bg-card p-5">
+            <h2 className="text-lg font-semibold">Notifications</h2>
+            <p className="text-sm text-muted-foreground">
+              What you're told about, under the bell at the top and by email.
+            </p>
+            <NotificationSettings client={supabase as unknown as SupabaseClient} />
+          </section>
           <EmailPreferencesPanel client={supabase as unknown as SupabaseClient} />
           <EmailServerPanel
             load={() => loadEmailSettings()}

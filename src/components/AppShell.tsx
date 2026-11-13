@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SettingsSidebar } from "@/components/SettingsNav";
@@ -125,6 +126,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       canManageBilling={org?.role === "admin"}
       billingHref={hubUrl("/billing")}
       helpHref={helpHrefFor(pathname)}
+      notificationsClient={desktop ? null : (supabase as unknown as SupabaseClient)}
+      notificationSettingsHref={
+        isHosted() ? hubUrl("/account#notifications") : "/settings/email#notifications"
+      }
       onSignOut={() => void signOut()}
       LinkComponent={RouterLink}
     >
