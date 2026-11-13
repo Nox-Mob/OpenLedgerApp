@@ -1,5 +1,5 @@
 {
-  "version": "1.17.0",
+  "version": "1.18.0",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -15,6 +15,7 @@
     "db/core/0012_core_designer.sql": "98e060f30bc247f5ff99f8111b180efba2ff299e87dbfb72e113b12751781822",
     "db/core/0013_core_notifications.sql": "b436e40a93f9bb77c1a4cd6ee7a73eb4985f2958234e0b8c23761c694f3072d8",
     "db/core/0014_core_approvals.sql": "391f8c2f5b4a3832e17662b6e0b71d3a974b9f5f52083dea410ce82bf1e8a784",
+    "db/core/0015_core_app_access.sql": "4ceb759e134a7aa6b56b17125398db93535b549094b183062db6ac825f0c355d",
     "docs/SHARED-SPEC.md": "7a99272ce930b62214e0f8baee86b1ff7f2b932c7b7670d757fa53dfe2c4aae5",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
@@ -40,7 +41,7 @@
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/README.md": "3c65bc08af335d9a7769dc72181972e532da54a915ba9ac47c63df78725c25bd",
+    "shared/README.md": "b70a38698a0d7d0cc8273344e68af3da8026ec41c06311cd9ea547c6b5c134f7",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
     "shared/supabase/client.ts": "ddf8f272e5906402125f55277da3beb4f28c6bafeddba0193d3f68210ee88a4d",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
@@ -66,6 +67,6 @@
     "shared/ui/SuiteSwitcher.tsx": "a9cbc7f634e495db8712d894c2d49f8fe8a3fdfbe91e4f91da4c438e0a379804",
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "00afc49f1599e59129a59b64c2b019de3fe35300c05bb9d96cb25002576ff43b"
+    "shared/VERSION": "04d659518a1793d5396007fcabdc9211a8c1db8406bf4e0fa8069171fdb06518"
   }
 }
