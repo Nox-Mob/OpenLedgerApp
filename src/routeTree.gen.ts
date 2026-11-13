@@ -35,6 +35,7 @@ import { Route as AuthenticatedReconcileIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedReconcileIdRouteImport } from './routes/_authenticated/reconcile.$id'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountsRouteImport } from './routes/_authenticated/settings/accounts'
+import { Route as AuthenticatedSettingsCharterRouteImport } from './routes/_authenticated/settings/charter'
 import { Route as AuthenticatedSettingsCloseRouteImport } from './routes/_authenticated/settings/close'
 import { Route as AuthenticatedSettingsDiagnosticsRouteImport } from './routes/_authenticated/settings/diagnostics'
 import { Route as AuthenticatedSettingsEmailRouteImport } from './routes/_authenticated/settings/email'
@@ -179,6 +180,12 @@ const AuthenticatedSettingsAccountsRoute =
     path: '/accounts',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsCharterRoute =
+  AuthenticatedSettingsCharterRouteImport.update({
+    id: '/charter',
+    path: '/charter',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsCloseRoute =
   AuthenticatedSettingsCloseRouteImport.update({
     id: '/close',
@@ -264,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
+  '/settings/charter': typeof AuthenticatedSettingsCharterRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/email': typeof AuthenticatedSettingsEmailRoute
@@ -300,6 +308,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
+  '/settings/charter': typeof AuthenticatedSettingsCharterRoute
   '/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/settings/email': typeof AuthenticatedSettingsEmailRoute
@@ -339,6 +348,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/_authenticated/reconcile/$id': typeof AuthenticatedReconcileIdRoute
   '/_authenticated/settings/accounts': typeof AuthenticatedSettingsAccountsRoute
+  '/_authenticated/settings/charter': typeof AuthenticatedSettingsCharterRoute
   '/_authenticated/settings/close': typeof AuthenticatedSettingsCloseRoute
   '/_authenticated/settings/diagnostics': typeof AuthenticatedSettingsDiagnosticsRoute
   '/_authenticated/settings/email': typeof AuthenticatedSettingsEmailRoute
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/reconcile/$id'
     | '/settings/accounts'
+    | '/settings/charter'
     | '/settings/close'
     | '/settings/diagnostics'
     | '/settings/email'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/reconcile/$id'
     | '/settings/accounts'
+    | '/settings/charter'
     | '/settings/close'
     | '/settings/diagnostics'
     | '/settings/email'
@@ -452,6 +464,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/_authenticated/reconcile/$id'
     | '/_authenticated/settings/accounts'
+    | '/_authenticated/settings/charter'
     | '/_authenticated/settings/close'
     | '/_authenticated/settings/diagnostics'
     | '/_authenticated/settings/email'
@@ -664,6 +677,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/charter': {
+      id: '/_authenticated/settings/charter'
+      path: '/charter'
+      fullPath: '/settings/charter'
+      preLoaderRoute: typeof AuthenticatedSettingsCharterRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/close': {
       id: '/_authenticated/settings/close'
       path: '/close'
@@ -739,6 +759,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountsRoute: typeof AuthenticatedSettingsAccountsRoute
+  AuthenticatedSettingsCharterRoute: typeof AuthenticatedSettingsCharterRoute
   AuthenticatedSettingsCloseRoute: typeof AuthenticatedSettingsCloseRoute
   AuthenticatedSettingsDiagnosticsRoute: typeof AuthenticatedSettingsDiagnosticsRoute
   AuthenticatedSettingsEmailRoute: typeof AuthenticatedSettingsEmailRoute
@@ -752,6 +773,7 @@ interface AuthenticatedSettingsRouteChildren {
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountsRoute: AuthenticatedSettingsAccountsRoute,
+  AuthenticatedSettingsCharterRoute: AuthenticatedSettingsCharterRoute,
   AuthenticatedSettingsCloseRoute: AuthenticatedSettingsCloseRoute,
   AuthenticatedSettingsDiagnosticsRoute: AuthenticatedSettingsDiagnosticsRoute,
   AuthenticatedSettingsEmailRoute: AuthenticatedSettingsEmailRoute,
