@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell, OrgPending } from "@/components/AppShell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/PageStates";
+import { CharterDrafts } from "@/components/CharterDrafts";
 import { DueDrafts } from "@/components/DashboardCards";
 import { useOrgContext } from "@/hooks/use-org-context";
 import { listAccounts } from "@/lib/taxonomy.functions";
@@ -153,6 +154,7 @@ function TemplatesPage() {
       </p>
 
       <DueDrafts orgId={org.id} timezone={org.timezone} canWrite={canWrite} />
+      <CharterDrafts orgId={org.id} canWrite={canWrite} />
       {due.data?.mode === "reminder" && (due.data.items.length ?? 0) > 0 && canWrite && (
         <ul className="mt-2 space-y-1 text-sm">
           {due.data.items.map((d) => (

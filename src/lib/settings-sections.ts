@@ -5,6 +5,7 @@ export const SETTINGS_SECTIONS = [
   { to: "/settings/accounts", label: "Accounts", exact: false },
   { to: "/settings/members", label: "Users & roles", exact: false },
   { to: "/settings/close", label: "Close the books", exact: false },
+  { to: "/settings/charter", label: "OpenCharterApp payments", exact: false },
   { to: "/settings/exports", label: "Exports and backup", exact: false },
   { to: "/settings/history", label: "History", exact: false },
   { to: "/settings/diagnostics", label: "Diagnostics", exact: false },
