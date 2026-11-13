@@ -52,6 +52,15 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   person. `notify()` takes `p_actions` and `p_action_kind`. Emails show the links as buttons
   (`data.actions`). `ActionLinkPage` (each app's `/act/<token>`) and `EmailActionSettingsPanel`.
   Notifications to particular people (tasks, approvals) can't be turned on by anyone else.
+- `1.18.0`: **No access** in an app, and an organization setting for app admins (owner decisions
+  2026-11-13). Core `0015_core_app_access.sql`: `app_role_overrides.no_access`, and a named role may
+  give an app `"none"`; `app_role()` is null for them (the owner always has access), `can_open_app`
+  says whether a person can open an app, `my_app_memberships` leaves those organizations out,
+  `org_app_roles` lists them with role null, `has_app_permission` gives them nothing;
+  `set_app_access(org, user, app, no_access)`. `public.org_role_settings` (`app_admins_manage_roles`,
+  off by default; `org_role_settings`, `set_org_role_settings`): when on, an app's admins may change
+  people's roles (and No access) in that app only; named roles and OpenAppHub roles stay with the
+  owner and OpenAppHub admins. Each app keeps people with No access out at its own read gate.
 - `1.16.0`: notifications (H-02, owner direction 2026-11-13), apart from the automation engine. Core
   `0013_core_notifications.sql`: `public.notification_kinds` (registered with
   `public.register_notification_kind`: who gets it by default, who may turn it on, its email kind),
