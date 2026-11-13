@@ -39,16 +39,21 @@ export function orgCookieString(
 }
 
 /**
- * The org to show: the cookie's org if the user is a member of it, otherwise the
- * first org (alphabetical), otherwise null (the user has no org yet).
+ * The org to show: the cookie's org if the user is a member of it, otherwise their default
+ * organization (H-03) if they're still in it, otherwise the first org (alphabetical),
+ * otherwise null (the user has no org yet).
  */
 export function resolveCurrentOrg<T extends { id: string; name: string }>(
   orgs: readonly T[],
   cookieValue: string | null,
+  /** The person's default organization (H-03), used when the cookie names none of theirs. */
+  defaultOrgId?: string | null,
 ): T | null {
   if (orgs.length === 0) return null;
   const fromCookie = cookieValue ? orgs.find((o) => o.id === cookieValue) : undefined;
   if (fromCookie) return fromCookie;
+  const fromDefault = defaultOrgId ? orgs.find((o) => o.id === defaultOrgId) : undefined;
+  if (fromDefault) return fromDefault;
   return [...orgs].sort((a, b) => a.name.localeCompare(b.name))[0] ?? null;
 }
 

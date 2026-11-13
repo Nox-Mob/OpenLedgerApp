@@ -173,6 +173,27 @@ const TEMPLATES: Record<string, Template> = {
     };
   },
 
+  // A notification (core 0013): something that happened, sent to the people it matters to.
+  notification: (row, ctx) => {
+    const d = row.data;
+    const link = str(d["link"]);
+    const org = str(d["org_name"]);
+    return {
+      subject: `${str(d["title"]) || "A notification"}${org ? ` · ${org}` : ""}`,
+      heading: str(d["title"]) || "A notification",
+      lines: [
+        ...str(d["body"])
+          .split(/\n{2,}/)
+          .map((p) => p.trim())
+          .filter(Boolean),
+        `You can choose which notifications you get, and how, in your account settings.`,
+      ],
+      ...(link
+        ? { action: { label: "Open it", href: appUrl(ctx, str(d["link_app"]) || "hub", link) } }
+        : {}),
+    };
+  },
+
   // OpenCharterApp: a chapter asks to use OpenBoardApp
   "charter.chapter_board_request": (row, ctx) => {
     const d = row.data;
