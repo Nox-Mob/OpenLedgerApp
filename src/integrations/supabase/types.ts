@@ -272,6 +272,175 @@ export type Database = {
         }
         Relationships: []
       }
+      charter_import_payments: {
+        Row: {
+          amount_cents: number
+          import_id: string
+          kind: string
+          org_id: string
+          payment_id: string
+        }
+        Insert: {
+          amount_cents: number
+          import_id: string
+          kind: string
+          org_id: string
+          payment_id: string
+        }
+        Update: {
+          amount_cents?: number
+          import_id?: string
+          kind?: string
+          org_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_import_payments_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "charter_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charter_import_settings: {
+        Row: {
+          card_account_id: string | null
+          enabled: boolean
+          fee_account_id: string | null
+          fee_fixed_cents: number
+          fee_percent_bp: number
+          join_account_id: string | null
+          org_id: string
+          other_account_id: string | null
+          renew_account_id: string | null
+          scope: string
+          starts_on: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          card_account_id?: string | null
+          enabled?: boolean
+          fee_account_id?: string | null
+          fee_fixed_cents?: number
+          fee_percent_bp?: number
+          join_account_id?: string | null
+          org_id: string
+          other_account_id?: string | null
+          renew_account_id?: string | null
+          scope?: string
+          starts_on?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          card_account_id?: string | null
+          enabled?: boolean
+          fee_account_id?: string | null
+          fee_fixed_cents?: number
+          fee_percent_bp?: number
+          join_account_id?: string | null
+          org_id?: string
+          other_account_id?: string | null
+          renew_account_id?: string | null
+          scope?: string
+          starts_on?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_import_settings_card_account_id_fkey"
+            columns: ["card_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_fee_account_id_fkey"
+            columns: ["fee_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_join_account_id_fkey"
+            columns: ["join_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_other_account_id_fkey"
+            columns: ["other_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_renew_account_id_fkey"
+            columns: ["renew_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charter_imports: {
+        Row: {
+          channel: string
+          day: string
+          decided_at: string
+          decided_by: string | null
+          fee_cents: number
+          gross_cents: number
+          id: string
+          kind: string
+          org_id: string
+          payment_count: number
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          channel: string
+          day: string
+          decided_at?: string
+          decided_by?: string | null
+          fee_cents?: number
+          gross_cents: number
+          id?: string
+          kind: string
+          org_id: string
+          payment_count: number
+          status: string
+          transaction_id?: string | null
+        }
+        Update: {
+          channel?: string
+          day?: string
+          decided_at?: string
+          decided_by?: string | null
+          fee_cents?: number
+          gross_cents?: number
+          id?: string
+          kind?: string
+          org_id?: string
+          payment_count?: number
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_imports_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deleted_organizations: {
         Row: {
           deleted_at: string
@@ -1178,6 +1347,20 @@ export type Database = {
       can_close_books: { Args: { p_org: string }; Returns: boolean }
       can_edit: { Args: { p_org: string }; Returns: boolean }
       can_read: { Args: { p_org: string }; Returns: boolean }
+      charter_drafts: {
+        Args: { p_org: string }
+        Returns: {
+          channel: string
+          day: string
+          fee_cents: number
+          gross_cents: number
+          kind: string
+          lines: Json
+          payment_count: number
+          payment_ids: string[]
+        }[]
+      }
+      charter_import_config: { Args: { p_org: string }; Returns: Json }
       is_admin: { Args: { p_org: string }; Returns: boolean }
       is_treasurer: { Args: { p_org: string }; Returns: boolean }
       log_org_deletion: { Args: { p_org: string }; Returns: undefined }
@@ -1192,6 +1375,27 @@ export type Database = {
         Returns: undefined
       }
       readable_org_ids: { Args: never; Returns: string[] }
+      record_charter_import: {
+        Args: {
+          p_channel: string
+          p_day: string
+          p_fee_cents: number
+          p_kind: string
+          p_org: string
+          p_payment_ids: string[]
+          p_status: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
+      reopen_charter_import: {
+        Args: { p_id: string; p_org: string }
+        Returns: undefined
+      }
+      save_charter_import_config: {
+        Args: { p: Json; p_org: string }
+        Returns: undefined
+      }
       skip_recurring_due: { Args: { p_template: string }; Returns: string }
       void_transaction_atomic: {
         Args: { p_audit: Json; p_id: string; p_org: string }
