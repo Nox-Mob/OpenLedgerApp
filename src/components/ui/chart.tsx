@@ -74,11 +74,15 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart=${id.replace(/[^A-Za-z0-9_-]/g, "")}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    // Written into a <style> tag: only a plain key and a plain color value (no ";", "}", "<"),
+    // so a config built from data can never add CSS or HTML.
+    if (!color || !/^[A-Za-z0-9_-]+$/.test(key) || !/^[#A-Za-z0-9(),.%\s-]+$/.test(color))
+      return null;
+    return `  --color-${key}: ${color};`;
   })
   .join("\n")}
 }

@@ -611,6 +611,9 @@ export function createSupabaseRepositories(db: Db): Repositories {
         );
       },
       async workspaceEntries(accountId, through, rid) {
+        // rid goes into a PostgREST filter string: only a UUID may, so it can't add conditions.
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(rid)))
+          throw new Error("That statement check wasn't found.");
         const { data, error } = await sb
           .from("entries")
           .select(RECON_ENTRY_SELECT)
