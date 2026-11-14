@@ -1,0 +1,7 @@
+# How to report a security problem in OpenAppHub, OpenCharterApp, OpenBoardApp or OpenLedgerApp.
+# Please tell us privately first, and give us time to fix it before telling anyone else.
+Contact: mailto:support@openapphub.org
+Expires: 2027-11-14T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://docs.openapphub.org/hub/help/security/
+Canonical: https://ledger.openapphub.org/.well-known/security.txt

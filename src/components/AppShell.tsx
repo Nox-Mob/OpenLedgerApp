@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SettingsSidebar } from "@/components/SettingsNav";
 import { AppShell as SuiteShell } from "@shared/ui/AppShell";
 import { hubUrl, isHosted } from "@shared/supabase/hosted";
+import { TwoStepNotice } from "@shared/ui/TwoStep";
 import { helpHrefFor } from "@/config/help";
 import { RouterLink } from "@/lib/router-link";
 import { setStoredOrgId } from "@/lib/current-org";
@@ -159,7 +160,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
       ) : (
-        children
+        <>
+          {/* Organizations that require two-step sign-in of owners and admins (core 0018). */}
+          <div className="mb-4 empty:hidden">
+            <TwoStepNotice
+              client={supabase as unknown as SupabaseClient}
+              accountHref={isHosted() ? hubUrl("/account#two-step") : "/settings/security"}
+            />
+          </div>
+          {children}
+        </>
       )}
       <footer className="mt-12 flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-xs text-muted-foreground">
         <Link to="/terms" className="hover:text-foreground">
