@@ -1,7 +1,6 @@
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
-import { isHosted } from "@shared/supabase/hosted";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { FileUp } from "lucide-react";
@@ -157,20 +156,7 @@ function ExportsPage() {
         </div>
       </section>
 
-      {/* Restoring makes a new organization with the service role's help: self-hosted only. Hosted,
-          organizations are made in OpenAppHub (with their plan), and support restores backups. */}
-      {isHosted() ? (
-        <section className="rounded-lg border bg-card p-5">
-          <h2 className="font-display text-lg font-semibold">Restore a backup</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            On OpenAppHub, restoring a backup is done by support, so a restored organization comes
-            with its plan and members. Email support@openapphub.org from the account that owns the
-            organization, and attach the backup file.
-          </p>
-        </section>
-      ) : (
-        <RestoreSection />
-      )}
+      <RestoreSection />
     </div>
   );
 }
@@ -178,6 +164,7 @@ function ExportsPage() {
 type Check = Awaited<ReturnType<typeof checkBackupFile>>;
 
 function RestoreSection() {
+  const { org } = useOrgContext();
   const fileInput = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -212,11 +199,11 @@ function RestoreSection() {
   }
 
   async function restore() {
-    if (!text || !check) return;
+    if (!text || !check || !org) return;
     setBusy(true);
     try {
-      const r = await restoreBackup({ data: { text, confirmName: confirm } });
-      toast.success(`Restored as "${r.name}"`);
+      const r = await restoreBackup({ data: { orgId: org.id, text, confirmName: confirm } });
+      toast.success(`Restored into "${r.name}"`);
       await qc.invalidateQueries();
       setStoredOrgId(r.orgId);
       setCheck(null);
@@ -232,9 +219,12 @@ function RestoreSection() {
     <section className="rounded-lg border bg-card p-5">
       <h2 className="font-display text-lg font-semibold">Restore a backup</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        A backup is restored into a new organization. Your existing books are never changed. Files
-        that were edited after they were downloaded are refused, and every transaction is checked
-        again before anything is saved. Other members are not copied; invite them again.
+        A backup is restored into {org?.name ?? "this organization"}, while its books are still
+        empty (no accounts or transactions). Books that already have entries are never changed. To
+        restore next to books you already keep, make a new organization first and restore there.
+        Files that were edited after they were downloaded are refused, and every transaction is
+        checked again. It all happens in one step: if anything goes wrong, nothing is saved. Other
+        members are not copied; invite them again.
       </p>
       {fp.data?.fingerprint && (
         <p className="mt-2 text-xs text-muted-foreground">
@@ -312,7 +302,7 @@ function RestoreSection() {
               disabled={busy || confirm.trim() !== check.orgName.trim()}
               onClick={restore}
             >
-              {busy ? "Restoring…" : "Restore into a new organization"}
+              {busy ? "Restoring…" : `Restore into ${org?.name ?? "this organization"}`}
             </Button>
           </div>
         </div>

@@ -71,14 +71,22 @@ const REAUTH_ACTIONS: Record<string, string> = {
   recovery_settings: "change your recovery email",
 };
 
+/** Each app's page with two-step sign-in and the recovery email (self-hosted apps have their own). */
+const SECURITY_PAGE: Record<string, string> = {
+  hub: "/account#two-step",
+  charter: "/account#two-step",
+  board: "/board/security",
+  ledger: "/settings/security",
+};
+
 const SECURITY_NOTICES: Record<string, { title: string; body: string }> = {
   recovery_email_set: {
     title: "A recovery email was added to your account",
-    body: "A recovery email was added to your OpenAppHub account. It can receive a link that turns off two-step sign-in.",
+    body: "A recovery email was added to your account. It can receive a link that turns off two-step sign-in.",
   },
   recovery_email_removed: {
     title: "Your recovery email was removed",
-    body: "The recovery email was removed from your OpenAppHub account.",
+    body: "The recovery email was removed from your account.",
   },
   recovery_link_sent: {
     title: "Someone asked to turn off your two-step sign-in",
@@ -86,7 +94,7 @@ const SECURITY_NOTICES: Record<string, { title: string; body: string }> = {
   },
   two_step_removed: {
     title: "Two-step sign-in was turned off",
-    body: "Two-step sign-in was turned off for your OpenAppHub account using a backup code or your recovery email. Set it up again on your account page.",
+    body: "Two-step sign-in was turned off for your account using a backup code or your recovery email. Set it up again on your account page.",
   },
 };
 
@@ -255,7 +263,7 @@ const TEMPLATES: Record<string, Template> = {
       subject: `Your code: ${code}`,
       heading: "Confirm it's you",
       lines: [
-        `Type this code in OpenAppHub to ${what}. It works once, for 10 minutes.`,
+        `Type this code in ${APP_NAMES[row.app as AppId] ?? "OpenAppHub"} to ${what}. It works once, for 10 minutes.`,
         code,
         "If you didn't ask for this, someone may be signed in to your account. Change your password and turn on two-step sign-in.",
       ],
@@ -265,16 +273,20 @@ const TEMPLATES: Record<string, Template> = {
     subject: "Confirm your recovery email",
     heading: "Is this your recovery email?",
     lines: [
-      "Someone added this address as the recovery email for an OpenAppHub account. If you lose the phone you use for two-step sign-in, we can send a link here to get back in.",
+      "Someone added this address as the recovery email for an account. If you lose the phone you use for two-step sign-in, we can send a link here to get back in.",
       "The link works once, for 24 hours. You'll need to be signed in to the account. If this wasn't you, ignore this email: the address won't be used.",
     ],
     action: {
       label: "Confirm this address",
-      href: appUrl(ctx, "hub", `/verify-recovery-email?token=${encodeURIComponent(str(row.data["token"]))}`),
+      href: appUrl(
+        ctx,
+        row.app || "hub",
+        `/verify-recovery-email?token=${encodeURIComponent(str(row.data["token"]))}`,
+      ),
     },
   }),
   "account.recovery_link": (row, ctx) => ({
-    subject: "Your link to get back into OpenAppHub",
+    subject: "Your link to get back into your account",
     heading: "Can't use your authenticator app?",
     lines: [
       "This link turns off two-step sign-in for your account, so you can sign in with your password and set it up again on a new phone.",
@@ -282,7 +294,7 @@ const TEMPLATES: Record<string, Template> = {
     ],
     action: {
       label: "Turn off two-step sign-in",
-      href: appUrl(ctx, "hub", `/recover?token=${encodeURIComponent(str(row.data["token"]))}`),
+      href: appUrl(ctx, row.app || "hub", `/recover?token=${encodeURIComponent(str(row.data["token"]))}`),
     },
   }),
   "account.security_notice": (row, ctx) => {
@@ -302,7 +314,10 @@ const TEMPLATES: Record<string, Template> = {
         n.body + extra,
         "If this was you, there's nothing to do. If it wasn't, change your password now and check your account's security settings.",
       ],
-      action: { label: "Open your account", href: appUrl(ctx, "hub", "/account#two-step") },
+      action: {
+        label: "Open your account",
+        href: appUrl(ctx, row.app || "hub", SECURITY_PAGE[row.app] ?? "/account#two-step"),
+      },
     };
   },
 

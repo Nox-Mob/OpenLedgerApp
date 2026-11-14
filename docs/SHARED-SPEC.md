@@ -456,7 +456,7 @@ In the shared project the service-role key bypasses RLS for **every app's data**
 | Charter | Dues payment completion, failure and refund recording from Stripe (`payments.server.ts`, the dues webhook route) |
 | Ledger | None in hosted mode. Restore creates the org with `public.create_organization()` as the caller; history writes go through `ledger.audited_write`. |
 
-Any other use needs the owner's written approval in the PR. Self-hosted-only features (for example Ledger's own account deletion) may use the service role on the self-hoster's database, behind `VITE_HOSTED=false` on the server too.
+Any other use needs the owner's written approval in the PR. Self-hosted-only features (for example Ledger's own account deletion, and two-step recovery in Charter, Board and Ledger through `shared/security/server.ts`) may use the service role on the self-hoster's database, behind `VITE_HOSTED=false` on the server too.
 
 ---
 

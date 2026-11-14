@@ -18,7 +18,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 import { readBackupData } from "./backup-export.server";
-import { restoreIntoNewOrg } from "./restore.server";
+import { restoreIntoOrg } from "./restore.server";
 
 // In-process persistence double exercises the actual export pagination and restore writes.
 // It is not a substitute for live RLS/trigger tests in the database CI suite.
@@ -33,11 +33,13 @@ class BackupStore {
   schema() {
     return this;
   }
+  // ledger.restore_into (0017) writes everything in the database in one step; here we keep
+  // what it was sent, to check the server's part: new ids, intact links, unchanged reports.
+  restoreCalls: Row[] = [];
   async rpc(name: string, args: Row) {
-    if (name !== "create_organization") return { data: null, error: { message: `no rpc ${name}` } };
-    const id = crypto.randomUUID();
-    (this.tables["organizations"] ??= []).push({ id, name: args["p_name"] });
-    return { data: id, error: null };
+    if (name !== "restore_into") return { data: null, error: { message: `no rpc ${name}` } };
+    this.restoreCalls.push(structuredClone(args));
+    return { data: {}, error: null };
   }
 
   from(table: string) {
@@ -339,15 +341,18 @@ function reports(tables: Record<string, Row[]>) {
   };
 }
 
+const TARGET_ORG = "target-org";
+
 describe("moderately sized organization backup roundtrip", () => {
   let db: BackupStore;
   beforeEach(async () => {
     db = new BackupStore();
     fixture(db);
+    (db.tables["organizations"] ??= []).push({ id: TARGET_ORG, name: "Empty books" });
     state.db = db;
   });
 
-  it("exports and restores 1,500 transactions, all tables, links and reports", async () => {
+  async function signedBackup() {
     const keys = await keysFromSeed("test-only-backup-seed".repeat(4));
     const source = await readBackupData(db as unknown as UntypedDb, ORG_ID);
     const exported = await signBackup(
@@ -356,11 +361,14 @@ describe("moderately sized organization backup roundtrip", () => {
       source.tables,
       "2026-10-07T00:00:00Z",
     );
-    const serialized = JSON.stringify(exported);
-    const verified = await verifyBackup(JSON.parse(serialized), keys.publicRaw);
+    return { keys, exported };
+  }
+
+  it("exports 1,500 transactions and sends them, with new ids and intact links, in one call", async () => {
+    const { keys, exported } = await signedBackup();
+    const verified = await verifyBackup(JSON.parse(JSON.stringify(exported)), keys.publicRaw);
     expect(verified.counts["transactions"]).toBe(1500);
     expect(verified.counts["entries"]).toBe(4500);
-    expect(verified.counts["accounts"]).toBe(4);
     for (const table of [
       "transactions",
       "entries",
@@ -370,32 +378,15 @@ describe("moderately sized organization backup roundtrip", () => {
     ])
       expect(db.pages.some((p) => p.table === table && p.from === 1000)).toBe(true);
     const original = structuredClone(db.tables);
-    const restored = await restoreIntoNewOrg(
-      db as unknown as UntypedDb,
-      "restoring-user",
-      verified,
-    );
-    const restoredTxIds = new Set(
-      (db.tables["transactions"] ?? [])
-        .filter((t) => t["org_id"] === restored.orgId)
-        .map((t) => t["id"]),
-    );
-    const tables = Object.fromEntries(
-      TABLES.map((t) => [
-        t,
-        (db.tables[t] ?? []).filter(
-          (r) => r["org_id"] === restored.orgId || restoredTxIds.has(r["transaction_id"]),
-        ),
-      ]),
-    );
+    const restored = await restoreIntoOrg(db as unknown as UntypedDb, TARGET_ORG, verified);
+    expect(restored).toEqual({ orgId: TARGET_ORG, name: "Empty books" });
+    expect(db.restoreCalls).toHaveLength(1);
+    const call = db.restoreCalls[0]!;
+    expect(call["p_org"]).toBe(TARGET_ORG);
+    const tables = call["p_tables"] as Record<string, Row[]>;
     for (const table of TABLES) {
-      if (table === "user_roles") {
-        expect(tables[table]).toHaveLength(0);
-        continue;
-      }
-      expect(tables[table]).toHaveLength(
-        (verified.counts[table] ?? 0) + (table === "audit_log" ? 1 : 0),
-      );
+      if (table === "user_roles") continue;
+      expect(tables[table] ?? [], table).toHaveLength(verified.counts[table] ?? 0);
       const sourceIds = new Set((exported.tables[table] ?? []).map((r) => r["id"]).filter(Boolean));
       for (const row of tables[table] ?? [])
         if (row["id"]) expect(sourceIds.has(row["id"])).toBe(false);
@@ -407,111 +398,25 @@ describe("moderately sized organization backup roundtrip", () => {
             expect((tables[target] ?? []).some((r) => r["id"] === row[column])).toBe(true);
     checkRestorable(tables);
     expect(reports(tables)).toEqual(reports(exported.tables));
-    expect(reports(tables).balance.balanced).toBe(true);
-    expect(
-      (tables["reconciliations"] ?? []).filter((r) => r["status"] === "completed"),
-    ).toHaveLength(2);
-    expect(
-      (tables["reconciliations"] ?? []).filter((r) => r["status"] === "in_progress"),
-    ).toHaveLength(1);
-    expect((tables["entries"] ?? []).filter((r) => r["reconciliation_id"])).toHaveLength(1440);
-    expect((tables["accounts"] ?? []).find((r) => r["name"] === "archived")?.["is_active"]).toBe(
-      false,
-    );
-    expect(
-      (db.tables["org_settings"] ?? []).find((r) => r["org_id"] === restored.orgId)?.[
-        "books_locked_through"
-      ],
-    ).toBe("2026-01-31");
-    expect(
-      (tables["audit_log"] ?? []).filter((r) => r["action"] === "restored.created"),
-    ).toHaveLength(1500);
-    expect(db.writes.every((w) => w.size <= 500)).toBe(true);
-    for (const table of TABLES)
-      expect(
-        (db.tables[table] ?? []).filter((r) =>
-          original[table]?.some((s) =>
-            s["id"] ? s["id"] === r["id"] : s["transaction_id"] === r["transaction_id"],
-          ),
-        ),
-      ).toEqual(original[table]);
+    expect((call["p_meta"] as Row)["original_org_id"]).toBe(ORG_ID);
+    // Reading the backup changed nothing.
+    expect(db.tables).toEqual(original);
   }, 30000);
 
-  it("restoring the same backup twice at once makes two complete, separate organizations", async () => {
-    const keys = await keysFromSeed("test-only-backup-seed".repeat(4));
-    const source = await readBackupData(db as unknown as UntypedDb, ORG_ID);
-    const signed = await signBackup(
-      keys,
-      source.organization,
-      source.tables,
-      "2026-10-07T00:00:00Z",
-    );
-    const verified = await verifyBackup(JSON.parse(JSON.stringify(signed)), keys.publicRaw);
-    const before = structuredClone(db.tables);
-    const [a, b] = await Promise.all([
-      restoreIntoNewOrg(db as unknown as UntypedDb, "restoring-user", verified),
-      restoreIntoNewOrg(db as unknown as UntypedDb, "restoring-user", verified),
-    ]);
-    expect(a.orgId).not.toBe(b.orgId);
-    const txs = db.tables["transactions"] ?? [];
-    for (const id of [a.orgId, b.orgId])
-      expect(txs.filter((t) => t["org_id"] === id)).toHaveLength(1500);
-    // No record id is shared between the two copies or with the original.
-    for (const t of TABLES) {
-      const ids = (db.tables[t] ?? []).map((r) => r["id"]).filter((x) => x !== undefined);
-      expect(new Set(ids).size, t).toBe(ids.length);
-    }
-    // The original books are untouched.
-    for (const t of TABLES)
-      expect((db.tables[t] ?? []).filter((r) => r["org_id"] === ORG_ID)).toEqual(
-        (before[t] ?? []).filter((r) => r["org_id"] === ORG_ID),
-      );
-  });
-
-  it("removes the partial organization after a later restore write fails", async () => {
-    const keys = await keysFromSeed("test-only-backup-seed".repeat(4));
-    const source = await readBackupData(db as unknown as UntypedDb, ORG_ID);
-    const exported = await signBackup(
-      keys,
-      source.organization,
-      source.tables,
-      "2026-10-07T00:00:00Z",
-    );
-    const verified = await verifyBackup(JSON.parse(JSON.stringify(exported)), keys.publicRaw);
-    const original = structuredClone(db.tables);
-    db.failTable = "budgets";
-    await expect(
-      restoreIntoNewOrg(db as unknown as UntypedDb, "restoring-user", verified),
-    ).rejects.toThrow("Injected write failure");
-    for (const table of ["organizations", "org_settings", ...TABLES])
-      expect(db.tables[table]).toEqual(original[table]);
-    expect(db.tables["deleted_organizations"]).toHaveLength(1);
-  }, 30000);
-
-  it("a changed backup is refused before any write, with the bad-backup pop-up wording", async () => {
+  it("a changed backup is refused before anything is sent, with the bad-backup pop-up wording", async () => {
     const { explainError } = await import("./friendly-errors");
-    const keys = await keysFromSeed("test-only-backup-seed".repeat(4));
-    const source = await readBackupData(db as unknown as UntypedDb, ORG_ID);
-    const exported = await signBackup(
-      keys,
-      source.organization,
-      source.tables,
-      "2026-10-07T00:00:00Z",
-    );
+    const { keys, exported } = await signedBackup();
     const tampered = JSON.parse(JSON.stringify(exported));
     tampered.tables.entries[0].amount_cents += 100;
-    const original = structuredClone(db.tables);
-    const writesBefore = db.writes.length;
     let caught: unknown;
     try {
       const v = await verifyBackup(tampered, keys.publicRaw);
-      await restoreIntoNewOrg(db as unknown as UntypedDb, "restoring-user", v);
+      await restoreIntoOrg(db as unknown as UntypedDb, TARGET_ORG, v);
     } catch (e) {
       caught = e;
     }
     expect(explainError(caught).kind).toBe("bad_backup");
     expect(explainError(caught).detail).toContain("Nothing was restored");
-    expect(db.writes.length).toBe(writesBefore);
-    expect(db.tables).toEqual(original);
+    expect(db.restoreCalls).toHaveLength(0);
   }, 30000);
 });

@@ -182,7 +182,7 @@ async function verifyText(text: string) {
   return verifyBackup(parsed, (await getSigningKeys()).publicRaw);
 }
 
-/** Check a backup without writing anything. Any signed-in user may restore into a new org. */
+/** Check a backup without writing anything. The owner or an admin restores it into an empty organization. */
 const checkBackupFileCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => z.object({ text: backupText }).parse(input))
@@ -202,14 +202,15 @@ export const checkBackupFile = desktopAware("checkBackupFile", checkBackupFileCl
 const restoreBackupCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) =>
-    z.object({ text: backupText, confirmName: z.string().max(200) }).parse(input),
+    z.object({ orgId, text: backupText, confirmName: z.string().max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, context.userId, data.orgId, "manage_settings");
     const v = await verifyText(data.text);
     if (data.confirmName.trim() !== v.backup.manifest.orgName.trim())
       throw new Error("Type the organization name exactly as shown to confirm.");
-    const { restoreIntoNewOrg } = await import("./restore.server");
-    return restoreIntoNewOrg(context.supabase, context.userId, v);
+    const { restoreIntoOrg } = await import("./restore.server");
+    return restoreIntoOrg(context.supabase, data.orgId, v);
   });
 export const restoreBackup = desktopAware("restoreBackup", restoreBackupCloud);
 

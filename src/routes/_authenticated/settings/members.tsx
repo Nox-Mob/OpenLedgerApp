@@ -19,6 +19,7 @@ import { inviteUrl } from "@/lib/invite-link";
 import { toast } from "sonner";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ReauthDialog } from "@shared/ui/Reauth";
+import { appSendCode } from "@/lib/security.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/settings/members")({
@@ -435,6 +436,7 @@ function MembersSettings() {
             : "The admin you chose becomes the owner. You stay an admin."
         }
         confirmLabel={confirming === "delete" ? "Delete forever" : "Transfer"}
+        sendCode={appSendCode}
         onClose={() => setConfirming(null)}
         onConfirmed={async (reauth) => {
           if (confirming === "delete") {

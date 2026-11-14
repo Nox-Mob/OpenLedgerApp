@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ReauthDialog } from "@shared/ui/Reauth";
 import { OrgTwoStepPanel, TwoStepSettings } from "@shared/ui/TwoStep";
+import { appSaveRecoveryEmail, appSendCode } from "@/lib/security.functions";
 import { useOrgContext } from "@/hooks/use-org-context";
 import { errorMessage } from "@/lib/errors";
 import { deleteMyAccount, getMyAccountDeletion } from "@/lib/members.functions";
@@ -48,14 +49,20 @@ function SecuritySettings() {
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <a href={hubUrl("/account#two-step")} className="font-medium text-primary hover:underline">
+              <a
+                href={hubUrl("/account#two-step")}
+                className="font-medium text-primary hover:underline"
+              >
                 Your account
               </a>
               : two-step sign-in, backup codes, recovery email, recent security activity, and
               deleting your account.
             </li>
             <li>
-              <a href={hubUrl("/settings#security")} className="font-medium text-primary hover:underline">
+              <a
+                href={hubUrl("/settings#security")}
+                className="font-medium text-primary hover:underline"
+              >
                 Organization settings
               </a>
               : who must use two-step sign-in in {org?.name ?? "your organization"}.
@@ -72,7 +79,11 @@ function SecuritySettings() {
           Two-step sign-in
         </h2>
         <div className="mt-3">
-          <TwoStepSettings client={client} />
+          <TwoStepSettings
+            client={client}
+            sendCode={appSendCode}
+            saveRecoveryEmail={appSaveRecoveryEmail}
+          />
         </div>
       </section>
       {org ? (
@@ -168,6 +179,7 @@ function DeleteAccount() {
         title="Delete your account?"
         description="Your sign-in is removed and you leave every organization. This can't be undone."
         confirmLabel="Delete my account"
+        sendCode={appSendCode}
         onConfirmed={removeWith}
         onClose={() => setConfirming(false)}
       />

@@ -142,6 +142,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="max-w-sm rounded-lg border bg-card p-6">
           <h1 className="mb-3 font-display text-xl font-semibold">Two-step sign-in</h1>
           <MfaCodeForm onDone={() => void queryClient.invalidateQueries()} />
+          <a
+            href={isHosted() ? hubUrl("/recover") : "/recover"}
+            className="mt-3 inline-block text-sm underline"
+          >
+            Can't use your authenticator app?
+          </a>
         </div>
       ) : (
         <>

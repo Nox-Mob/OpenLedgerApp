@@ -17,8 +17,10 @@ import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as GetStartedRouteImport } from './routes/get-started'
 import { Route as NotAdviceRouteImport } from './routes/not-advice'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RecoverRouteImport } from './routes/recover'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyRecoveryEmailRouteImport } from './routes/verify-recovery-email'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
 import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
 import { Route as AuthenticatedFundsRouteImport } from './routes/_authenticated/funds'
@@ -86,6 +88,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecoverRoute = RecoverRouteImport.update({
+  id: '/recover',
+  path: '/recover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -94,6 +101,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyRecoveryEmailRoute = VerifyRecoveryEmailRouteImport.update({
+  id: '/verify-recovery-email',
+  path: '/verify-recovery-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
@@ -255,8 +267,10 @@ export interface FileRoutesByFullPath {
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/funds': typeof AuthenticatedFundsRoute
@@ -293,8 +307,10 @@ export interface FileRoutesByTo {
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/funds': typeof AuthenticatedFundsRoute
@@ -332,8 +348,10 @@ export interface FileRoutesById {
   '/get-started': typeof GetStartedRoute
   '/not-advice': typeof NotAdviceRoute
   '/privacy': typeof PrivacyRoute
+  '/recover': typeof RecoverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
+  '/verify-recovery-email': typeof VerifyRecoveryEmailRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
   '/_authenticated/funds': typeof AuthenticatedFundsRoute
@@ -372,8 +390,10 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/not-advice'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/terms'
+    | '/verify-recovery-email'
     | '/accounts'
     | '/budgets'
     | '/funds'
@@ -410,8 +430,10 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/not-advice'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/terms'
+    | '/verify-recovery-email'
     | '/accounts'
     | '/budgets'
     | '/funds'
@@ -448,8 +470,10 @@ export interface FileRouteTypes {
     | '/get-started'
     | '/not-advice'
     | '/privacy'
+    | '/recover'
     | '/reset-password'
     | '/terms'
+    | '/verify-recovery-email'
     | '/_authenticated/accounts'
     | '/_authenticated/budgets'
     | '/_authenticated/funds'
@@ -488,8 +512,10 @@ export interface RootRouteChildren {
   GetStartedRoute: typeof GetStartedRoute
   NotAdviceRoute: typeof NotAdviceRoute
   PrivacyRoute: typeof PrivacyRoute
+  RecoverRoute: typeof RecoverRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  VerifyRecoveryEmailRoute: typeof VerifyRecoveryEmailRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
 
@@ -551,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recover': {
+      id: '/recover'
+      path: '/recover'
+      fullPath: '/recover'
+      preLoaderRoute: typeof RecoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -563,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-recovery-email': {
+      id: '/verify-recovery-email'
+      path: '/verify-recovery-email'
+      fullPath: '/verify-recovery-email'
+      preLoaderRoute: typeof VerifyRecoveryEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/accounts': {
@@ -838,8 +878,10 @@ const rootRouteChildren: RootRouteChildren = {
   GetStartedRoute: GetStartedRoute,
   NotAdviceRoute: NotAdviceRoute,
   PrivacyRoute: PrivacyRoute,
+  RecoverRoute: RecoverRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  VerifyRecoveryEmailRoute: VerifyRecoveryEmailRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport

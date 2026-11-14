@@ -116,9 +116,28 @@ returns void language sql volatile security definer set search_path = '' as $$
 $$;
 
 -- An essential email to the person (or to another address), from OpenAppHub.
+-- Which app sends the security email: the one the person is using (its server passes it, so a
+-- self-hosted app's own sender sends it and its links open that app), or OpenAppHub.
+create or replace function public._security_app()
+returns text language sql stable set search_path = '' as $$
+  select case
+    when nullif(pg_catalog.current_setting('app.security_app', true), '') in ('hub', 'charter', 'board', 'ledger')
+      then pg_catalog.current_setting('app.security_app', true)
+    when to_regnamespace('hub') is not null then 'hub'
+    when to_regnamespace('charter') is not null then 'charter'
+    when to_regnamespace('board') is not null then 'board'
+    when to_regnamespace('ledger') is not null then 'ledger'
+    else 'hub' end;
+$$;
+
+create or replace function public._use_security_app(p_app text)
+returns void language sql volatile set search_path = '' as $$
+  select pg_catalog.set_config('app.security_app', coalesce(p_app, ''), true);
+$$;
+
 create or replace function public._security_email(p_template text, p_user uuid, p_to_email text, p_data jsonb)
 returns uuid language sql volatile security definer set search_path = '' as $$
-  select public.enqueue_email('hub', p_template, null, p_user, p_to_email, p_data, 'essential', null, now());
+  select public.enqueue_email(public._security_app(), p_template, null, p_user, p_to_email, p_data, 'essential', null, now());
 $$;
 
 -- Secrets in a security email are removed once it has been sent (or given up on).
@@ -165,12 +184,13 @@ $$;
 
 -- Email a 6-digit code, for people who sign in with Google and have no password. At most five
 -- an hour. The code works for ten minutes, for this action, with five tries.
-create or replace function public.send_reauth_code(p_action text)
+create or replace function public.send_reauth_code(p_action text, p_app text default null)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_uid uuid := public._require_uid();
   v_code text;
 begin
+  perform public._use_security_app(p_app);
   if not public._reauth_action_ok(p_action) then
     raise exception 'Unknown action.' using errcode = '22023';
   end if;
@@ -547,7 +567,7 @@ $$;
 
 -- Add, change or remove (null) the recovery email. It needs the one-time pass, and the new
 -- address gets a link to confirm it before it can be used. The account's own email is told.
-create or replace function public.set_recovery_email(p_email text, p_reauth text)
+create or replace function public.set_recovery_email(p_email text, p_reauth text, p_app text default null)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_uid uuid := public._require_uid();
@@ -555,6 +575,7 @@ declare
   v_primary text;
   v_token text;
 begin
+  perform public._use_security_app(p_app);
   perform public._use_reauth('recovery_settings', p_reauth);
   select lower(u.email::text) into v_primary from auth.users u where u.id = v_uid;
   if v_email is null then
@@ -602,13 +623,14 @@ $$;
 -- Send a recovery link to the confirmed recovery email (signed in with a password, without the
 -- authenticator). At most three an hour; the link works once, for 30 minutes. The account's own
 -- email is told too, so a stranger can't do this quietly.
-create or replace function public.send_recovery_link()
+create or replace function public.send_recovery_link(p_app text default null)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_uid uuid := public._require_uid();
   v_rec public.account_recovery;
   v_token text;
 begin
+  perform public._use_security_app(p_app);
   if not public._has_verified_factor() then
     raise exception 'This account doesn''t use two-step sign-in.' using errcode = '22023';
   end if;
@@ -653,13 +675,14 @@ $$;
 
 -- After the server removed the authenticator: clear the backup codes (they went with it),
 -- record it, and tell the person at both addresses.
-create or replace function public.finish_two_step_recovery()
+create or replace function public.finish_two_step_recovery(p_app text default null)
 returns text language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_uid uuid := public._require_uid();
   v_method text;
   v_recovery text;
 begin
+  perform public._use_security_app(p_app);
   delete from public.mfa_recovery_grants g where g.user_id = v_uid and g.expires_at >= now()
   returning g.method into v_method;
   if v_method is null then
@@ -687,25 +710,26 @@ revoke all on function
   public._user_has_verified_factor(uuid), public._factor_since(uuid), public._fingerprint(text), public._random_token(),
   public._amr_fresh(text[], int), public._log_security_event(uuid, text, jsonb),
   public._security_email(text, uuid, text, jsonb), public._strip_email_secrets(),
+  public._security_app(), public._use_security_app(text),
   public._reauth_action_ok(text), public._use_reauth(text, text), public._org_mfa_level(uuid),
   public._normalize_backup_code(text), public._recovery_locked(uuid)
 from public, anon, authenticated;
 
 revoke all on function
-  public.send_reauth_code(text), public.begin_reauth(text, text), public.use_reauth(text, text),
+  public.send_reauth_code(text, text), public.begin_reauth(text, text), public.use_reauth(text, text),
   public.delete_organization(uuid, text, text), public.transfer_ownership(uuid, uuid, text, text),
   public.set_org_mfa_level(uuid, text), public.account_security_status(),
-  public.create_recovery_codes(), public.use_recovery_code(text), public.set_recovery_email(text, text),
-  public.verify_recovery_email(text), public.send_recovery_link(), public.use_recovery_link(text),
-  public.finish_two_step_recovery()
+  public.create_recovery_codes(), public.use_recovery_code(text), public.set_recovery_email(text, text, text),
+  public.verify_recovery_email(text), public.send_recovery_link(text), public.use_recovery_link(text),
+  public.finish_two_step_recovery(text)
 from public, anon;
 grant execute on function
-  public.send_reauth_code(text), public.begin_reauth(text, text), public.use_reauth(text, text),
+  public.send_reauth_code(text, text), public.begin_reauth(text, text), public.use_reauth(text, text),
   public.delete_organization(uuid, text, text), public.transfer_ownership(uuid, uuid, text, text),
   public.set_org_mfa_level(uuid, text), public.account_security_status(),
-  public.create_recovery_codes(), public.use_recovery_code(text), public.set_recovery_email(text, text),
-  public.verify_recovery_email(text), public.send_recovery_link(), public.use_recovery_link(text),
-  public.finish_two_step_recovery()
+  public.create_recovery_codes(), public.use_recovery_code(text), public.set_recovery_email(text, text, text),
+  public.verify_recovery_email(text), public.send_recovery_link(text), public.use_recovery_link(text),
+  public.finish_two_step_recovery(text)
 to authenticated, service_role;
 
 select public._tune_schema('public');

@@ -86,7 +86,11 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   `needsReauth`), `createReauthClient()` in `shared/supabase/client.ts` (a memory-only client for
   the background sign-in), and `TwoStep.tsx`: `OrgTwoStepPanel` shows the three levels,
   `TwoStepSettings` has backup codes, the recovery email and recent security activity, and
-  `TwoStepGate` takes `recoverHref`.
+  `TwoStepGate` takes `recoverHref`. Recovery works self-hosted too: `shared/security/server.ts`
+  (the server steps, for OpenAppHub and each app's own server functions) and
+  `shared/ui/Recover.tsx` (`RecoverScreen`, `VerifyRecoveryEmailScreen`); the security functions
+  take `p_app`, so a self-hosted app's own sender sends its security emails and their links open
+  that app. Creating new backup codes needs a code typed in the last five minutes.
 - `1.21.0`: security round 2 (2026-11-14). Core `0018_core_auth_hardening.sql`: a person with a
   verified authenticator must be signed in with it (session `aal2`) to see any organization's data
   (`is_member`, `has_role`, `is_member_of_child`, `app_role`); the organization setting

@@ -1,3 +1,4 @@
+import { hubUrl, isHosted } from "@shared/supabase/hosted";
 import { desktopEntryRedirect } from "@/lib/desktop/entry-redirect";
 import { errorMessage } from "@/lib/errors";
 import { PENDING_INVITE_KEY } from "@/lib/invite-link";
@@ -173,6 +174,12 @@ function AuthPage() {
             Open your authenticator app and enter the code for OpenLedgerApp.
           </p>
           <MfaCodeForm onDone={goAfterAuth} />
+          <a
+            href={isHosted() ? hubUrl("/recover") : "/recover"}
+            className="mt-3 inline-block text-sm underline"
+          >
+            Can't use your authenticator app?
+          </a>
           <button
             type="button"
             className="mt-4 text-sm underline"
