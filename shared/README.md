@@ -67,6 +67,13 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.23.1`: sign-out that sticks (2026-11-14, owner report: "auto logged me into Casey Ramirez,
+  but it won't let me log out"). Staging used to set its sign-in cookie on `.openapphub.org`; it now
+  uses `.staging.openapphub.org`. A browser that signed in before that still sent the old cookie,
+  which signing out couldn't clear, so the old person stayed signed in. `getSupabaseBrowserClient`
+  now calls `clearStaleAuthCookies`: it expires this project's `sb-<ref>-auth-token*` cookies on
+  every other parent domain and the host-only copy (`staleCookieDomains`), never the domain in use
+  and never another project's cookies, then reloads once if it removed one.
 - `1.23.0`: screen-size and accessibility review (2026-11-14, owner request). `design/tailwind.css`:
   native tick boxes and radio buttons are 18px in the app's colour, and a label holding one is at
   least 28px tall; on touch screens (`pointer: coarse`) links, buttons and selects are at least
