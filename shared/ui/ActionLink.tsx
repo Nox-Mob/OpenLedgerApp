@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { APP_NAMES } from "../apps";
+import { safePath } from "../safe-path";
 import { suiteUrls, type AppId, type SuiteUrls } from "../supabase/hosted";
 import { AlertIcon, CheckIcon } from "./icons";
 
@@ -48,8 +49,8 @@ export function actionLinkProblem(info: ActionLinkInfo): string | null {
 
 /** Where "open it in the app" goes: this app's path, or another app of the suite. */
 export function openHref(info: ActionLinkInfo, current: AppId, urls: SuiteUrls): string | null {
-  const link = info.open_link;
-  if (!link || !link.startsWith("/")) return null;
+  const link = safePath(info.open_link);
+  if (!link) return null;
   const app = (info.open_app || "hub") as AppId;
   if (app === current) return link;
   const base = urls[app];

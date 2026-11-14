@@ -119,8 +119,19 @@ function headerValue(s: string): string {
 
 /** "Name <a@b>" → "a@b" */
 export function addressOf(mailbox: string): string {
+  // The whole value first: a line break or a second "<…>" anywhere could hide another address.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(mailbox) || (mailbox.match(/</g) ?? []).length > 1)
+    throw new Error("That isn't a valid email address.");
   const m = /<([^>]+)>/.exec(mailbox);
-  return (m ? m[1]! : mailbox).trim();
+  const address = (m ? m[1]! : mailbox).trim();
+  // It goes into MAIL FROM / RCPT TO: one plain address only, so it can't add an SMTP command
+  // or another recipient (control characters are refused above; the outbox refuses these too,
+  // core 0017).
+  const part = '[^\\s<>,;"()\\\\@]+';
+  if (!new RegExp(`^${part}@${part}\\.${part}$`).test(address))
+    throw new Error("That isn't a valid email address.");
+  return address;
 }
 
 function mailbox(value: string): string {

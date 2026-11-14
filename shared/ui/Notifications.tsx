@@ -4,6 +4,7 @@
 // Both read the database directly (my_notifications, notification_settings…) and hide
 // themselves on a database without core 0013. They don't go through the automation engine.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { safePath } from "../safe-path";
 import { useCallback, useEffect, useState } from "react";
 import { APP_NAMES } from "../apps";
 import { suiteUrls, type AppId, type SuiteUrls } from "../supabase/hosted";
@@ -62,11 +63,12 @@ export function notificationHref(
   current: AppId,
   urls: SuiteUrls,
 ): { href: string; external: boolean } | null {
-  if (!n.link || !n.link.startsWith("/")) return null;
+  const link = safePath(n.link);
+  if (!link) return null;
   const app = (n.link_app || "hub") as AppId;
-  if (app === current) return { href: n.link, external: false };
+  if (app === current) return { href: link, external: false };
   const base = urls[app];
-  return base ? { href: `${base}${n.link}`, external: true } : null;
+  return base ? { href: `${base}${link}`, external: true } : null;
 }
 
 const POLL_MS = 60_000;

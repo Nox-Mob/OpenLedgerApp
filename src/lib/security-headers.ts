@@ -37,6 +37,12 @@ export function securityHeaders(supabaseUrl: string | undefined): Record<string,
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "DENY",
+    // HTTPS only, two years, every subdomain; no camera, microphone, location or payment request
+    // (the suite uses none); own browsing context group (security review 2026-11-14).
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
+    "Permissions-Policy":
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
     "Content-Security-Policy": contentSecurityPolicy(supabaseUrl),
   };
 }

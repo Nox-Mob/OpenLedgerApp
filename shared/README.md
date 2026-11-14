@@ -67,6 +67,13 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.20.0`: security review (2026-11-14, OWASP Top 10). Core `0017_core_security.sql`: stored
+  links (notifications, workflow tasks, action links) must be paths in the suite; outbox addresses
+  must be one plain address; registry function names must be `schema.function`; at most 100
+  invitations an hour and 500 a day per organization; one read policy on `organizations`;
+  `tuning_problems` also reports two permissive policies for the same action. `shared/safe-path.ts`
+  (`safePath`) checks links from data before they become an `href` (Notifications, ActionLink);
+  `shared/email/smtp.ts` refuses an address that isn't one plain address.
 - `1.16.0`: notifications (H-02, owner direction 2026-11-13), apart from the automation engine. Core
   `0013_core_notifications.sql`: `public.notification_kinds` (registered with
   `public.register_notification_kind`: who gets it by default, who may turn it on, its email kind),

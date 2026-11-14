@@ -1,0 +1,22 @@
+# Security review (2026-11-14, OWASP A06/A08): weekly checks for vulnerable or outdated
+# dependencies and GitHub Actions. Pull requests go to staging, like every change; Dependabot
+# security alerts also need "Dependabot alerts" turned on in the repository's settings.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
