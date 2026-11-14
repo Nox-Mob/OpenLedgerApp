@@ -18,41 +18,41 @@ If this file and a repo's `AGENTS.md` conflict, this file wins; stop and ask the
 
 ### 0.1 Inputs
 
-| Input | Value |
-|---|---|
-| Apex domain | `openapphub.org` |
-| GitHub org | `Nox-Mob` |
-| Production Supabase project | `openapphub-prod`, a **new, empty** project: ref `ymlesgadawnjupnvgokd` (`https://ymlesgadawnjupnvgokd.supabase.co`). Publishable key in each repo's `wrangler.jsonc` production `vars` |
-| Staging Supabase project | `openapphub-staging`, a **new, empty** project: ref `mbloxixlykmbuuoaprnx` (`https://mbloxixlykmbuuoaprnx.supabase.co`). Publishable key in each repo's `wrangler.jsonc` staging `vars`. Local development uses staging, never production |
-| Old projects | `nxungwtxnctcqolfshcr` and `dnsqxiiexkdokgebysrt` are being **deleted**. Never use their IDs. Nothing is copied or parked from them; there is no legacy schema |
-| Production database order | hub core (+ hub billing later) → Charter baseline → Board baseline → Ledger baseline. Staging: the same, plus each repo's seed data, once it exists |
-| Design | **Full refresh** for all four apps (§9). No existing app is the reference. |
-| Docs site | `https://docs.openapphub.org`, repo `Nox-Mob/OpenAppHub-docs` (§12) |
-| Prices | Set in **Stripe** (§6.1). Never put prices in code: the hub reads them from Stripe by lookup key. |
+| Input                       | Value                                                                                                                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apex domain                 | `openapphub.org`                                                                                                                                                                                                                          |
+| GitHub org                  | `Nox-Mob`                                                                                                                                                                                                                                 |
+| Production Supabase project | `openapphub-prod`, a **new, empty** project: ref `ymlesgadawnjupnvgokd` (`https://ymlesgadawnjupnvgokd.supabase.co`). Publishable key in each repo's `wrangler.jsonc` production `vars`                                                   |
+| Staging Supabase project    | `openapphub-staging`, a **new, empty** project: ref `mbloxixlykmbuuoaprnx` (`https://mbloxixlykmbuuoaprnx.supabase.co`). Publishable key in each repo's `wrangler.jsonc` staging `vars`. Local development uses staging, never production |
+| Old projects                | `nxungwtxnctcqolfshcr` and `dnsqxiiexkdokgebysrt` are being **deleted**. Never use their IDs. Nothing is copied or parked from them; there is no legacy schema                                                                            |
+| Production database order   | hub core (+ hub billing later) → Charter baseline → Board baseline → Ledger baseline. Staging: the same, plus each repo's seed data, once it exists                                                                                       |
+| Design                      | **Full refresh** for all four apps (§9). No existing app is the reference.                                                                                                                                                                |
+| Docs site                   | `https://docs.openapphub.org`, repo `Nox-Mob/OpenAppHub-docs` (§12)                                                                                                                                                                       |
+| Prices                      | Set in **Stripe** (§6.1). Never put prices in code: the hub reads them from Stripe by lookup key.                                                                                                                                         |
 
 If a value you need is still missing, **stop and ask the owner**. Never guess a project ref or price.
 
 ### 0.2 Owner decisions (answers to the migration notes)
 
-| # | Decision | Where it's specified |
-|---|---|---|
-| 1 | **Every app must run on its own when self-hosted.** Everything the hub takes over in hosted mode is built so a single self-hosted app still has it. | §1.2 |
-| 2 | Apps run on **Cloudflare Workers** (TanStack Start with SSR), not Pages. The hub uses the same stack. | §2, §10 |
-| 3 | **Ownership** of every organization lives in the core; ownership **transfer happens in the hub** (hosted). Exactly one owner per org. | §3.2, §4.4 |
-| 4 | **Invitations are handled by the hub** through core tables and functions. Each app may show its own invitation page, but acceptance always goes through the core. | §4.3 |
-| 5 | **New OpenCharterApp members sign up at the hub**, then join and pay dues on a signed-in join screen in Charter (option (a) of Charter F2). | §4.5 |
-| 6 | Charter: the **top of the tree** (national or standalone) is the core organization; chapters and regions live in `charter.units`. **Only staff count** toward plan member limits; dues-paying members get Charter-only portal access. | §3.9, §5 |
-| 7 | Core roles are the outer gate; each app keeps a **role overlay** for its own roles (Charter permissions, Board officers, Ledger treasurer). | §3.5 |
-| 8 | A core **member directory** function provides names and emails; new accounts store the sign-up name. | §3.2 |
-| 9 | **Demo data runs on staging only.** Never on production. The hub owns platform operators and demo organizations. | §11 |
-| 10 | Charter's dues webhooks keep recording payments while an org is read-only. | §6.3 |
-| 11 | The service-role key is allowed only on an approved list. | §7.2 |
-| 12 | Ledger's AI PDF import is **off** until the owner picks a provider. | Ledger AGENTS |
-| 13 | Storage buckets are prefixed with the app's name. | §3.7 |
-| 15 | **Design:** "Civic, slightly warm"; dark mode a soft graphite gray; Light / Dark / System toggle that becomes the suite-wide default. | §9, `shared/design/DESIGN.md` |
-| 16 | **Deploys:** Cloudflare's Git integration builds and deploys `main` (production) with `npm run build` + `npx wrangler deploy`. No Cloudflare API token in GitHub. | §10.2 |
-| 17 | **Pull requests:** no "Generated with Claude Code" line and no session link in PR descriptions. Mandatory. | §2.2 |
-| 14 | Accepted as proposed: Ledger keeps its own MFA check; each app audits only its own tables; Charter's public join page is self-hosted only; old deploy jobs are switched off so one tool writes to production. | various |
+| #   | Decision                                                                                                                                                                                                                              | Where it's specified          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 1   | **Every app must run on its own when self-hosted.** Everything the hub takes over in hosted mode is built so a single self-hosted app still has it.                                                                                   | §1.2                          |
+| 2   | Apps run on **Cloudflare Workers** (TanStack Start with SSR), not Pages. The hub uses the same stack.                                                                                                                                 | §2, §10                       |
+| 3   | **Ownership** of every organization lives in the core; ownership **transfer happens in the hub** (hosted). Exactly one owner per org.                                                                                                 | §3.2, §4.4                    |
+| 4   | **Invitations are handled by the hub** through core tables and functions. Each app may show its own invitation page, but acceptance always goes through the core.                                                                     | §4.3                          |
+| 5   | **New OpenCharterApp members sign up at the hub**, then join and pay dues on a signed-in join screen in Charter (option (a) of Charter F2).                                                                                           | §4.5                          |
+| 6   | Charter: the **top of the tree** (national or standalone) is the core organization; chapters and regions live in `charter.units`. **Only staff count** toward plan member limits; dues-paying members get Charter-only portal access. | §3.9, §5                      |
+| 7   | Core roles are the outer gate; each app keeps a **role overlay** for its own roles (Charter permissions, Board officers, Ledger treasurer).                                                                                           | §3.5                          |
+| 8   | A core **member directory** function provides names and emails; new accounts store the sign-up name.                                                                                                                                  | §3.2                          |
+| 9   | **Demo data runs on staging only.** Never on production. The hub owns platform operators and demo organizations.                                                                                                                      | §11                           |
+| 10  | Charter's dues webhooks keep recording payments while an org is read-only.                                                                                                                                                            | §6.3                          |
+| 11  | The service-role key is allowed only on an approved list.                                                                                                                                                                             | §7.2                          |
+| 12  | Ledger's AI PDF import is **off** until the owner picks a provider.                                                                                                                                                                   | Ledger AGENTS                 |
+| 13  | Storage buckets are prefixed with the app's name.                                                                                                                                                                                     | §3.7                          |
+| 15  | **Design:** "Civic, slightly warm"; dark mode a soft graphite gray; Light / Dark / System toggle that becomes the suite-wide default.                                                                                                 | §9, `shared/design/DESIGN.md` |
+| 16  | **Deploys:** Cloudflare's Git integration builds and deploys `main` (production) with `npm run build` + `npx wrangler deploy`. No Cloudflare API token in GitHub.                                                                     | §10.2                         |
+| 17  | **Pull requests:** no "Generated with Claude Code" line and no session link in PR descriptions. Mandatory.                                                                                                                            | §2.2                          |
+| 14  | Accepted as proposed: Ledger keeps its own MFA check; each app audits only its own tables; Charter's public join page is self-hosted only; old deploy jobs are switched off so one tool writes to production.                         | various                       |
 
 ---
 
@@ -83,18 +83,18 @@ If a value you need is still missing, **stop and ask the owner**. Never guess a 
 
 Every app (including the hub) builds in one of two modes, chosen by `VITE_HOSTED`:
 
-| | Hosted (`VITE_HOSTED=true`) | Self-hosted (`VITE_HOSTED=false`, default) |
-|---|---|---|
-| Landing page | Out of routing; `/` goes to the app | Kept |
-| Sign-up / sign-in | Hub (`VITE_HUB_URL/login?next=…`) | App's own screens |
-| Create, rename, delete an org | Hub | App's own screens |
-| Members, roles, invitations | Hub (an app may host the accept page, §4.3) | App's own screens |
-| Ownership transfer | Hub | App's own screen |
-| Account deletion | Hub | App's own screen (if it has one) |
-| App-specific roles (overlays, §3.5) | The app | The app |
-| Billing | Enforced in the database (§5) | Off (`instance_settings.billing_enabled = false`) |
-| Suite switcher | Shown | Hidden unless `VITE_SUITE_URLS` is set |
-| Charter public join page | Signed-in join screen only (§4.5) | Public, with the app's own sign-up |
+|                                     | Hosted (`VITE_HOSTED=true`)                 | Self-hosted (`VITE_HOSTED=false`, default)        |
+| ----------------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| Landing page                        | Out of routing; `/` goes to the app         | Kept                                              |
+| Sign-up / sign-in                   | Hub (`VITE_HUB_URL/login?next=…`)           | App's own screens                                 |
+| Create, rename, delete an org       | Hub                                         | App's own screens                                 |
+| Members, roles, invitations         | Hub (an app may host the accept page, §4.3) | App's own screens                                 |
+| Ownership transfer                  | Hub                                         | App's own screen                                  |
+| Account deletion                    | Hub                                         | App's own screen (if it has one)                  |
+| App-specific roles (overlays, §3.5) | The app                                     | The app                                           |
+| Billing                             | Enforced in the database (§5)               | Off (`instance_settings.billing_enabled = false`) |
+| Suite switcher                      | Shown                                       | Hidden unless `VITE_SUITE_URLS` is set            |
+| Charter public join page            | Signed-in join screen only (§4.5)           | Public, with the app's own sign-up                |
 
 **Never fork or delete self-hosting code to make hosted mode work.** Gate it with the flag. Unused routes are excluded from routing, not deleted.
 
@@ -152,15 +152,15 @@ Invitations, ownership transfer, organization creation and deletion, and the mem
 
 ### 3.1 Schemas and ownership
 
-| Schema | Owner repo | Contents | Exposed to Data API |
-|---|---|---|---|
-| `public` | OpenAppHub (`db/core/`) | Core: organizations, memberships, profiles, invitations, instance settings, core functions | yes |
-| `billing` | OpenAppHub | plans, subscriptions, Stripe event log | no |
-| `hub` | OpenAppHub | hub-only: platform operators, demo-org registry, audit of core tables, legal acceptances, waitlist | no |
-| `ops` | created by the runner | migration tracking | no |
-| `charter` | OpenCharterApp | Charter tables | yes |
-| `board` | OpenBoardApp | Board tables | yes |
-| `ledger` | OpenLedgerApp | Ledger tables | yes |
+| Schema    | Owner repo              | Contents                                                                                           | Exposed to Data API |
+| --------- | ----------------------- | -------------------------------------------------------------------------------------------------- | ------------------- |
+| `public`  | OpenAppHub (`db/core/`) | Core: organizations, memberships, profiles, invitations, instance settings, core functions         | yes                 |
+| `billing` | OpenAppHub              | plans, subscriptions, Stripe event log                                                             | no                  |
+| `hub`     | OpenAppHub              | hub-only: platform operators, demo-org registry, audit of core tables, legal acceptances, waitlist | no                  |
+| `ops`     | created by the runner   | migration tracking                                                                                 | no                  |
+| `charter` | OpenCharterApp          | Charter tables                                                                                     | yes                 |
+| `board`   | OpenBoardApp            | Board tables                                                                                       | yes                 |
+| `ledger`  | OpenLedgerApp           | Ledger tables                                                                                      | yes                 |
 
 **A repo only writes migrations for schemas it owns.** Need something in another schema (including core)? Open an issue on that repo.
 
@@ -172,57 +172,57 @@ All core SQL is **idempotent** (`if not exists`, `create or replace`, guarded bl
 
 **`0001_core.sql` — tables**
 
-| Table | Columns | Notes |
-|---|---|---|
-| `instance_settings` | `id bool pk default true check (id)`, `billing_enabled bool default false`, `hub_url text` | single row |
-| `organizations` | `id uuid pk`, `name text check (1–120 chars)`, `slug text unique`, `created_by uuid → auth.users on delete set null`, `created_at` | THE shared org ID |
-| `memberships` | `org_id → organizations on delete cascade`, `user_id → auth.users on delete cascade`, `role public.org_role`, `created_at`; pk `(org_id, user_id)` | enum `org_role`: owner, admin, member, viewer. Partial unique index **one owner per org** |
-| `profiles` | `id uuid pk → auth.users on delete cascade`, `display_name`, `avatar_url`, `updated_at` | |
-| `invitations` | `id uuid pk`, `org_id`, `email text`, `role public.org_role null`, `app text null`, `app_payload jsonb not null default '{}'`, `token_hash text unique`, `expires_at`, `invited_by`, `created_at`, `accepted_by`, `accepted_at`, `revoked_at` | §4.3. `role` null = app-only invitation (for example a Charter portal member) |
+| Table               | Columns                                                                                                                                                                                                                                       | Notes                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `instance_settings` | `id bool pk default true check (id)`, `billing_enabled bool default false`, `hub_url text`                                                                                                                                                    | single row                                                                                |
+| `organizations`     | `id uuid pk`, `name text check (1–120 chars)`, `slug text unique`, `created_by uuid → auth.users on delete set null`, `created_at`                                                                                                            | THE shared org ID                                                                         |
+| `memberships`       | `org_id → organizations on delete cascade`, `user_id → auth.users on delete cascade`, `role public.org_role`, `created_at`; pk `(org_id, user_id)`                                                                                            | enum `org_role`: owner, admin, member, viewer. Partial unique index **one owner per org** |
+| `profiles`          | `id uuid pk → auth.users on delete cascade`, `display_name`, `avatar_url`, `updated_at`                                                                                                                                                       |                                                                                           |
+| `invitations`       | `id uuid pk`, `org_id`, `email text`, `role public.org_role null`, `app text null`, `app_payload jsonb not null default '{}'`, `token_hash text unique`, `expires_at`, `invited_by`, `created_at`, `accepted_by`, `accepted_at`, `revoked_at` | §4.3. `role` null = app-only invitation (for example a Charter portal member)             |
 
 RLS on all of them.
 
 **`0002_core_functions.sql`**
 
-| Function | Behaviour |
-|---|---|
-| `is_member(p_org)` | caller has a membership in org |
-| `has_role(p_org, p_roles org_role[])` | caller's role is in the list |
-| `has_app_access(p_org, p_app)` | plpgsql. `billing_enabled` false → true; else `billing.org_has_app_access(p_org, p_app)` (resolved at run time, so it compiles without `billing`) |
-| `can_write(p_org, p_app)` | `has_role(p_org,'{owner,admin,member}') and has_app_access(p_org,p_app)` |
-| `create_organization(p_name)` → uuid | inserts org with `created_by = auth.uid()` and an `owner` membership |
-| `rename_organization(p_org, p_name)` | owner/admin |
-| `delete_organization(p_org, p_confirm_name)` | owner only; confirm name must match exactly. Deletes the org; every app table cascades through its `org_id` foreign key |
-| `transfer_ownership(p_org, p_new_owner)` | caller must be the owner; new owner must already be a member; new owner → `owner`, caller → `admin`, in one transaction |
-| `ownership_transfer_candidates(p_org)` | members who can receive ownership (owner only) |
-| `create_invitation(p_org, p_email, p_role, p_app, p_payload, p_days default 14)` → `(invitation_id, token)` | owner/admin. Stores only the token hash. Returns the raw token once. `p_role` null requires `p_app` |
-| `get_invitation(p_token)` | **granted to `anon`**. Returns org name, role, app, email (masked), expired/used/revoked status. Nothing else |
-| `accept_invitation(p_token)` → invitation row | caller signed in; email must match unless the invitation has no email; single use; not expired or revoked. If `role` is set, inserts the membership. Marks accepted. Returns `id, org_id, role, app, app_payload` |
-| `revoke_invitation(p_id)`, `list_invitations(p_org)` | owner/admin |
-| `org_member_directory(p_org)` | `is_member(p_org)`. Returns `user_id, display_name, email, role` for the org's members |
-| `handle_new_user()` | trigger on `auth.users`: creates the profile, with `display_name` from `raw_user_meta_data` `full_name`, else `name`, else the email's local part |
+| Function                                                                                                    | Behaviour                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `is_member(p_org)`                                                                                          | caller has a membership in org                                                                                                                                                                                    |
+| `has_role(p_org, p_roles org_role[])`                                                                       | caller's role is in the list                                                                                                                                                                                      |
+| `has_app_access(p_org, p_app)`                                                                              | plpgsql. `billing_enabled` false → true; else `billing.org_has_app_access(p_org, p_app)` (resolved at run time, so it compiles without `billing`)                                                                 |
+| `can_write(p_org, p_app)`                                                                                   | `has_role(p_org,'{owner,admin,member}') and has_app_access(p_org,p_app)`                                                                                                                                          |
+| `create_organization(p_name)` → uuid                                                                        | inserts org with `created_by = auth.uid()` and an `owner` membership                                                                                                                                              |
+| `rename_organization(p_org, p_name)`                                                                        | owner/admin                                                                                                                                                                                                       |
+| `delete_organization(p_org, p_confirm_name)`                                                                | owner only; confirm name must match exactly. Deletes the org; every app table cascades through its `org_id` foreign key                                                                                           |
+| `transfer_ownership(p_org, p_new_owner)`                                                                    | caller must be the owner; new owner must already be a member; new owner → `owner`, caller → `admin`, in one transaction                                                                                           |
+| `ownership_transfer_candidates(p_org)`                                                                      | members who can receive ownership (owner only)                                                                                                                                                                    |
+| `create_invitation(p_org, p_email, p_role, p_app, p_payload, p_days default 14)` → `(invitation_id, token)` | owner/admin. Stores only the token hash. Returns the raw token once. `p_role` null requires `p_app`                                                                                                               |
+| `get_invitation(p_token)`                                                                                   | **granted to `anon`**. Returns org name, role, app, email (masked), expired/used/revoked status. Nothing else                                                                                                     |
+| `accept_invitation(p_token)` → invitation row                                                               | caller signed in; email must match unless the invitation has no email; single use; not expired or revoked. If `role` is set, inserts the membership. Marks accepted. Returns `id, org_id, role, app, app_payload` |
+| `revoke_invitation(p_id)`, `list_invitations(p_org)`                                                        | owner/admin                                                                                                                                                                                                       |
+| `org_member_directory(p_org)`                                                                               | `is_member(p_org)`. Returns `user_id, display_name, email, role` for the org's members                                                                                                                            |
+| `handle_new_user()`                                                                                         | trigger on `auth.users`: creates the profile, with `display_name` from `raw_user_meta_data` `full_name`, else `name`, else the email's local part                                                                 |
 
 Also in 0002: `drop trigger if exists on_auth_user_created on auth.users;` then recreate it.
 
 **`0004_core_org_settings.sql`** (shared 1.2.0)
 
-| Item | Behaviour |
-|---|---|
+| Item                                                                                              | Behaviour                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `organizations.time_zone` (default `UTC`), `organizations.currency` (default `USD`, `^[A-Z]{3}$`) | The org's time zone and currency. Every app passes them to `shared/format.ts` (`getOrgPreferences()` in `shared/supabase/org.ts`, which falls back to UTC / USD) |
-| `set_organization_preferences(p_org, p_time_zone, p_currency)` | owner/admin; time zone must be in `pg_timezone_names`; currency upper-cased, three letters |
-| `ownership_transfer_candidates(p_org)` | now only **active** members: email confirmed and not banned |
-| `transfer_ownership(p_org, p_new_owner)` | now also requires an active new owner |
-| `transfer_ownership(p_org, p_new_owner, p_confirm)` | the form the hub uses: `p_confirm` must be the new owner's display name, or their email when they have none, ignoring case and surrounding spaces |
+| `set_organization_preferences(p_org, p_time_zone, p_currency)`                                    | owner/admin; time zone must be in `pg_timezone_names`; currency upper-cased, three letters                                                                       |
+| `ownership_transfer_candidates(p_org)`                                                            | now only **active** members: email confirmed and not banned                                                                                                      |
+| `transfer_ownership(p_org, p_new_owner)`                                                          | now also requires an active new owner                                                                                                                            |
+| `transfer_ownership(p_org, p_new_owner, p_confirm)`                                               | the form the hub uses: `p_confirm` must be the new owner's display name, or their email when they have none, ignoring case and surrounding spaces                |
 
 **`0003_core_policies.sql`** (drop-if-exists, then create)
 
-| Table | select | insert | update | delete |
-|---|---|---|---|---|
-| organizations | `is_member(id)` | none (use `create_organization`) | none (use `rename_organization`) | none (use `delete_organization`) |
-| memberships | `is_member(org_id)` | none (use `accept_invitation` / `create_organization`) | `has_role(org_id,'{owner,admin}')`, role may not become or stop being `owner` | `has_role(org_id,'{owner,admin}') or user_id = auth.uid()`, never the owner |
-| profiles | own row, or shares an org | none (trigger) | own row | none |
-| invitations | `has_role(org_id,'{owner,admin}')` | none (functions) | none | none |
-| instance_settings | `authenticated` | none | none | none |
+| Table             | select                             | insert                                                 | update                                                                        | delete                                                                      |
+| ----------------- | ---------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| organizations     | `is_member(id)`                    | none (use `create_organization`)                       | none (use `rename_organization`)                                              | none (use `delete_organization`)                                            |
+| memberships       | `is_member(org_id)`                | none (use `accept_invitation` / `create_organization`) | `has_role(org_id,'{owner,admin}')`, role may not become or stop being `owner` | `has_role(org_id,'{owner,admin}') or user_id = auth.uid()`, never the owner |
+| profiles          | own row, or shares an org          | none (trigger)                                         | own row                                                                       | none                                                                        |
+| invitations       | `has_role(org_id,'{owner,admin}')` | none (functions)                                       | none                                                                          | none                                                                        |
+| instance_settings | `authenticated`                    | none                                                   | none                                                                          | none                                                                        |
 
 A trigger enforces that the owner can only change through `transfer_ownership` (which sets a transaction-local flag such as `app.ownership_transfer`), and that an org always has exactly one owner.
 
@@ -238,11 +238,13 @@ Every repo uses the same vendored runner, `scripts/migrate.mjs` (Node, `pg`):
 6. `--seed`: also run `db/seed/*.sql` (staging only). `--dry-run`: print the plan. `--skip <name>`: skip a named migration (for self-hosters skipping the hub's billing).
 
 Rules:
+
 - Never edit an applied migration.
 - Every table a migration creates gets RLS, policies and grants (§3.4).
 - **Retire the repo's old tooling in the same PR that adds the runner:** switch off any job that runs `supabase db push` or applies `supabase/migrations/` / `drizzle/`, so only one tool ever writes to production. Point migration-lint scripts (Charter's `check:migrations`, Ledger's `check-migrations.mjs`) at `db/`.
 
 **Workflows** (`.github/workflows/`, same pattern in every repo, see §10.2 for deploys):
+
 - `migrate.yml`: `workflow_dispatch` with input `target: staging | production`. Production runs only when the owner triggers it.
 - Connection strings are the Supabase **Session pooler** strings (port 5432 on the pooler host); GitHub runners can't reach the IPv6-only direct connection.
 
@@ -280,11 +282,11 @@ create policy "delete" on board.example for delete using (board.can_edit(org_id)
 
 Core has four roles. Apps that need more keep an overlay in their own schema, managed by the org's owner/admin (in the app, in both modes):
 
-| App | Overlay | Rule |
-|---|---|---|
-| Charter | Charter's roles and permissions (custom roles, permission keys, downward inheritance) in `charter.*` | Write = `public.can_write(org,'charter')` **and** the Charter permission. Core `owner`/`admin` ⇒ Charter `org_admin` at the top unit |
-| Board | `board.officers (org_id, user_id, office)`; office ∈ chair, secretary, treasurer | Edit records = `public.can_write(org,'board')` and (`has_role(org,'{owner,admin}')` or office ∈ chair, secretary). Board members = core `member`; observers = core `viewer` |
-| Ledger | `ledger.member_roles (org_id, user_id, role)`; role = `treasurer` | Treasurer requires core `member` or higher. Close books etc. = `can_write` and (`owner`/`admin` or treasurer) |
+| App     | Overlay                                                                                              | Rule                                                                                                                                                                        |
+| ------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Charter | Charter's roles and permissions (custom roles, permission keys, downward inheritance) in `charter.*` | Write = `public.can_write(org,'charter')` **and** the Charter permission. Core `owner`/`admin` ⇒ Charter `org_admin` at the top unit                                        |
+| Board   | `board.officers (org_id, user_id, office)`; office ∈ chair, secretary, treasurer                     | Edit records = `public.can_write(org,'board')` and (`has_role(org,'{owner,admin}')` or office ∈ chair, secretary). Board members = core `member`; observers = core `viewer` |
+| Ledger  | `ledger.member_roles (org_id, user_id, role)`; role = `treasurer`                                    | Treasurer requires core `member` or higher. Close books etc. = `can_write` and (`owner`/`admin` or treasurer)                                                               |
 
 Overlays never grant more than the core role allows to read, and they never bypass `can_write`.
 
@@ -384,21 +386,21 @@ Owned by the hub, schema `billing` (not exposed).
 
 There are **two separate kinds of payment**. Never mix them.
 
-| | Suite billing | Charter dues |
-|---|---|---|
-| Who pays whom | The organization pays OpenAppHub for hosting | Association members pay their association |
-| Stripe account | OpenAppHub's | Each organization's own (connected in Charter) |
-| Code | Hub only | Charter only |
+|                | Suite billing                                | Charter dues                                   |
+| -------------- | -------------------------------------------- | ---------------------------------------------- |
+| Who pays whom  | The organization pays OpenAppHub for hosting | Association members pay their association      |
+| Stripe account | OpenAppHub's                                 | Each organization's own (connected in Charter) |
+| Code           | Hub only                                     | Charter only                                   |
 
 ### 6.1 Plans
 
 One price per organization, in US dollars, monthly or yearly. **Prices live in Stripe** (the owner changes them there): each price has the lookup key `<plan>_<interval>` (`starter_month`, `suite_year`, …), and the hub reads active prices by those keys, cached a few minutes. A plan without a price shows "Price TBA" and can't be chosen.
 
-| Plan | Apps | Editors | Monthly | Yearly |
-|---|---|---|---|---|
-| `starter` | 1 of your choice | 5 | $5 | $50 |
-| `suite` | all | 15 | $10 | $100 |
-| `plus` | all | unlimited | $25 | $250 |
+| Plan      | Apps             | Editors   | Monthly | Yearly |
+| --------- | ---------------- | --------- | ------- | ------ |
+| `starter` | 1 of your choice | 5         | $5      | $50    |
+| `suite`   | all              | 15        | $10     | $100   |
+| `plus`    | all              | unlimited | $25     | $250   |
 
 Amounts are as set in Stripe on 2026-11-10, for reference only. Limits come from `billing.plans` rows, not code. Trial: all apps, 10 editors, 30 days, no card. Lapsed: read-only, export still allowed. Charter publishes `charter.api_unit_count (org_id, units)` in case pricing later depends on units.
 
@@ -425,11 +427,11 @@ Hub server functions and routes on its Worker:
 
 **Anything starting with `VITE_` is shipped to the browser and is public.**
 
-| Variable | Where | Public? | Used by |
-|---|---|---|---|
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Worker `vars` | yes | all |
-| `VITE_HOSTED`, `VITE_APP_ID`, `VITE_APP_SCHEMA` | Worker `vars` / code defaults | yes | all |
-| `VITE_HUB_URL`, `VITE_COOKIE_DOMAIN`, `VITE_SUITE_URLS`, `VITE_DOCS_URL` | Worker `vars` | yes | all (hosted) |
+| Variable                                                                 | Where                         | Public? | Used by      |
+| ------------------------------------------------------------------------ | ----------------------------- | ------- | ------------ |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`                     | Worker `vars`                 | yes     | all          |
+| `VITE_HOSTED`, `VITE_APP_ID`, `VITE_APP_SCHEMA`                          | Worker `vars` / code defaults | yes     | all          |
+| `VITE_HUB_URL`, `VITE_COOKIE_DOMAIN`, `VITE_SUITE_URLS`, `VITE_DOCS_URL` | Worker `vars`                 | yes     | all (hosted) |
 
 `VITE_SUITE_URLS` is a JSON object of app origins, the same shape everywhere: `{"hub":"https://openapphub.org","charter":"https://charter.openapphub.org","board":"https://board.openapphub.org","ledger":"https://ledger.openapphub.org"}`. `shared/supabase/hosted.ts` (`parseSuiteUrls`) parses it; unknown keys and invalid URLs are ignored.
 
@@ -442,6 +444,7 @@ Hub server functions and routes on its Worker:
 | `SUPABASE_ACCESS_TOKEN`, `STAGING_REF`, `PROD_REF` | GitHub Actions secrets | **NO** | gen-types |
 
 Rules:
+
 - Secrets never go in frontend code, `VITE_*`, the repo, logs or PR text.
 - Commit `.env.example`; ignore every other `.env*`. Stop tracking `.env` (values move to Worker `vars` and a local untracked file).
 - Enable GitHub secret scanning and push protection on all five repos (owner).
@@ -450,11 +453,11 @@ Rules:
 
 In the shared project the service-role key bypasses RLS for **every app's data**. It's allowed only for:
 
-| Repo | Use |
-|---|---|
-| Hub | Stripe webhook writes to `billing`; sending invitation emails (`auth.admin.inviteUserByEmail` or generating the link); account deletion (after the person's one-time "confirm it's you" pass, core 0019); platform-operator tasks (demo orgs on staging); the email sender (the 5-minute cron, and straight away for security emails: codes and recovery links); removing a person's authenticator during two-step recovery, only after the database accepted their backup code or recovery link (`auth.admin.mfa.deleteFactor`, core 0019; owner request 2026-11-14), then signing out the account's other sessions |
-| Charter | Dues payment completion, failure and refund recording from Stripe (`payments.server.ts`, the dues webhook route) |
-| Ledger | None in hosted mode. Restore creates the org with `public.create_organization()` as the caller; history writes go through `ledger.audited_write`. |
+| Repo    | Use                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hub     | Stripe webhook writes to `billing`; sending invitation emails (`auth.admin.inviteUserByEmail` or generating the link); account deletion (after the person's one-time "confirm it's you" pass, core 0019); platform-operator tasks (demo orgs on staging); the email sender (the 5-minute cron, and straight away for security emails: codes and recovery links); removing a person's authenticator during two-step recovery, only after the database accepted their backup code or recovery link (`auth.admin.mfa.deleteFactor`, core 0019; owner request 2026-11-14), then signing out the account's other sessions |
+| Charter | Dues payment completion, failure and refund recording from Stripe (`payments.server.ts`, the dues webhook route)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Ledger  | None in hosted mode. Restore creates the org with `public.create_organization()` as the caller; history writes go through `ledger.audited_write`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Any other use needs the owner's written approval in the PR. Self-hosted-only features (for example Ledger's own account deletion, and two-step recovery in Charter, Board and Ledger through `shared/security/server.ts`) may use the service role on the self-hoster's database, behind `VITE_HOSTED=false` on the server too.
 
@@ -488,6 +491,7 @@ scripts/migrate.mjs               §3.3
 The owner wants **one new design language for the whole suite**. Charter and Ledger's current semi-shared style may inform it but doesn't constrain it. Every app, including the hub and the docs site, adopts it.
 
 **Process (hub repo, Phase 2):**
+
 1. **Audit** all three apps: list every component and pattern in use (tables, forms, dialogs, tabs, status badges, money and date formats, empty states, mobile layouts).
 2. **Propose 2–3 distinct directions** in one PR. For each: a name, the reasoning, colour tokens (light and dark), type scale and font pairing, spacing, radius, elevation, and the same three sample screens rendered as screenshots: a dashboard, a data table (members or transactions) and a form dialog, on desktop and phone.
 3. **The owner picks one** (or mixes) in the PR. Nothing else in Phase 2 continues until then.
@@ -496,6 +500,7 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 **Chosen (2026-11-09): "Civic, slightly warm"**: Civic's clarity, density, Inter and ink-navy primary on warm neutrals; dark mode is a soft graphite gray. Canonical tokens: hub `shared/design/tokens.css`.
 
 **Rules for the chosen system:**
+
 - Tokens as CSS variables in the shadcn convention (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--ring`, `--radius`, …), light and dark.
 - **Per-app accent** (`--app-accent`, `--app-accent-foreground`) set by `VITE_APP_ID`; the hub uses the neutral primary. Accents are approved with the direction.
 - Components are shadcn/ui themed only through tokens. **No hard-coded colours** in app code.
@@ -519,13 +524,13 @@ The owner wants **one new design language for the whole suite**. Charter and Led
 
 **Domains** (all one level under the apex, so Cloudflare's free certificate covers them):
 
-| | Production | Staging |
-|---|---|---|
-| Hub | `openapphub.org` | `staging.openapphub.org` |
+|         | Production               | Staging                                                                       |
+| ------- | ------------------------ | ----------------------------------------------------------------------------- |
+| Hub     | `openapphub.org`         | `staging.openapphub.org`                                                      |
 | Charter | `charter.openapphub.org` | `staging.charter.staging.openapphub.org` (Worker preview of branch `staging`) |
-| Board | `board.openapphub.org` | `staging.board.staging.openapphub.org` (Worker preview of branch `staging`) |
-| Ledger | `ledger.openapphub.org` | `staging.ledger.staging.openapphub.org` (Worker preview of branch `staging`) |
-| Docs | `docs.openapphub.org` | — |
+| Board   | `board.openapphub.org`   | `staging.board.staging.openapphub.org` (Worker preview of branch `staging`)   |
+| Ledger  | `ledger.openapphub.org`  | `staging.ledger.staging.openapphub.org` (Worker preview of branch `staging`)  |
+| Docs    | `docs.openapphub.org`    | —                                                                             |
 
 Old domains (for example `opencharterapp.org`) redirect to the new ones once the app is live there.
 
@@ -537,11 +542,11 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 - **Merging to `main` deploys production.** Database changes therefore go first: the owner runs `migrate.yml` against production on the PR's branch, then merges. Migrations must be additive (the running code must keep working until the deploy finishes); a destructive change is split across two releases.
 - Staging deploys through a second Cloudflare Worker (`<app>-staging`) connected the same way with `npm run build:staging`, or not at all until needed.
 
-| Workflow | Trigger | Does |
-|---|---|---|
-| `ci.yml` | every PR and push | typecheck, lint, tests, build, DB tests |
-| `staging.yml` | push to `main` | `migrate.mjs --seed` against staging. Skips with a notice until `STAGING_DATABASE_URL` exists |
-| `migrate.yml` | owner, `workflow_dispatch` | migrations only, `target: staging | production` (dry run by default) |
+| Workflow      | Trigger                    | Does                                                                                          |
+| ------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `ci.yml`      | every PR and push          | typecheck, lint, tests, build, DB tests                                                       |
+| `staging.yml` | push to `main`             | `migrate.mjs --seed` against staging. Skips with a notice until `STAGING_DATABASE_URL` exists |
+| `migrate.yml` | owner, `workflow_dispatch` | migrations only, `target: staging                                                             | production` (dry run by default) |
 
 ---
 
@@ -572,18 +577,19 @@ User docs live in **`Nox-Mob/OpenAppHub-docs`**, published at `https://docs.open
 
 ### 12.1 Where pages live
 
-| Tab | Folder | Owner repo |
-|---|---|---|
-| OpenAppHub | `src/content/docs/hub/` | OpenAppHub |
+| Tab            | Folder                      | Owner repo     |
+| -------------- | --------------------------- | -------------- |
+| OpenAppHub     | `src/content/docs/hub/`     | OpenAppHub     |
 | OpenCharterApp | `src/content/docs/charter/` | OpenCharterApp |
-| OpenBoardApp | `src/content/docs/board/` | OpenBoardApp |
-| OpenLedgerApp | `src/content/docs/ledger/` | OpenLedgerApp |
+| OpenBoardApp   | `src/content/docs/board/`   | OpenBoardApp   |
+| OpenLedgerApp  | `src/content/docs/ledger/`  | OpenLedgerApp  |
 
 Each app tab has `help/faq.md`, `troubleshooting.md`, `known-limits.md`, `self-hosting.md` and `glossary.md`. URL = path without `.md`.
 
 ### 12.2 Docs change with the code
 
 A PR that changes anything users see needs a **matching docs PR**:
+
 - the feature page, using the app's exact on-screen words in **bold**;
 - `troubleshooting.md` for changed messages, `known-limits.md` when something becomes available, `glossary.md` for new terms, `self-hosting.md` for setup changes;
 - link both PRs; merge the docs PR **after the production release**;
@@ -601,6 +607,7 @@ If an agent can't open a docs PR, it lists the needed changes in its PR under **
 ### 12.4 Suite pages that change with v2
 
 When they ship, update in the docs repo:
+
 - `hub/start/how-the-apps-fit.md`, `hub/accounts/signing-in.md`, `hub/accounts/invitations.md`, `hub/accounts/organizations-and-roles.md`, `hub/help/faq.md`: one sign-in, organizations, invitations (14 days everywhere) and ownership in the hub.
 - Each app's sign-in, invitation, roles and ownership pages: hosted versus self-hosted.
 - `hub/hosting/plans.md` stays a draft until prices are confirmed.

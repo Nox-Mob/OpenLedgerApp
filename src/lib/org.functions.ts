@@ -557,4 +557,3 @@ export const deleteUnusedAccount = desktopAware("deleteUnusedAccount", deleteUnu
 
 // Ledger's own "require two-step sign-in" switch is retired (0015): OpenAppHub's organization
 // setting (core 0019) covers every app.
-
