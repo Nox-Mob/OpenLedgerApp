@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { createBrowserClient } from '@supabase/ssr';
 import { isHosted } from '../../../shared/supabase/hosted';
-import { cookieOptions } from '../../../shared/supabase/client';
+import { cookieOptions, dropStaleSession } from '../../../shared/supabase/client';
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
@@ -49,6 +49,8 @@ function createSupabaseClient() {
   // Hosted (SHARED-SPEC §4.1): the session is a cookie on .openapphub.org, shared with the
   // hub and the other apps, so one sign-in covers the suite. Self-hosted: as before.
   if (isHosted() && typeof window !== 'undefined') {
+    // Shared 1.23.2: remove stale copies of the sign-in cookie that would sign in an old session.
+    dropStaleSession({ url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY });
     return createBrowserClient<Database, 'ledger'>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       db: { schema: 'ledger' },
       cookieOptions: cookieOptions(),

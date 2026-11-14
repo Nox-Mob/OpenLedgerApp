@@ -108,6 +108,23 @@ export function clearStaleAuthCookies(config: SupabaseConfig | null = supabaseCo
   return count().length < before.length;
 }
 
+/**
+ * Call right before creating a browser client (the hub, and each app's own client): removes stale
+ * copies of the sign-in cookie and, if it removed one, reloads once per tab session, because the
+ * page may have been drawn for the old person. A cookie that can't be removed never loops.
+ */
+export function dropStaleSession(config: SupabaseConfig | null = supabaseConfig()): void {
+  if (!clearStaleAuthCookies(config)) return;
+  let reloaded = true;
+  try {
+    reloaded = sessionStorage.getItem("oah-stale-cookie-reload") === "1";
+    sessionStorage.setItem("oah-stale-cookie-reload", "1");
+  } catch {
+    // Storage blocked: don't reload.
+  }
+  if (!reloaded) location.reload();
+}
+
 let client: SupabaseClient | null = null;
 
 /**
@@ -119,17 +136,7 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   if (client) return client;
   const config = supabaseConfig();
   if (!config) return null;
-  if (clearStaleAuthCookies(config)) {
-    // Once per tab session, so a cookie that can't be removed never causes a reload loop.
-    let reloaded = true;
-    try {
-      reloaded = sessionStorage.getItem("oah-stale-cookie-reload") === "1";
-      sessionStorage.setItem("oah-stale-cookie-reload", "1");
-    } catch {
-      // Storage blocked: don't reload.
-    }
-    if (!reloaded) location.reload();
-  }
+  dropStaleSession(config);
   client = createBrowserClient(config.url, config.key, { cookieOptions: cookieOptions() });
   return client;
 }

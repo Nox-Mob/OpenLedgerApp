@@ -67,6 +67,9 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.23.2`: the stale-cookie clean-up from 1.23.1 is now `dropStaleSession(config)`, which each
+  app's own browser client calls too (Charter, Board and Ledger build their own clients, so a first
+  visit straight to an app still opened as the old person).
 - `1.23.1`: sign-out that sticks (2026-11-14, owner report: "auto logged me into Casey Ramirez,
   but it won't let me log out"). Staging used to set its sign-in cookie on `.openapphub.org`; it now
   uses `.staging.openapphub.org`. A browser that signed in before that still sent the old cookie,
