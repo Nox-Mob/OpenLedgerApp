@@ -1,6 +1,7 @@
 import { OrgPending } from "@/components/AppShell";
 import { showError } from "@/lib/show-error";
 import { errorMessage } from "@/lib/errors";
+import { isHosted } from "@shared/supabase/hosted";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { FileUp } from "lucide-react";
@@ -156,7 +157,20 @@ function ExportsPage() {
         </div>
       </section>
 
-      <RestoreSection />
+      {/* Restoring makes a new organization with the service role's help: self-hosted only. Hosted,
+          organizations are made in OpenAppHub (with their plan), and support restores backups. */}
+      {isHosted() ? (
+        <section className="rounded-lg border bg-card p-5">
+          <h2 className="font-display text-lg font-semibold">Restore a backup</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            On OpenAppHub, restoring a backup is done by support, so a restored organization comes
+            with its plan and members. Email support@openapphub.org from the account that owns the
+            organization, and attach the backup file.
+          </p>
+        </section>
+      ) : (
+        <RestoreSection />
+      )}
     </div>
   );
 }

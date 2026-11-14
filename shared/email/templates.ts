@@ -64,6 +64,32 @@ function when(row: OutboxRow, value: unknown, time = true): string {
 
 type Template = (row: OutboxRow, ctx: RenderContext) => EmailContent;
 
+const REAUTH_ACTIONS: Record<string, string> = {
+  delete_organization: "delete an organization",
+  transfer_ownership: "hand over ownership of an organization",
+  delete_account: "delete your account",
+  recovery_settings: "change your recovery email",
+};
+
+const SECURITY_NOTICES: Record<string, { title: string; body: string }> = {
+  recovery_email_set: {
+    title: "A recovery email was added to your account",
+    body: "A recovery email was added to your OpenAppHub account. It can receive a link that turns off two-step sign-in.",
+  },
+  recovery_email_removed: {
+    title: "Your recovery email was removed",
+    body: "The recovery email was removed from your OpenAppHub account.",
+  },
+  recovery_link_sent: {
+    title: "Someone asked to turn off your two-step sign-in",
+    body: "A link that turns off two-step sign-in was just sent to your recovery email. It only works for someone signed in with your password.",
+  },
+  two_step_removed: {
+    title: "Two-step sign-in was turned off",
+    body: "Two-step sign-in was turned off for your OpenAppHub account using a backup code or your recovery email. Set it up again on your account page.",
+  },
+};
+
 const TEMPLATES: Record<string, Template> = {
   // Sent from the email settings to check they work.
   test: (row) => ({
@@ -218,6 +244,65 @@ const TEMPLATES: Record<string, Template> = {
       ...(link
         ? { action: { label: "Open it", href: appUrl(ctx, str(d["link_app"]) || "hub", link) } }
         : {}),
+    };
+  },
+
+  // Account security (core 0019). Codes and links are removed from the outbox once sent.
+  "account.reauth_code": (row) => {
+    const code = str(row.data["code"]);
+    const what = REAUTH_ACTIONS[str(row.data["action"])] ?? "make a change to your account";
+    return {
+      subject: `Your code: ${code}`,
+      heading: "Confirm it's you",
+      lines: [
+        `Type this code in OpenAppHub to ${what}. It works once, for 10 minutes.`,
+        code,
+        "If you didn't ask for this, someone may be signed in to your account. Change your password and turn on two-step sign-in.",
+      ],
+    };
+  },
+  "account.recovery_verify": (row, ctx) => ({
+    subject: "Confirm your recovery email",
+    heading: "Is this your recovery email?",
+    lines: [
+      "Someone added this address as the recovery email for an OpenAppHub account. If you lose the phone you use for two-step sign-in, we can send a link here to get back in.",
+      "The link works once, for 24 hours. You'll need to be signed in to the account. If this wasn't you, ignore this email: the address won't be used.",
+    ],
+    action: {
+      label: "Confirm this address",
+      href: appUrl(ctx, "hub", `/verify-recovery-email?token=${encodeURIComponent(str(row.data["token"]))}`),
+    },
+  }),
+  "account.recovery_link": (row, ctx) => ({
+    subject: "Your link to get back into OpenAppHub",
+    heading: "Can't use your authenticator app?",
+    lines: [
+      "This link turns off two-step sign-in for your account, so you can sign in with your password and set it up again on a new phone.",
+      "It works once, for 30 minutes, while you're signed in with your password. If you didn't ask for this, don't open it, and change your password now.",
+    ],
+    action: {
+      label: "Turn off two-step sign-in",
+      href: appUrl(ctx, "hub", `/recover?token=${encodeURIComponent(str(row.data["token"]))}`),
+    },
+  }),
+  "account.security_notice": (row, ctx) => {
+    const d = row.data;
+    const n = SECURITY_NOTICES[str(d["event"])] ?? {
+      title: "A change to your account's security",
+      body: "Something changed in your account's security settings.",
+    };
+    const extra =
+      str(d["event"]) === "recovery_email_set" && str(d["email"])
+        ? ` The new address is ${str(d["email"])}.`
+        : "";
+    return {
+      subject: n.title,
+      heading: n.title,
+      lines: [
+        n.body + extra,
+        "If this was you, there's nothing to do. If it wasn't, change your password now and check your account's security settings.",
+      ],
+      action: { label: "Open your account", href: appUrl(ctx, "hub", "/account#two-step") },
     };
   },
 

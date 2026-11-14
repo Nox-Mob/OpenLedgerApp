@@ -227,15 +227,22 @@ export const removeMember = desktopAware("removeMember", removeMemberCloud);
 
 const transferOwnershipCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ orgId: uuid, toUserId: uuid }).parse(input))
+  .validator((input) =>
+    z
+      .object({ orgId: uuid, toUserId: uuid, reauth: z.string().regex(/^[0-9a-f]{64}$/) })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { refs, ownerId } = await orgMembers(supabase, data.orgId);
     assertCanTransfer(refs, userId, ownerId, data.toUserId);
-    // Core swaps the roles: the new owner becomes owner, the old owner an admin.
-    const { error } = await supabase
-      .schema("public")
-      .rpc("transfer_ownership", { p_org: data.orgId, p_new_owner: data.toUserId });
+    // Core swaps the roles: the new owner becomes owner, the old owner an admin. It uses the
+    // one-time pass from "Confirm it's you" (core 0019).
+    const { error } = await supabase.schema("public").rpc("transfer_ownership", {
+      p_org: data.orgId,
+      p_new_owner: data.toUserId,
+      p_reauth: data.reauth,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -243,7 +250,15 @@ export const transferOwnership = desktopAware("transferOwnership", transferOwner
 
 const deleteOrganizationCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ orgId: uuid, confirmName: z.string().max(200) }).parse(input))
+  .validator((input) =>
+    z
+      .object({
+        orgId: uuid,
+        confirmName: z.string().max(200),
+        reauth: z.string().regex(/^[0-9a-f]{64}$/),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const [org, { ownerId }] = await Promise.all([
@@ -255,9 +270,11 @@ const deleteOrganizationCloud = createServerFn({ method: "POST" })
     // everything that belongs to it.
     const { error: logError } = await supabase.rpc("log_org_deletion", { p_org: org.id });
     if (logError) throw new Error(logError.message);
-    const { error } = await supabase
-      .schema("public")
-      .rpc("delete_organization", { p_org: org.id, p_confirm_name: org.name });
+    const { error } = await supabase.schema("public").rpc("delete_organization", {
+      p_org: org.id,
+      p_confirm_name: org.name,
+      p_reauth: data.reauth,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -297,12 +314,21 @@ async function myMemberships(supabase: Db, userId: string) {
 
 const deleteMyAccountCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ confirm: z.literal("DELETE") }).parse(input))
-  .handler(async ({ context }) => {
+  .validator((input) =>
+    z
+      .object({ confirm: z.literal("DELETE"), reauth: z.string().regex(/^[0-9a-f]{64}$/) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const memberships = await myMemberships(supabase, userId);
     const blocker = accountDeletionBlocker(memberships);
     if (blocker) throw new Error(blocker);
+    // The one-time pass from "Confirm it's you" (core 0019), used as the person themselves.
+    const { error: reauthError } = await supabase
+      .schema("public")
+      .rpc("use_reauth", { p_action: "delete_account", p_token: data.reauth });
+    if (reauthError) throw new Error(reauthError.message);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // A history entry in each organization, then remove the sign-in account (its
     // core memberships go with it).

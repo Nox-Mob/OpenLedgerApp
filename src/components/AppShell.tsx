@@ -73,8 +73,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const aal = useAal();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const mfaBlocked =
-    !!org?.requireMfa && aal.data?.current !== "aal2" && pathname !== "/settings/security";
   const desktop = isDesktop();
 
   const user = useQuery({
@@ -145,23 +143,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h1 className="mb-3 font-display text-xl font-semibold">Two-step sign-in</h1>
           <MfaCodeForm onDone={() => void queryClient.invalidateQueries()} />
         </div>
-      ) : mfaBlocked ? (
-        <div role="alert" className="max-w-xl rounded-lg border bg-card p-6">
-          <h1 className="font-display text-xl font-semibold">Two-step sign-in required</h1>
-          <p className="mt-2 text-sm">
-            {org?.name} requires two-step sign-in. Set it up (or sign out and back in with your
-            code) to see its books.
-          </p>
-          <Link
-            to="/settings/security"
-            className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-          >
-            Go to Security
-          </Link>
-        </div>
       ) : (
         <>
-          {/* Organizations that require two-step sign-in of owners and admins (core 0018). */}
+          {/* Organizations that require two-step sign-in (core 0018, 0019; set in OpenAppHub). */}
           <div className="mb-4 empty:hidden">
             <TwoStepNotice
               client={supabase as unknown as SupabaseClient}

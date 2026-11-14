@@ -5,7 +5,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "./permissions";
-import { writeAudit } from "./audit";
 
 const orgId = z.string().uuid();
 const PAGE = 1000;
@@ -35,14 +34,13 @@ const exportBackupCloud = createServerFn({ method: "POST" })
     const { readBackupData } = await import("./backup-export.server");
     const { organization: org, tables } = await readBackupData(context.supabase, data.orgId);
     const counts = Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, v.length]));
-    await writeAudit({
-      org_id: data.orgId,
-      user_id: context.userId,
-      action: "backup.exported",
-      entity: "organization",
-      entity_id: data.orgId,
-      after: counts,
+    // The history entry, as the signed-in admin (0016): no service role.
+    const { error: auditError } = await context.supabase.rpc("record_backup_export", {
+      p_org: data.orgId,
+      p_counts: counts,
     });
+    if (auditError)
+      throw new Error(`The download could not be recorded in history: ${auditError.message}`);
     const { getSigningKeys } = await import("./backup-key.server");
     const { signBackup } = await import("./domain/backup");
     const signed = await signBackup(await getSigningKeys(), org, tables, new Date().toISOString());
