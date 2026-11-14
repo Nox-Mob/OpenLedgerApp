@@ -61,6 +61,12 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   off by default; `org_role_settings`, `set_org_role_settings`): when on, an app's admins may change
   people's roles (and No access) in that app only; named roles and OpenAppHub roles stay with the
   owner and OpenAppHub admins. Each app keeps people with No access out at its own read gate.
+- `1.19.0`: pre-production tuning (2026-11-14). Core `0016_core_tuning.sql`:
+  `public._tune_schema(schema)` makes every row-level security policy in a schema call
+  `auth.uid()` / `auth.jwt()` / `auth.role()` once per query (`(select auth.uid())`) and indexes
+  every foreign key that has no index (partial on a nullable single column);
+  `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
+  schemas in a migration after its last policy change, and tests that nothing is left.
 - `1.16.0`: notifications (H-02, owner direction 2026-11-13), apart from the automation engine. Core
   `0013_core_notifications.sql`: `public.notification_kinds` (registered with
   `public.register_notification_kind`: who gets it by default, who may turn it on, its email kind),

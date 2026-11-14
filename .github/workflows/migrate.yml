@@ -26,8 +26,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.target }}
     env:
-      DATABASE_URL: ${{ inputs.target == 'production' && secrets.PROD_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
+      # No `a && b || c` fallback: an unset production secret must stop the run, not migrate staging.
+      DATABASE_URL: ${{ inputs.target == 'production' && secrets.PROD_DATABASE_URL || inputs.target == 'staging' && secrets.STAGING_DATABASE_URL || '' }}
     steps:
+      - name: Check the target
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::No database address for ${{ inputs.target }} (secret PROD_DATABASE_URL or STAGING_DATABASE_URL). Nothing was changed."
+            exit 1
+          fi
+          if [ "${{ inputs.target }}" = "production" ] && [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::Production is migrated from main only (this run is on ${{ github.ref_name }}). Nothing was changed."
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:

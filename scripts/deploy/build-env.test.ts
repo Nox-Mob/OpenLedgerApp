@@ -40,11 +40,16 @@ describe("deploy build env", () => {
     expect(JSON.parse(staging.vars.VITE_SUITE_URLS).ledger).toBe(
       "https://staging.ledger.staging.openapphub.org",
     );
+    // Each environment's cookies stay in that environment (staging and previews never reach
+    // production's hosts, where the same cookie names are used).
+    expect(prod.vars.VITE_COOKIE_DOMAIN).toBe(".openapphub.org");
+    expect(staging.vars.VITE_COOKIE_DOMAIN).toBe(".staging.openapphub.org");
+    expect(config.previews.vars.VITE_COOKIE_DOMAIN).toBe(".staging.openapphub.org");
+    expect(config.previews.vars.VITE_SUPABASE_URL).toBe(staging.vars.VITE_SUPABASE_URL);
     for (const env of [prod, staging]) {
       expect(env.vars.VITE_HOSTED).toBe("true");
       expect(env.vars.VITE_APP_ID).toBe("ledger");
       expect(env.vars.VITE_APP_SCHEMA).toBe("ledger");
-      expect(env.vars.VITE_COOKIE_DOMAIN).toBe(".openapphub.org");
       expect(env.vars.SUPABASE_URL).toBe(env.vars.VITE_SUPABASE_URL);
       // Secrets never live in wrangler.jsonc (SHARED-SPEC §7.1).
       expect(Object.keys(env.vars).join(" ")).not.toMatch(/SERVICE_ROLE|SECRET|SEED|API_KEY/);
