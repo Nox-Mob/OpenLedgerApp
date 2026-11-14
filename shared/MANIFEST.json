@@ -1,5 +1,5 @@
 {
-  "version": "1.23.0",
+  "version": "1.23.1",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -45,11 +45,11 @@
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/README.md": "5396c323c2abe3d3ee643a95f61aa70ae7519abb93cff649b15e70d85d336dc4",
+    "shared/README.md": "a5fae11be126382ca2bb2f5f9bdad1642e075924b8e89ed4ef31d9db4874afbb",
     "shared/safe-path.ts": "7766f7bb737b32c220ac94d05763dcafd55a0602ae4cbfbe53bd4705cff1a357",
     "shared/security/server.ts": "d5b054686311676f5249f810d0cef65ed33fe065cd518b75d4e535189c2c4de2",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
-    "shared/supabase/client.ts": "6435284a92ea18484a0cb19b9e21886b9ee64464ba7ad6bd6657edd6f1050d4d",
+    "shared/supabase/client.ts": "113149d4de10b174361d2cf0ce7134f4e78c24a2fb6bc9c1ca7e4c73ff3cedbb",
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
     "shared/supabase/org.ts": "e7b194b07bbe16da81323f6da8a04a1a8efa6dea1301a4a957d46cb9e9ed0030",
     "shared/theme.ts": "e3e82dd7001c74561430ad88cbf7306b17adb0295cc7bb083e8a33d00d52bc34",
@@ -76,6 +76,6 @@
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/TwoStep.tsx": "581edf5140562cc6fc27540fe465a67266c2fe51d4c87a620eedff6f3c92af42",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "8fc21140add9202a29f2eec0793eaa9dcf4065a756d9d91775190096d44a62aa"
+    "shared/VERSION": "f24986f850ee6e66a4c7fdbe8ea5f72f94bee5434a3bcd1892799e3bc46f3d12"
   }
 }
