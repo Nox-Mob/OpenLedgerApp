@@ -72,7 +72,7 @@ function HistoryPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Every change to this organization's books, newest first. History can't be edited or deleted.
       </p>
-      <div className="mt-4 flex items-center gap-2 text-sm">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
         <label htmlFor="entity" className="text-muted-foreground">
           Show
         </label>
@@ -83,7 +83,7 @@ function HistoryPage() {
             setEntity(e.target.value);
             setPage(0);
           }}
-          className="rounded-md border border-input bg-background px-3 py-1.5"
+          className="max-w-full rounded-md border border-input bg-background px-3 py-1.5"
         >
           {ENTITIES.map((e) => (
             <option key={e} value={e}>
@@ -91,7 +91,7 @@ function HistoryPage() {
             </option>
           ))}
         </select>
-        <label htmlFor="kind" className="ml-4 text-muted-foreground">
+        <label htmlFor="kind" className="text-muted-foreground sm:ml-4">
           Type
         </label>
         <select
@@ -101,7 +101,7 @@ function HistoryPage() {
             setKind(e.target.value as typeof kind);
             setPage(0);
           }}
-          className="rounded-md border border-input bg-background px-3 py-1.5"
+          className="max-w-full rounded-md border border-input bg-background px-3 py-1.5"
         >
           <option value="">All types</option>
           <option value="ledger">Money (postings and voids)</option>
@@ -109,7 +109,12 @@ function HistoryPage() {
           <option value="system">System (imports, backups, members)</option>
         </select>
       </div>
-      <div className="mt-4 overflow-hidden rounded-lg border bg-card">
+      <div
+        className="mt-4 overflow-x-auto rounded-lg border bg-card"
+        tabIndex={0}
+        role="region"
+        aria-label="History"
+      >
         {q.isPending ? (
           <LoadingState label="Loading history" />
         ) : q.isError ? (

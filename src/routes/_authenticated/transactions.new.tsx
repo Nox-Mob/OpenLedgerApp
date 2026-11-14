@@ -224,10 +224,12 @@ function NewTransactionPage() {
         Record what happened. The ledger keeps both sides balanced for you.
       </p>
 
-      <div className="mt-5 flex gap-2">
+      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Kind of transaction">
         {MODES.map((m) => (
           <button
             key={m.id}
+            type="button"
+            aria-pressed={mode === m.id}
             onClick={() => setMode(m.id)}
             className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
               mode === m.id
@@ -481,78 +483,91 @@ function NewTransactionPage() {
                 Split a transaction across accounts. {terms.debit}s must equal{" "}
                 {terms.credit.toLowerCase()}s.
               </p>
-              <div className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2 text-xs font-medium text-muted-foreground">
-                <span>Account</span>
-                <span className="text-right">{terms.debit}</span>
-                <span className="text-right">{terms.credit}</span>
-                <span>Memo</span>
-                <span></span>
-              </div>
-              {rows.map((row, i) => (
-                <div key={i} className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2">
-                  <select
-                    aria-label={`Line ${i + 1} account`}
-                    value={row.accountId}
-                    onChange={(e) =>
-                      setRows(
-                        rows.map((r, j) => (j === i ? { ...r, accountId: e.target.value } : r)),
-                      )
-                    }
-                    className={selectCls}
-                  >
-                    <option value="">Choose…</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    aria-label={`Line ${i + 1} ${terms.debit}`}
-                    inputMode="decimal"
-                    value={row.debit}
-                    onChange={(e) =>
-                      setRows(
-                        rows.map((r, j) =>
-                          j === i ? { ...r, debit: e.target.value, credit: "" } : r,
-                        ),
-                      )
-                    }
-                    placeholder="0.00"
-                    className={`${inputCls} tnum text-right`}
-                  />
-                  <input
-                    aria-label={`Line ${i + 1} ${terms.credit}`}
-                    inputMode="decimal"
-                    value={row.credit}
-                    onChange={(e) =>
-                      setRows(
-                        rows.map((r, j) =>
-                          j === i ? { ...r, credit: e.target.value, debit: "" } : r,
-                        ),
-                      )
-                    }
-                    placeholder="0.00"
-                    className={`${inputCls} tnum text-right`}
-                  />
-                  <input
-                    aria-label={`Line ${i + 1} memo`}
-                    value={row.memo}
-                    onChange={(e) =>
-                      setRows(rows.map((r, j) => (j === i ? { ...r, memo: e.target.value } : r)))
-                    }
-                    placeholder="Optional note"
-                    className={inputCls}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => rows.length > 2 && setRows(rows.filter((_, j) => j !== i))}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+              {/* On a phone the lines are wider than the screen: they scroll sideways. */}
+              <div
+                className="-mx-2 overflow-x-auto px-2"
+                tabIndex={0}
+                role="region"
+                aria-label="Lines"
+              >
+                <div className="min-w-[34rem] space-y-2">
+                  <div className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2 text-xs font-medium text-muted-foreground">
+                    <span>Account</span>
+                    <span className="text-right">{terms.debit}</span>
+                    <span className="text-right">{terms.credit}</span>
+                    <span>Memo</span>
+                    <span></span>
+                  </div>
+                  {rows.map((row, i) => (
+                    <div key={i} className="grid grid-cols-[1fr_110px_110px_1fr_32px] gap-2">
+                      <select
+                        aria-label={`Line ${i + 1} account`}
+                        value={row.accountId}
+                        onChange={(e) =>
+                          setRows(
+                            rows.map((r, j) => (j === i ? { ...r, accountId: e.target.value } : r)),
+                          )
+                        }
+                        className={selectCls}
+                      >
+                        <option value="">Choose…</option>
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        aria-label={`Line ${i + 1} ${terms.debit}`}
+                        inputMode="decimal"
+                        value={row.debit}
+                        onChange={(e) =>
+                          setRows(
+                            rows.map((r, j) =>
+                              j === i ? { ...r, debit: e.target.value, credit: "" } : r,
+                            ),
+                          )
+                        }
+                        placeholder="0.00"
+                        className={`${inputCls} tnum text-right`}
+                      />
+                      <input
+                        aria-label={`Line ${i + 1} ${terms.credit}`}
+                        inputMode="decimal"
+                        value={row.credit}
+                        onChange={(e) =>
+                          setRows(
+                            rows.map((r, j) =>
+                              j === i ? { ...r, credit: e.target.value, debit: "" } : r,
+                            ),
+                          )
+                        }
+                        placeholder="0.00"
+                        className={`${inputCls} tnum text-right`}
+                      />
+                      <input
+                        aria-label={`Line ${i + 1} memo`}
+                        value={row.memo}
+                        onChange={(e) =>
+                          setRows(
+                            rows.map((r, j) => (j === i ? { ...r, memo: e.target.value } : r)),
+                          )
+                        }
+                        placeholder="Optional note"
+                        className={inputCls}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => rows.length > 2 && setRows(rows.filter((_, j) => j !== i))}
+                        aria-label={`Remove line ${i + 1}`}
+                        className="grid min-h-8 place-items-center text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
               <button
                 type="button"
                 onClick={() =>

@@ -389,10 +389,12 @@ function TransactionsPage() {
                               e.stopPropagation();
                               handleVoid(t.id);
                             }}
+                            type="button"
                             title="Void transaction"
-                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Void transaction"
+                            className="grid min-h-8 min-w-8 place-items-center text-muted-foreground hover:text-destructive"
                           >
-                            <Ban className="h-4 w-4" />
+                            <Ban className="h-4 w-4" aria-hidden="true" />
                           </button>
                         )}
                       </td>

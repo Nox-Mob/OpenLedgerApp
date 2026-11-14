@@ -67,6 +67,14 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.23.0`: screen-size and accessibility review (2026-11-14, owner request). `design/tailwind.css`:
+  native tick boxes and radio buttons are 18px in the app's colour, and a label holding one is at
+  least 28px tall; on touch screens (`pointer: coarse`) links, buttons and selects are at least
+  24px tall and tick boxes 24px (WCAG 2.2, 2.5.8). `AppShell`: the menu and help buttons keep their
+  size, and the organization switcher is the one thing in the top bar that shrinks, so the bar no
+  longer runs off the screen on a 360px phone or an iPad mini. `Dropdown` takes a `className` for
+  its wrapper (default `relative shrink-0`). `CookieConsent`: the cookie tables' scrolling box takes
+  keyboard focus and has a name.
 - `1.22.0`: security round 3 (2026-11-14, owner request). Core `0019_core_account_security.sql`:
   **confirm it's you** right before deleting an organization, handing over ownership, deleting an
   account and changing the recovery email: `begin_reauth(action, code)` makes a one-time pass (64
