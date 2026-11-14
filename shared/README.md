@@ -4,20 +4,20 @@ Canonical shared code for the OpenAppHub suite (SHARED-SPEC §8). Apps vendor a 
 never edit it in an app repo. Change it here, bump `VERSION`, then sync it into each app
 (`scripts/sync-shared.mjs`, step 8).
 
-| Path                  | What                                                                                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `design/`             | Tokens, Tailwind mapping and preset, `DESIGN.md` (read it first)                                                                                                               |
+| Path                  | What                                                                                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `design/`             | Tokens, Tailwind mapping and preset, `DESIGN.md` (read it first)                                                                                                                               |
 | `ui/`                 | `AppShell`, `SuiteSwitcher`, `OrgSwitcher`, `BillingBanner`, `HelpLink`, `InvitationPage`, `ThemeToggle`, `CookieConsent`, `CookieTable`, `TwoStep*`, `ReauthDialog` (import from `shared/ui`) |
-| `format.ts`           | The suite's money and date formats: use these, never local helpers                                                                                                             |
-| `theme.ts`            | Light / dark / system, shared across the suite (saved only with consent)                                                                                                       |
-| `consent.ts`          | Cookie consent: categories, the catalogue of every cookie, `hasConsent()`, `openCookieSettings()`                                                                              |
-| `supabase/client.ts`  | Cookie-session browser client (§4.1)                                                                                                                                           |
-| `supabase/hosted.ts`  | `isHosted()`, `hubUrl()`, `loginRedirect()`, `suiteUrls()`, cookie domain                                                                                                      |
-| `supabase/org.ts`     | Current organization (`oah_org` cookie), `listMyOrgs()`                                                                                                                        |
-| `supabase/billing.ts` | `getOrgBilling()` (feature-detected), access rule, banner wording                                                                                                              |
-| `docs.ts`             | Links into docs.openapphub.org                                                                                                                                                 |
-| `apps.ts`             | App names, taglines and marks                                                                                                                                                  |
-| `email/`              | Suite email (S-16): templates, Resend and SMTP transports, the sender (`deliver.ts`, server-only) and self-hosted settings (`selfhost.ts`, server-only)                        |
+| `format.ts`           | The suite's money and date formats: use these, never local helpers                                                                                                                             |
+| `theme.ts`            | Light / dark / system, shared across the suite (saved only with consent)                                                                                                                       |
+| `consent.ts`          | Cookie consent: categories, the catalogue of every cookie, `hasConsent()`, `openCookieSettings()`                                                                                              |
+| `supabase/client.ts`  | Cookie-session browser client (§4.1)                                                                                                                                                           |
+| `supabase/hosted.ts`  | `isHosted()`, `hubUrl()`, `loginRedirect()`, `suiteUrls()`, cookie domain                                                                                                                      |
+| `supabase/org.ts`     | Current organization (`oah_org` cookie), `listMyOrgs()`                                                                                                                                        |
+| `supabase/billing.ts` | `getOrgBilling()` (feature-detected), access rule, banner wording                                                                                                                              |
+| `docs.ts`             | Links into docs.openapphub.org                                                                                                                                                                 |
+| `apps.ts`             | App names, taglines and marks                                                                                                                                                                  |
+| `email/`              | Suite email (S-16): templates, Resend and SMTP transports, the sender (`deliver.ts`, server-only) and self-hosted settings (`selfhost.ts`, server-only)                                        |
 
 ## Requirements in an app
 
@@ -81,7 +81,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   hex characters, stored as SHA-256, one action, five minutes, used once) for a session that just
   typed its password (`amr` password within 2 minutes) or the code from `send_reauth_code`, plus,
   with an authenticator, its code (`totp` within 5 minutes). `delete_organization(org, name,
-  reauth)` and `transfer_ownership(org, new_owner, confirm, reauth)` replace the old signatures;
+reauth)` and `transfer_ownership(org, new_owner, confirm, reauth)` replace the old signatures;
   `use_reauth('delete_account', token)` for the server; 0018's `assert_recent_sign_in` is gone.
   **Two-step levels**: `org_role_settings.mfa_required` (`off` / `admins` / `everyone`, replacing
   `require_mfa_admins`), `set_org_mfa_level`, and `org_security_settings` counts who hasn't set it

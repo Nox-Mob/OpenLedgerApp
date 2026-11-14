@@ -294,7 +294,11 @@ const TEMPLATES: Record<string, Template> = {
     ],
     action: {
       label: "Turn off two-step sign-in",
-      href: appUrl(ctx, row.app || "hub", `/recover?token=${encodeURIComponent(str(row.data["token"]))}`),
+      href: appUrl(
+        ctx,
+        row.app || "hub",
+        `/recover?token=${encodeURIComponent(str(row.data["token"]))}`,
+      ),
     },
   }),
   "account.security_notice": (row, ctx) => {
