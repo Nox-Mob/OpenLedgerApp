@@ -5,7 +5,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertCan } from "./permissions";
-import { writeAudit } from "./audit";
 
 const orgId = z.string().uuid();
 const PAGE = 1000;
@@ -35,14 +34,13 @@ const exportBackupCloud = createServerFn({ method: "POST" })
     const { readBackupData } = await import("./backup-export.server");
     const { organization: org, tables } = await readBackupData(context.supabase, data.orgId);
     const counts = Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, v.length]));
-    await writeAudit({
-      org_id: data.orgId,
-      user_id: context.userId,
-      action: "backup.exported",
-      entity: "organization",
-      entity_id: data.orgId,
-      after: counts,
+    // The history entry, as the signed-in admin (0016): no service role.
+    const { error: auditError } = await context.supabase.rpc("record_backup_export", {
+      p_org: data.orgId,
+      p_counts: counts,
     });
+    if (auditError)
+      throw new Error(`The download could not be recorded in history: ${auditError.message}`);
     const { getSigningKeys } = await import("./backup-key.server");
     const { signBackup } = await import("./domain/backup");
     const signed = await signBackup(await getSigningKeys(), org, tables, new Date().toISOString());
@@ -184,7 +182,7 @@ async function verifyText(text: string) {
   return verifyBackup(parsed, (await getSigningKeys()).publicRaw);
 }
 
-/** Check a backup without writing anything. Any signed-in user may restore into a new org. */
+/** Check a backup without writing anything. The owner or an admin restores it into an empty organization. */
 const checkBackupFileCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => z.object({ text: backupText }).parse(input))
@@ -204,14 +202,15 @@ export const checkBackupFile = desktopAware("checkBackupFile", checkBackupFileCl
 const restoreBackupCloud = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) =>
-    z.object({ text: backupText, confirmName: z.string().max(200) }).parse(input),
+    z.object({ orgId, text: backupText, confirmName: z.string().max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    await assertCan(context.supabase, context.userId, data.orgId, "manage_settings");
     const v = await verifyText(data.text);
     if (data.confirmName.trim() !== v.backup.manifest.orgName.trim())
       throw new Error("Type the organization name exactly as shown to confirm.");
-    const { restoreIntoNewOrg } = await import("./restore.server");
-    return restoreIntoNewOrg(context.supabase, context.userId, v);
+    const { restoreIntoOrg } = await import("./restore.server");
+    return restoreIntoOrg(context.supabase, data.orgId, v);
   });
 export const restoreBackup = desktopAware("restoreBackup", restoreBackupCloud);
 

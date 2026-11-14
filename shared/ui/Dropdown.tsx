@@ -7,6 +7,7 @@ export function Dropdown({
   label,
   trigger,
   triggerClassName = "",
+  className = "relative shrink-0",
   panelClassName = "",
   align = "start",
   onOpenChange,
@@ -15,6 +16,8 @@ export function Dropdown({
   /** Accessible name for the trigger when its content isn't descriptive. */
   label?: string;
   trigger: ReactNode;
+  /** The wrapper: keeps its size in a row by default. */
+  className?: string;
   triggerClassName?: string;
   panelClassName?: string;
   align?: "start" | "end";
@@ -57,7 +60,7 @@ export function Dropdown({
   }, [open]);
 
   return (
-    <div ref={root} className="relative">
+    <div ref={root} className={className}>
       <button
         ref={button}
         type="button"

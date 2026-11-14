@@ -22,7 +22,6 @@ import {
 import { createSupabaseRepositories } from "./adapters/supabase";
 import { newId } from "./domain/ledger";
 import { updateOrganization as updateOrgSettings } from "./services/settings";
-import { requireMfaBlocker } from "./domain/members";
 import { deleteBlocker, NO_USAGE, type AccountUsage } from "./domain/accounts";
 
 /** Non-ledger records that point at each account (entries are counted separately). */
@@ -556,34 +555,5 @@ const deleteUnusedAccountCloud = createServerFn({ method: "POST" })
   });
 export const deleteUnusedAccount = desktopAware("deleteUnusedAccount", deleteUnusedAccountCloud);
 
-const setRequireMfaCloud = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ orgId: z.string().uuid(), enabled: z.boolean() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
-    await requireOrgAdmin(supabase, userId, data.orgId);
-    const blocker = requireMfaBlocker(data.enabled, (claims as { aal?: string }).aal);
-    if (blocker) throw new Error(blocker);
-    await auditedWrite(
-      supabase,
-      data.orgId,
-      [
-        ENSURE_SETTINGS_OP,
-        {
-          table: "org_settings",
-          op: "update",
-          values: { require_mfa: data.enabled },
-          minRows: 1,
-        },
-      ],
-      {
-        action: data.enabled ? "require_mfa_on" : "require_mfa_off",
-        entity: "organization",
-        entityId: data.orgId,
-        after: { requireMfa: data.enabled },
-        kind: "system",
-      },
-    );
-    return { ok: true };
-  });
-export const setRequireMfa = desktopAware("setRequireMfa", setRequireMfaCloud);
+// Ledger's own "require two-step sign-in" switch is retired (0015): OpenAppHub's organization
+// setting (core 0019) covers every app.

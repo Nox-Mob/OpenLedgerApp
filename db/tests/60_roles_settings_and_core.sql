@@ -132,7 +132,9 @@ begin
   perform tests.throws(format('select ledger.log_org_deletion(%L)', org), 'only the owner logs a deletion', 'Only the owner');
   perform tests.as_user(owner);
   perform ledger.log_org_deletion(org);
-  perform public.delete_organization(org, 'Ledger Org');
+  -- "Confirm it's you" (core 0019): a session that just typed its password makes the pass.
+  perform set_config('request.jwt.claims', json_build_object('sub', owner, 'role', 'authenticated', 'amr', json_build_array(json_build_object('method', 'password', 'timestamp', extract(epoch from now())::bigint)))::text, true);
+  perform public.delete_organization(org, 'Ledger Org', public.begin_reauth('delete_organization'));
   perform tests.as_super();
   perform tests.ok(not exists (select 1 from ledger.accounts where org_id = org)
                and not exists (select 1 from ledger.member_roles where org_id = org)

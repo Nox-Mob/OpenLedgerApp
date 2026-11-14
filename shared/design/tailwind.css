@@ -88,6 +88,36 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Native tick boxes and radio buttons: a little bigger than the browser's 13px, in the app's
+     colour, and a row that holds one is at least 28px tall, so neighbouring boxes are far enough
+     apart to hit (WCAG 2.2, 2.5.8). */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    accent-color: var(--primary);
+  }
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) {
+    min-height: 1.75rem;
+  }
+  /* Touch screens: every link and control is at least 24 by 24 px (WCAG 2.2, 2.5.8), so it's
+     easy to tap. Links inside a sentence are inline and keep their size; this reaches links and
+     buttons laid out on their own, and checkboxes and radio buttons. */
+  @media (pointer: coarse) {
+    a:not(.sr-only),
+    button,
+    [role="button"],
+    select {
+      min-height: 24px;
+    }
+    input[type="checkbox"],
+    input[type="radio"] {
+      min-width: 24px;
+      min-height: 24px;
+    }
+  }
 }
 
 /* Numbers in tables and money columns. */

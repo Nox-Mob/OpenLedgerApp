@@ -284,7 +284,13 @@ export function CookieTable() {
             </span>
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">{cat.text}</p>
-          <div className="mt-3 overflow-x-auto rounded-lg border">
+          {/* Focusable, so keyboard users can scroll the table sideways on a small screen. */}
+          <div
+            className="mt-3 overflow-x-auto rounded-lg border"
+            tabIndex={0}
+            role="region"
+            aria-label={`${cat.title} cookies`}
+          >
             <table className="w-full text-left text-sm">
               <thead className="bg-muted text-xs tracking-wide text-muted-foreground uppercase">
                 <tr>

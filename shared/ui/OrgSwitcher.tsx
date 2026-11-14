@@ -38,7 +38,9 @@ export function OrgSwitcher({
       label={
         current ? `Organization: ${current.name}. Switch organization` : "Choose an organization"
       }
-      triggerClassName="inline-flex h-9 max-w-[11rem] items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm font-medium text-foreground shadow-sm hover:bg-accent sm:max-w-xs"
+      // The organization name is the one thing in the top bar that shrinks on a narrow screen.
+      className="relative min-w-0 max-w-[11rem] shrink sm:max-w-xs"
+      triggerClassName="inline-flex h-9 max-w-full items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm font-medium text-foreground shadow-sm hover:bg-accent"
       trigger={
         <>
           <span className="size-2 shrink-0 rounded-full bg-app-accent" aria-hidden="true" />

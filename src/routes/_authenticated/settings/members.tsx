@@ -17,6 +17,10 @@ import {
 } from "@/lib/members.functions";
 import { inviteUrl } from "@/lib/invite-link";
 import { toast } from "sonner";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { ReauthDialog } from "@shared/ui/Reauth";
+import { appSendCode } from "@/lib/security.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/settings/members")({
   head: () => ({
@@ -98,6 +102,8 @@ function MembersSettings() {
   const [transferTo, setTransferTo] = useState("");
   const [confirmName, setConfirmName] = useState("");
   const [busy, setBusy] = useState(false);
+  // "Confirm it's you" (core 0019) opens right before a transfer or a deletion.
+  const [confirming, setConfirming] = useState<"transfer" | "delete" | null>(null);
 
   const isAdmin = org?.role === "admin";
   const { data: members } = useQuery({
@@ -382,12 +388,7 @@ function MembersSettings() {
               <button
                 disabled={busy || !transferTo}
                 className={btnCls}
-                onClick={() =>
-                  run(
-                    () => transferOwnership({ data: { orgId: org.id, toUserId: transferTo } }),
-                    "Ownership transferred",
-                  )
-                }
+                onClick={() => setConfirming("transfer")}
               >
                 Transfer
               </button>
@@ -416,22 +417,42 @@ function MembersSettings() {
             <button
               disabled={busy || confirmName.trim() !== org.name.trim()}
               className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground disabled:opacity-50"
-              onClick={async () => {
-                const ok = await run(
-                  () => deleteOrganization({ data: { orgId: org.id, confirmName } }),
-                  "Organization deleted",
-                );
-                if (ok) {
-                  await queryClient.invalidateQueries();
-                  void navigate({ to: "/ledger" });
-                }
-              }}
+              onClick={() => setConfirming("delete")}
             >
               Delete forever
             </button>
           </div>
         </div>
       )}
+
+      <ReauthDialog
+        client={supabase as unknown as SupabaseClient}
+        action={confirming === "delete" ? "delete_organization" : "transfer_ownership"}
+        open={confirming !== null}
+        title={confirming === "delete" ? `Delete ${org.name}?` : "Transfer ownership?"}
+        description={
+          confirming === "delete"
+            ? `This erases ${org.name} and all of its books for everyone. It can't be undone.`
+            : "The admin you chose becomes the owner. You stay an admin."
+        }
+        confirmLabel={confirming === "delete" ? "Delete forever" : "Transfer"}
+        sendCode={appSendCode}
+        onClose={() => setConfirming(null)}
+        onConfirmed={async (reauth) => {
+          if (confirming === "delete") {
+            await deleteOrganization({ data: { orgId: org.id, confirmName, reauth } });
+            setConfirming(null);
+            toast.success("Organization deleted");
+            await queryClient.invalidateQueries();
+            void navigate({ to: "/ledger" });
+          } else {
+            await transferOwnership({ data: { orgId: org.id, toUserId: transferTo, reauth } });
+            setConfirming(null);
+            toast.success("Ownership transferred");
+            refresh();
+          }
+        }}
+      />
     </div>
   );
 }

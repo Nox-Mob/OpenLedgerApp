@@ -1163,6 +1163,14 @@ export type Database = {
       }
     }
     Functions: {
+      record_backup_export: {
+        Args: { p_counts: Json; p_org: string }
+        Returns: undefined
+      }
+      undo_import_batch: {
+        Args: { p_batch: string; p_org: string }
+        Returns: number
+      }
       _next_recurring_date: {
         Args: { p_anchor: number; p_date: string; p_freq: string }
         Returns: string
@@ -2941,7 +2949,7 @@ export type Database = {
         Returns: undefined
       }
       delete_organization: {
-        Args: { p_confirm_name: string; p_org: string }
+        Args: { p_confirm_name: string; p_org: string; p_reauth?: string }
         Returns: undefined
       }
       delete_workflow: { Args: { p_id: string }; Returns: undefined }
@@ -3460,13 +3468,20 @@ export type Database = {
         Args: { p_definition: Json; p_org: string; p_trigger?: Json }
         Returns: Json
       }
-      transfer_ownership:
-        | { Args: { p_new_owner: string; p_org: string }; Returns: undefined }
-        | {
-            Args: { p_confirm: string; p_new_owner: string; p_org: string }
-            Returns: undefined
-          }
+      transfer_ownership: {
+        Args: {
+          p_confirm?: string
+          p_new_owner: string
+          p_org: string
+          p_reauth?: string
+        }
+        Returns: undefined
+      }
       unread_notification_count: { Args: never; Returns: number }
+      use_reauth: {
+        Args: { p_action: string; p_token: string }
+        Returns: undefined
+      }
       workflow_overview: { Args: { p_org: string }; Returns: Json }
       workflow_runs: {
         Args: { p_limit?: number; p_org: string; p_workflow?: string }

@@ -301,7 +301,7 @@ export function AppShell(props: AppShellProps) {
             onClick={() => setDrawer(true)}
             aria-label="Open menu"
             aria-expanded={drawer}
-            className="grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+            className="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
           >
             <MenuIcon />
           </button>
@@ -320,7 +320,7 @@ export function AppShell(props: AppShellProps) {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Help (opens the docs in a new tab)"
-            className="hidden size-9 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground sm:grid"
+            className="hidden size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground sm:grid"
           >
             <HelpIcon />
           </a>

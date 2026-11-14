@@ -228,54 +228,14 @@ const undoImportBatchCloud = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCan(supabase, userId, data.orgId, "write");
-    const { data: posted, error: pErr } = await supabase
-      .from("bank_transactions")
-      .select("id")
-      .eq("batch_id", data.batchId)
-      .not("transaction_id", "is", null)
-      .limit(1);
-    if (pErr) throw new Error(pErr.message);
-    if ((posted ?? []).length > 0)
-      throw new Error(
-        "Some rows from this file are already in the ledger. Void those transactions first.",
-      );
-    // Users have no DELETE on bank evidence; the server removes unposted rows after assertCan,
-    // and marks the batch undone with its history entry in the same transaction.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { count } = await supabase
-      .from("bank_transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("batch_id", data.batchId)
-      .eq("org_id", data.orgId)
-      .is("transaction_id", null);
-    const [removedRes] = await auditedWrite(
-      supabaseAdmin,
-      data.orgId,
-      [
-        {
-          table: "bank_transactions",
-          op: "delete",
-          match: { batch_id: data.batchId, transaction_id: null },
-        },
-        {
-          table: "import_batches",
-          op: "update",
-          values: { status: "undone" },
-          match: { id: data.batchId },
-          minRows: 1,
-        },
-      ],
-      {
-        action: "undo_import",
-        entity: "import_batch",
-        entityId: data.batchId,
-        after: { removed: count ?? 0 },
-        kind: "system",
-      },
-      userId,
-    );
-    const removed = { length: removedRes?.count ?? 0 };
-    return { removed: removed?.length ?? 0 };
+    // The database checks the permission again, removes only rows not yet in the books, marks
+    // the batch undone and writes the history entry, all at once (0016). No service role.
+    const { data: removed, error } = await supabase.rpc("undo_import_batch", {
+      p_org: data.orgId,
+      p_batch: data.batchId,
+    });
+    if (error) throw new Error(error.message);
+    return { removed: Number(removed ?? 0) };
   });
 export const undoImportBatch = desktopAware("undoImportBatch", undoImportBatchCloud);
 

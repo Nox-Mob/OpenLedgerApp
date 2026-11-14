@@ -423,7 +423,7 @@ function ReportsPage() {
 
       {tab === "income" && (
         <div className="mt-6 max-w-2xl">
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <label className="text-muted-foreground">From</label>
             <input
               aria-label="From"
