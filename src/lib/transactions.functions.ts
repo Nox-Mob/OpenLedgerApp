@@ -30,8 +30,8 @@ const createSchema = z.object({
   source: z
     .enum(["manual", "import", "opening_balance", "adjustment", "transfer"])
     .default("manual"),
-  entries: z.array(entrySchema).min(2),
-  tagIds: z.array(z.string().uuid()).optional(),
+  entries: z.array(entrySchema).min(2).max(500),
+  tagIds: z.array(z.string().uuid()).max(50).optional(),
   /** One per form submission; a repeat with the same key returns the first transaction. */
   idempotencyKey: z.string().min(8).max(120).optional(),
 });

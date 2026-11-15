@@ -239,7 +239,9 @@ const undoImportBatchCloud = createServerFn({ method: "POST" })
   });
 export const undoImportBatch = desktopAware("undoImportBatch", undoImportBatchCloud);
 
-const mappingSchema = z.record(z.string(), z.unknown());
+const mappingSchema = z
+  .record(z.string().max(100), z.unknown())
+  .refine((m) => JSON.stringify(m).length <= 20000, "The column mapping is too large.");
 
 const listImportProfilesCloud = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
