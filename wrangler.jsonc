@@ -38,6 +38,9 @@
     }
   ],
   "vars": {
+    // Cloudflare Web Analytics: production only (shared/analytics.ts). A public token, shown in
+    // every page that loads the script. Never set it in previews or env.staging.
+    "VITE_CF_ANALYTICS_TOKEN": "054d7738b858425f863060e1c3b9dbb3",
     "VITE_SUPABASE_URL": "https://ymlesgadawnjupnvgokd.supabase.co",
     "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_EbrHHQxIvTGPgEgjEkkpDQ_FROfdRln",
     "VITE_SUPABASE_PROJECT_ID": "ymlesgadawnjupnvgokd",

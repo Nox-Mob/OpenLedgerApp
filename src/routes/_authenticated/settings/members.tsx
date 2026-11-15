@@ -215,7 +215,9 @@ function MembersSettings() {
                       {m.role}
                     </span>
                   )}
-                  {isAdmin && !m.isYou && !isOwner && (
+                  {/* Hosted: removing people and leaving are done in OpenAppHub (they need the
+                      server's service role, which hosted OpenLedgerApp doesn't have). */}
+                  {!hosted && isAdmin && !m.isYou && !isOwner && (
                     <button
                       disabled={busy}
                       className="text-xs font-medium text-destructive hover:underline"
@@ -231,7 +233,7 @@ function MembersSettings() {
                       Remove
                     </button>
                   )}
-                  {m.isYou && !isOwner && (
+                  {!hosted && m.isYou && !isOwner && (
                     <button
                       disabled={busy}
                       className="text-xs font-medium text-destructive hover:underline"
@@ -258,20 +260,25 @@ function MembersSettings() {
         </ul>
       </div>
 
-      {hosted && isAdmin && (
+      {hosted && (
         <div className="rounded-lg border bg-card p-5">
-          <h2 className="font-display text-lg font-semibold">Invitations and ownership</h2>
+          <h2 className="font-display text-lg font-semibold">
+            {isAdmin ? "Invitations and ownership" : "Leaving the organization"}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Inviting people, transferring ownership and deleting the organization are done in
-            OpenAppHub, for every app at once.
+            {isAdmin
+              ? "Inviting and removing people, transferring ownership and deleting the organization are done in OpenAppHub, for every app at once."
+              : "To leave this organization, use OpenAppHub's Members page. You leave it in every app at once."}
           </p>
           <div className="mt-3 flex flex-wrap gap-3 text-sm font-medium">
             <a href={hubUrl("/members")} className="text-primary hover:underline">
-              Members and invitations
+              {isAdmin ? "Members and invitations" : "Members"}
             </a>
-            <a href={hubUrl("/settings")} className="text-primary hover:underline">
-              Organization settings
-            </a>
+            {isAdmin && (
+              <a href={hubUrl("/settings")} className="text-primary hover:underline">
+                Organization settings
+              </a>
+            )}
           </div>
         </div>
       )}

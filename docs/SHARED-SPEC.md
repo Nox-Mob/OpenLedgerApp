@@ -321,7 +321,7 @@ Overlays never grant more than the core role allows to read, and they never bypa
 ### 4.1 Sessions
 
 - One Supabase Auth for the suite. Users sign up once, at the hub (hosted).
-- `shared/supabase/client.ts` creates the browser client with cookie storage on `.openapphub.org` in hosted mode (`VITE_COOKIE_DOMAIN`), so one sign-in covers every app. Self-hosted: no cookie domain.
+- `shared/supabase/client.ts` creates the browser client with cookie storage on `.openapphub.org` in hosted mode (`VITE_COOKIE_DOMAIN`), so one sign-in covers every app. Self-hosted: no cookie domain. Before creating a browser client, the hub and each app call `dropStaleSession(config)` (shared 1.23.2): it expires this project's `sb-<ref>-auth-token*` cookies on every other parent domain and the host-only copy, never the domain in use and never another project's cookies, and reloads once if it removed one. Without it a cookie left on an older, wider domain (staging used `.openapphub.org` before review-notes §6.1) kept someone signed in after signing out.
 - Server functions keep getting the access token from the browser and create a per-request client as that user.
 - **Hosted sign-in:** no session → redirect to `${VITE_HUB_URL}/login?next=<url>`. The hub only follows `next` URLs on suite origins.
 - **Current org:** cookie `oah_org` on the parent domain, re-checked against memberships. Invalid → the user's first org; none → the hub's "create organization" page (Charter portal members: their portal org, §4.5).

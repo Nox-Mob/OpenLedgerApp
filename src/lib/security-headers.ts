@@ -4,6 +4,7 @@
 // scripts; switching to per-request nonces is a later hardening step.
 
 /** Origins for connect-src: the Supabase REST/Auth URL plus its realtime (wss) twin. */
+import { ANALYTICS_CSP, analyticsToken } from "../../shared/analytics";
 export function supabaseOrigins(supabaseUrl: string | undefined): string[] {
   if (!supabaseUrl) return [];
   try {
@@ -19,11 +20,16 @@ export function supabaseOrigins(supabaseUrl: string | undefined): string[] {
 export function contentSecurityPolicy(supabaseUrl: string | undefined): string {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    // Cloudflare Web Analytics, production builds only (shared/analytics.ts).
+    `script-src 'self' 'unsafe-inline'${analyticsToken() ? ` ${ANALYTICS_CSP.script}` : ""}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
-    ["connect-src 'self'", ...supabaseOrigins(supabaseUrl)].join(" "),
+    [
+      "connect-src 'self'",
+      ...supabaseOrigins(supabaseUrl),
+      ...(analyticsToken() ? [ANALYTICS_CSP.connect] : []),
+    ].join(" "),
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

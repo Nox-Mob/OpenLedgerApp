@@ -67,6 +67,11 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.24.0`: Cloudflare Web Analytics on production only (owner request, 2026-11-15). `analytics.ts`:
+  `analyticsToken()` reads `VITE_CF_ANALYTICS_TOKEN` (set in each wrangler.jsonc's production `vars`
+  only, never in previews or env.staging), `analyticsScripts()` gives the `<script>` for the root
+  route's `head().scripts`, and `ANALYTICS_CSP` is what the Content Security Policy then allows.
+  Cloudflare's automatic injection is off for openapphub.org, so staging and previews load nothing.
 - `1.23.2`: the stale-cookie clean-up from 1.23.1 is now `dropStaleSession(config)`, which each
   app's own browser client calls too (Charter, Board and Ledger build their own clients, so a first
   visit straight to an app still opened as the old person).

@@ -1,5 +1,5 @@
 {
-  "version": "1.23.2",
+  "version": "1.24.0",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -20,9 +20,12 @@
     "db/core/0017_core_security.sql": "5506d17d8078c051fcbe99fa61c4ba82bababf9b8bcb61aab919ca4c0e4cd746",
     "db/core/0018_core_auth_hardening.sql": "5be91faa79e0fbde69c032bb5070de8069b1e7a03db3b7096be6dff4f2bc5f10",
     "db/core/0019_core_account_security.sql": "97f835555a70702b262d0747981169063eb76e940aa4f70ae86ba81d6e1e9f24",
-    "docs/SHARED-SPEC.md": "726f0cb63e336bb4ffb43cb1232a2c9f48047f591d898dbdc7619e2f40fbed32",
+    "db/core/0020_core_table_privileges.sql": "9b2b54ab6261720aac32994bb944bb65433cce39f900ab8d75a91e936d6da040",
+    "db/core/0021_core_send_limits.sql": "b8fc85eb75a52f0f8da4754cdaf05d6d8c5e5f402bf7582e9a99fa2ff5e68ced",
+    "docs/SHARED-SPEC.md": "45c206a578fbf2a3cbfd74cf723a9b97069403e3b32e30c0b9353f6852484c70",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
+    "shared/analytics.ts": "63e3f1c11f6ed25c5076ac9133869157cd48833f325dd69cc460dff071d3448c",
     "shared/apps.ts": "c86f693701d1dde50e1ead214a64dcca2d7534dfcb5552069527e8723ea97f0a",
     "shared/automation/run.ts": "9c49b576af4cd68874ec7c5f8e28e4fa836585a87263130b81636b7c86728829",
     "shared/brand/marks.ts": "53c8e91891d0311bf6d4a8e565f48a23e638b20aee15b3bd5cfb1cf5187ecdce",
@@ -41,11 +44,11 @@
     "shared/email/templates.ts": "c6263811f012dfa6e8da12274aa2eab429429ceaa935e3e5f23ef03e7d7b0252",
     "shared/email/types.ts": "60429bb827b06f72185e9101728273ae7ba12d21d2fd862334789e4c63974078",
     "shared/email/unsubscribe.ts": "2f40dc47a4ccd52838eb57c2eedf5ed1656e09a1fd1d6bcf03bb4f7f5c79b838",
-    "shared/env.d.ts": "017b3af393af4da6d1008071ca8092293fc8709e7478ee2fdf10c8f79456b945",
+    "shared/env.d.ts": "e7d415f84ac8256be0c9c47045340dd05fc9d4d1baad1e79c77b9622684b7669",
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/README.md": "0535fd2fc9ba05ef9030c0b8223f57b74e8818cbee9a592e7d78784ff587c5f3",
+    "shared/README.md": "a55e6131a37ab685c6482d84fdce3f8d9b36f28e6cf6e25898ca47dfbaf6d649",
     "shared/safe-path.ts": "7766f7bb737b32c220ac94d05763dcafd55a0602ae4cbfbe53bd4705cff1a357",
     "shared/security/server.ts": "d5b054686311676f5249f810d0cef65ed33fe065cd518b75d4e535189c2c4de2",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
@@ -76,6 +79,6 @@
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/TwoStep.tsx": "581edf5140562cc6fc27540fe465a67266c2fe51d4c87a620eedff6f3c92af42",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "48d625eaf5c6c9ce0c6890c697201fd6087c6147773feb8ca9a85e4f8004e79f"
+    "shared/VERSION": "674f4a09248743250e5a3af0542b31ac96a6031a254069470b83b1a4e14210f8"
   }
 }
