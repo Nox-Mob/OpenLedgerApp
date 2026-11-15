@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   readonly VITE_HUB_URL?: string;
   readonly VITE_COOKIE_DOMAIN?: string;
+  /** Cloudflare Web Analytics token: production builds only (shared/analytics.ts). */
+  readonly VITE_CF_ANALYTICS_TOKEN?: string;
   readonly VITE_SUITE_URLS?: string;
   readonly VITE_DOCS_URL?: string;
   readonly VITE_SIGNUPS_OPEN?: string;

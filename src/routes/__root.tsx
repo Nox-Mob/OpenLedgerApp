@@ -1,3 +1,4 @@
+import { analyticsScripts } from "../../shared/analytics";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -101,6 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/brand/ledger-logo-32.png", type: "image/png", sizes: "32x32" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
+    // Cloudflare Web Analytics, production builds only (shared/analytics.ts).
+    scripts: analyticsScripts(),
   }),
   shellComponent: RootShell,
   component: RootComponent,
