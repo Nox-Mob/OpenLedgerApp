@@ -92,6 +92,10 @@ const SECURITY_NOTICES: Record<string, { title: string; body: string }> = {
     title: "Someone asked to turn off your two-step sign-in",
     body: "A link that turns off two-step sign-in was just sent to your recovery email. It only works for someone signed in with your password.",
   },
+  recovery_locked: {
+    title: "Someone may have your password",
+    body: "Someone signed in to your account with your password and typed many wrong backup codes or recovery links, so we've paused recovery for an hour. If it wasn't you, change your password now and check your account's security activity.",
+  },
   two_step_removed: {
     title: "Two-step sign-in was turned off",
     body: "Two-step sign-in was turned off for your account using a backup code or your recovery email. Set it up again on your account page.",
