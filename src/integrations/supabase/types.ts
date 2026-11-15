@@ -272,6 +272,175 @@ export type Database = {
         }
         Relationships: []
       }
+      charter_import_payments: {
+        Row: {
+          amount_cents: number
+          import_id: string
+          kind: string
+          org_id: string
+          payment_id: string
+        }
+        Insert: {
+          amount_cents: number
+          import_id: string
+          kind: string
+          org_id: string
+          payment_id: string
+        }
+        Update: {
+          amount_cents?: number
+          import_id?: string
+          kind?: string
+          org_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_import_payments_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "charter_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charter_import_settings: {
+        Row: {
+          card_account_id: string | null
+          enabled: boolean
+          fee_account_id: string | null
+          fee_fixed_cents: number
+          fee_percent_bp: number
+          join_account_id: string | null
+          org_id: string
+          other_account_id: string | null
+          renew_account_id: string | null
+          scope: string
+          starts_on: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          card_account_id?: string | null
+          enabled?: boolean
+          fee_account_id?: string | null
+          fee_fixed_cents?: number
+          fee_percent_bp?: number
+          join_account_id?: string | null
+          org_id: string
+          other_account_id?: string | null
+          renew_account_id?: string | null
+          scope?: string
+          starts_on?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          card_account_id?: string | null
+          enabled?: boolean
+          fee_account_id?: string | null
+          fee_fixed_cents?: number
+          fee_percent_bp?: number
+          join_account_id?: string | null
+          org_id?: string
+          other_account_id?: string | null
+          renew_account_id?: string | null
+          scope?: string
+          starts_on?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_import_settings_card_account_id_fkey"
+            columns: ["card_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_fee_account_id_fkey"
+            columns: ["fee_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_join_account_id_fkey"
+            columns: ["join_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_other_account_id_fkey"
+            columns: ["other_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charter_import_settings_renew_account_id_fkey"
+            columns: ["renew_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charter_imports: {
+        Row: {
+          channel: string
+          day: string
+          decided_at: string
+          decided_by: string | null
+          fee_cents: number
+          gross_cents: number
+          id: string
+          kind: string
+          org_id: string
+          payment_count: number
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          channel: string
+          day: string
+          decided_at?: string
+          decided_by?: string | null
+          fee_cents?: number
+          gross_cents: number
+          id?: string
+          kind: string
+          org_id: string
+          payment_count: number
+          status: string
+          transaction_id?: string | null
+        }
+        Update: {
+          channel?: string
+          day?: string
+          decided_at?: string
+          decided_by?: string | null
+          fee_cents?: number
+          gross_cents?: number
+          id?: string
+          kind?: string
+          org_id?: string
+          payment_count?: number
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_imports_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deleted_organizations: {
         Row: {
           deleted_at: string
@@ -1163,17 +1332,13 @@ export type Database = {
       }
     }
     Functions: {
-      record_backup_export: {
-        Args: { p_counts: Json; p_org: string }
-        Returns: undefined
-      }
-      undo_import_batch: {
-        Args: { p_batch: string; p_org: string }
-        Returns: number
-      }
       _next_recurring_date: {
         Args: { p_anchor: number; p_date: string; p_freq: string }
         Returns: string
+      }
+      _restore_insert: {
+        Args: { p_cols: string[]; p_rows: Json; p_set: Json; p_table: string }
+        Returns: number
       }
       audit_append_in_write: {
         Args: { p_audit: Json; p_org: string; p_user: string }
@@ -1186,6 +1351,20 @@ export type Database = {
       can_close_books: { Args: { p_org: string }; Returns: boolean }
       can_edit: { Args: { p_org: string }; Returns: boolean }
       can_read: { Args: { p_org: string }; Returns: boolean }
+      charter_drafts: {
+        Args: { p_org: string }
+        Returns: {
+          channel: string
+          day: string
+          fee_cents: number
+          gross_cents: number
+          kind: string
+          lines: Json
+          payment_count: number
+          payment_ids: string[]
+        }[]
+      }
+      charter_import_config: { Args: { p_org: string }; Returns: Json }
       is_admin: { Args: { p_org: string }; Returns: boolean }
       is_treasurer: { Args: { p_org: string }; Returns: boolean }
       log_org_deletion: { Args: { p_org: string }; Returns: undefined }
@@ -1200,7 +1379,40 @@ export type Database = {
         Returns: undefined
       }
       readable_org_ids: { Args: never; Returns: string[] }
+      record_backup_export: {
+        Args: { p_counts: Json; p_org: string }
+        Returns: undefined
+      }
+      record_charter_import: {
+        Args: {
+          p_channel: string
+          p_day: string
+          p_fee_cents: number
+          p_kind: string
+          p_org: string
+          p_payment_ids: string[]
+          p_status: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
+      reopen_charter_import: {
+        Args: { p_id: string; p_org: string }
+        Returns: undefined
+      }
+      restore_into: {
+        Args: { p_meta: Json; p_org: string; p_tables: Json }
+        Returns: Json
+      }
+      save_charter_import_config: {
+        Args: { p: Json; p_org: string }
+        Returns: undefined
+      }
       skip_recurring_due: { Args: { p_template: string }; Returns: string }
+      undo_import_batch: {
+        Args: { p_batch: string; p_org: string }
+        Returns: number
+      }
       void_transaction_atomic: {
         Args: { p_audit: Json; p_id: string; p_org: string }
         Returns: boolean
@@ -1246,6 +1458,63 @@ export type Database = {
         Update: {
           done_at?: string
           mark?: string
+        }
+        Relationships: []
+      }
+      account_recovery: {
+        Row: {
+          email: string
+          link_expires: string | null
+          link_hash: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verify_expires: string | null
+          verify_hash: string | null
+        }
+        Insert: {
+          email: string
+          link_expires?: string | null
+          link_hash?: string | null
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verify_expires?: string | null
+          verify_hash?: string | null
+        }
+        Update: {
+          email?: string
+          link_expires?: string | null
+          link_hash?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verify_expires?: string | null
+          verify_hash?: string | null
+        }
+        Relationships: []
+      }
+      account_security_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          id: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2413,6 +2682,45 @@ export type Database = {
           },
         ]
       }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_recovery_grants: {
+        Row: {
+          expires_at: string
+          method: string
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          method: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          method?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_kinds: {
         Row: {
           app: string
@@ -2588,18 +2896,21 @@ export type Database = {
       org_role_settings: {
         Row: {
           app_admins_manage_roles: boolean
+          mfa_required: string
           org_id: string
           set_at: string
           set_by: string | null
         }
         Insert: {
           app_admins_manage_roles?: boolean
+          mfa_required?: string
           org_id: string
           set_at?: string
           set_by?: string | null
         }
         Update: {
           app_admins_manage_roles?: boolean
+          mfa_required?: string
           org_id?: string
           set_at?: string
           set_by?: string | null
@@ -2682,11 +2993,67 @@ export type Database = {
         }
         Relationships: []
       }
+      reauth_codes: {
+        Row: {
+          action: string
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reauth_grants: {
+        Row: {
+          action: string
+          created_at: string
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          expires_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      _amr_fresh: {
+        Args: { p_methods: string[]; p_seconds: number }
+        Returns: boolean
+      }
+      _anon_allowed_functions: { Args: never; Returns: string[] }
       _approval_output: { Args: { p_id: string }; Returns: Json }
       _automation_condition: {
         Args: { p_c: Json; p_ctx: Json }
@@ -2740,17 +3107,51 @@ export type Database = {
         Args: { p_category: string; p_user: string }
         Returns: boolean
       }
+      _factor_since: { Args: { p_user: string }; Returns: string }
+      _fingerprint: { Args: { p_secret: string }; Returns: string }
+      _has_verified_factor: { Args: never; Returns: boolean }
       _is_active_user: { Args: { p_user: string }; Returns: boolean }
+      _jwt: { Args: never; Returns: Json }
+      _log_security_event: {
+        Args: { p_detail?: Json; p_kind: string; p_user: string }
+        Returns: undefined
+      }
       _may_build_workflows: { Args: { p_org: string }; Returns: boolean }
       _member_confirm_text: { Args: { p_user: string }; Returns: string }
+      _mfa_ok_for: {
+        Args: { p_org: string; p_role: Database["public"]["Enums"]["org_role"] }
+        Returns: boolean
+      }
+      _normalize_backup_code: { Args: { p_code: string }; Returns: string }
+      _org_mfa_level: { Args: { p_org: string }; Returns: string }
       _org_owner: { Args: { p_org: string }; Returns: string }
+      _random_token: { Args: never; Returns: string }
+      _reauth_action_ok: { Args: { p_action: string }; Returns: boolean }
+      _recovery_locked: { Args: { p_uid: string }; Returns: boolean }
       _require_app_role_manager: {
         Args: { p_app: string; p_org: string }
         Returns: undefined
       }
       _require_people_manager: { Args: { p_org: string }; Returns: undefined }
       _require_uid: { Args: never; Returns: string }
+      _security_app: { Args: never; Returns: string }
+      _security_email: {
+        Args: {
+          p_data: Json
+          p_template: string
+          p_to_email: string
+          p_user: string
+        }
+        Returns: string
+      }
       _token_hash: { Args: { p_token: string }; Returns: string }
+      _tune_schema: { Args: { p_schema: string }; Returns: undefined }
+      _use_reauth: {
+        Args: { p_action: string; p_token: string }
+        Returns: undefined
+      }
+      _use_security_app: { Args: { p_app: string }; Returns: undefined }
+      _user_has_verified_factor: { Args: { p_user: string }; Returns: boolean }
       _validate_actions: {
         Args: {
           p_actions: Json
@@ -2844,6 +3245,7 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
         }[]
       }
+      account_security_status: { Args: never; Returns: Json }
       action_link: { Args: { p_token: string }; Returns: Json }
       action_links_for: {
         Args: {
@@ -2876,6 +3278,10 @@ export type Database = {
           enabled: boolean
           params: Json
         }[]
+      }
+      begin_reauth: {
+        Args: { p_action: string; p_code?: string }
+        Returns: string
       }
       can_edit_automations: { Args: { p_org: string }; Returns: boolean }
       can_open_app: {
@@ -2940,6 +3346,7 @@ export type Database = {
         }[]
       }
       create_organization: { Args: { p_name: string }; Returns: string }
+      create_recovery_codes: { Args: never; Returns: string[] }
       decide_approval: {
         Args: { p_comment?: string; p_decision: string; p_id: string }
         Returns: string
@@ -3008,6 +3415,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      finish_two_step_recovery: { Args: { p_app?: string }; Returns: string }
       get_digest_preferences: {
         Args: never
         Returns: {
@@ -3134,6 +3542,7 @@ export type Database = {
           workflow: string
         }[]
       }
+      my_mfa_status: { Args: never; Returns: Json }
       my_notifications: {
         Args: { p_limit?: number; p_org?: string }
         Returns: {
@@ -3228,6 +3637,7 @@ export type Database = {
           can_change: boolean
         }[]
       }
+      org_security_settings: { Args: { p_org: string }; Returns: Json }
       ownership_transfer_candidates: {
         Args: { p_org: string }
         Returns: {
@@ -3238,6 +3648,7 @@ export type Database = {
         }[]
       }
       prune_automation_log: { Args: never; Returns: number }
+      prune_email_history: { Args: never; Returns: number }
       prune_notifications: { Args: never; Returns: number }
       prune_workflow_history: { Args: never; Returns: number }
       queue_digests: { Args: never; Returns: number }
@@ -3389,6 +3800,11 @@ export type Database = {
         }
         Returns: string
       }
+      send_reauth_code: {
+        Args: { p_action: string; p_app?: string }
+        Returns: undefined
+      }
+      send_recovery_link: { Args: { p_app?: string }; Returns: undefined }
       set_app_access: {
         Args: {
           p_app: string
@@ -3451,12 +3867,20 @@ export type Database = {
         Args: { p_email: boolean; p_in_app: boolean; p_kind: string }
         Returns: undefined
       }
+      set_org_mfa_level: {
+        Args: { p_level: string; p_org: string }
+        Returns: undefined
+      }
       set_org_role_settings: {
         Args: { p_app_admins_manage_roles: boolean; p_org: string }
         Returns: undefined
       }
       set_organization_preferences: {
         Args: { p_currency: string; p_org: string; p_time_zone: string }
+        Returns: undefined
+      }
+      set_recovery_email: {
+        Args: { p_app?: string; p_email: string; p_reauth: string }
         Returns: undefined
       }
       set_workflow_enabled: {
@@ -3477,11 +3901,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      tuning_problems: {
+        Args: { p_schema: string }
+        Returns: {
+          kind: string
+          object: string
+        }[]
+      }
       unread_notification_count: { Args: never; Returns: number }
       use_reauth: {
         Args: { p_action: string; p_token: string }
         Returns: undefined
       }
+      use_recovery_code: { Args: { p_code: string }; Returns: boolean }
+      use_recovery_link: { Args: { p_token: string }; Returns: boolean }
+      verify_recovery_email: { Args: { p_token: string }; Returns: boolean }
       workflow_overview: { Args: { p_org: string }; Returns: Json }
       workflow_runs: {
         Args: { p_limit?: number; p_org: string; p_workflow?: string }
