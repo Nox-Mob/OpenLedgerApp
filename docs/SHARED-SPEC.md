@@ -547,21 +547,28 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 ### 10.3 About page and open-source licenses
 
 Every app (the hub included) has an **About** page at `/about`, linked from its legal footer next to
-Terms, Privacy and Cookies. It lists the outside services the suite uses (`shared/licenses/services.ts`)
-and every open-source package the app ships, with its license (`shared/ui/About.tsx`).
+Terms, Privacy and Cookies. It shows **one list for the whole suite**: every open-source library used
+within the OpenAppHub suite (the hub, the three apps, the docs site and OpenLedgerApp's desktop
+edition), by **name and license only**: no versions, no links, nothing about where or how each is
+used. It links to the full license texts, which MIT, BSD, Apache and similar licenses ask us to pass
+on.
 
-- `node shared/licenses/generate.mjs`, run from the app's root after installing, writes
-  `public/third-party.json` (name, version, license, link) and `public/third-party-licenses.txt` (the
-  full license texts and copyright notices, as each package ships them). It follows `dependencies`,
-  not `devDependencies`, and leaves out platform-only builds.
-- CI runs it with `--check`, so a pull request that changes packages must update both files.
-- A package that states no license is shown as "Not stated by the package" and needs a decision:
-  replace it, or confirm its license with its authors.
-- Code copied from another project (not installed from npm) is added by hand to the same files, with
-  its license and notice.
-- Not covered yet: the docs site (`docs.openapphub.org`, Astro), and the Rust packages in
-  OpenLedgerApp's desktop edition (`src-tauri/Cargo.lock`), which need their own list when the desktop
-  app is distributed.
+- **Each repository** keeps its own list in `licenses/`, written by
+  `node shared/licenses/generate.mjs` (npm `dependencies`, not dev tools; platform-only builds left
+  out). CI runs it with `--check`.
+- **Rust** (OpenLedgerApp's `src-tauri/Cargo.lock`): `node shared/licenses/cargo.mjs` reads each
+  package's license and license files from crates.io into `licenses/rust.json`. It needs network
+  access, so CI only checks that `Cargo.lock` hasn't changed since (`--check`).
+- **The suite list:** in the hub, `node scripts/collect-licenses.mjs ../opencharterapp
+  ../openboardapp ../openledgerapp ../openapphub-docs` (each checked out and installed) writes
+  `shared/licenses/suite.json` (name and license, shown by `shared/ui/About.tsx`) and
+  `public/third-party-licenses.txt` (every license text, served at
+  `openapphub.org/third-party-licenses.txt`). Run it before syncing `shared/` whenever an app's
+  packages change.
+- `buffers` (through OpenLedgerApp's `exceljs`) states no license; the owner accepted it as is
+  (2026-11-17). It shows as "Not stated".
+- Code copied from another project (not installed from a package manager) is added by hand to the
+  repository's `licenses/` files and the suite list, with its license and notice.
 
 ---
 

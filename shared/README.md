@@ -67,7 +67,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
-- `1.25.0`: About page and open-source licenses (SHARED-SPEC §10.3). `licenses/generate.mjs` lists every package an app ships with its license and writes the full license texts; `licenses/services.ts` lists the outside services; `ui/About.tsx` (`AboutLicenses`) shows both at `/about`.
+- `1.25.0`: About page with open-source licenses (SHARED-SPEC §10.3). `licenses/generate.mjs` (npm) and `licenses/cargo.mjs` (Rust) list each repository's libraries and license texts in `licenses/`; the hub's `scripts/collect-licenses.mjs` combines them into `licenses/suite.json`, one list for the whole suite (name and license); `ui/About.tsx` (`AboutLicenses`) shows it at `/about`.
 - `1.24.1`: OWASP Top 10 2025 review. `email/templates.ts`: the `recovery_locked` security notice (core 0023 emails it when someone with the person's password makes 10 wrong backup-code or recovery-link tries in an hour).
 - `1.24.0`: Cloudflare Web Analytics on production only (owner request, 2026-11-15). `analytics.ts`:
   `analyticsToken()` reads `VITE_CF_ANALYTICS_TOKEN` (set in each wrangler.jsonc's production `vars`

@@ -1,0 +1,132 @@
+#!/usr/bin/env node
+// Open-source licenses for Rust packages (SHARED-SPEC §10.3), for a repository with a Cargo.lock
+// (OpenLedgerApp's desktop edition, src-tauri/). Each registry package in the lock file is read
+// from crates.io: the license in its Cargo.toml and its license files. Nothing is unpacked to disk.
+//
+//   node shared/licenses/cargo.mjs [path/to/Cargo.lock]          write licenses/rust.json and
+//                                                                licenses/THIRD-PARTY-LICENSES-RUST.txt
+//   node shared/licenses/cargo.mjs [path/to/Cargo.lock] --check  fail if Cargo.lock changed since
+//
+// Writing needs network access to static.crates.io; --check doesn't (it compares Cargo.lock's
+// SHA-256 with the one recorded in licenses/rust.json), so CI can run it.
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { gunzipSync } from "node:zlib";
+import { noticesText } from "./generate.mjs";
+
+const args = process.argv.slice(2);
+const check = args.includes("--check");
+const lockPath = resolve(args.find((a) => !a.startsWith("--")) ?? "src-tauri/Cargo.lock");
+const root = process.cwd();
+const outJson = join(root, "licenses", "rust.json");
+const outText = join(root, "licenses", "THIRD-PARTY-LICENSES-RUST.txt");
+
+const lock = readFileSync(lockPath, "utf8");
+const lockHash = createHash("sha256").update(lock).digest("hex");
+
+if (check) {
+  const recorded = existsSync(outJson)
+    ? JSON.parse(readFileSync(outJson, "utf8")).cargoLockSha256
+    : "";
+  if (recorded !== lockHash) {
+    console.error("Cargo.lock changed. Run: node shared/licenses/cargo.mjs (needs network access)");
+    process.exit(1);
+  }
+  console.log("Rust license list matches Cargo.lock.");
+  process.exit(0);
+}
+
+// [[package]] blocks with a registry source; path and git packages are our own.
+const crates = lock
+  .split(/\n(?=\[\[package\]\])/)
+  .map((block) => ({
+    name: /^name = "([^"]+)"/m.exec(block)?.[1],
+    version: /^version = "([^"]+)"/m.exec(block)?.[1],
+    registry: /^source = "registry\+/m.test(block),
+  }))
+  .filter((c) => c.name && c.version && c.registry);
+
+/** Files in a .tar archive: { path: Buffer }. Handles ustar and pax long names. */
+function untar(buf, wanted) {
+  const files = {};
+  let off = 0;
+  let paxPath = null;
+  while (off + 512 <= buf.length) {
+    const header = buf.subarray(off, off + 512);
+    if (header.every((b) => b === 0)) break;
+    const str = (s, e) => header.subarray(s, e).toString("utf8").replace(/\0.*$/s, "");
+    const size = parseInt(str(124, 136).trim() || "0", 8);
+    const type = String.fromCharCode(header[156] || 48);
+    const prefix = str(345, 500);
+    let path = paxPath ?? (prefix ? `${prefix}/${str(0, 100)}` : str(0, 100));
+    paxPath = null;
+    const body = buf.subarray(off + 512, off + 512 + size);
+    if (type === "x") {
+      const m = /\d+ path=([^\n]*)\n/.exec(body.toString("utf8"));
+      if (m) paxPath = m[1];
+    } else if ((type === "0" || type === "\0") && wanted(path)) {
+      files[path] = Buffer.from(body);
+    }
+    off += 512 + Math.ceil(size / 512) * 512;
+  }
+  return files;
+}
+
+async function readCrate({ name, version }) {
+  const url = `https://static.crates.io/crates/${name}/${name}-${version}.crate`;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { "user-agent": "license-list-generator" } });
+      if (!res.ok) throw new Error(`${res.status} ${url}`);
+      const tar = gunzipSync(Buffer.from(await res.arrayBuffer()));
+      const top = `${name}-${version}/`;
+      const files = untar(tar, (p) => {
+        if (!p.startsWith(top)) return false;
+        const rest = p.slice(top.length);
+        return rest === "Cargo.toml" || /^(licen[cs]e|copying|notice)([.-][^/]*)?$/i.test(rest);
+      });
+      const toml = files[`${top}Cargo.toml`]?.toString("utf8") ?? "";
+      const license =
+        /^license\s*=\s*"([^"]+)"/m.exec(toml)?.[1] ??
+        (/^license-file\s*=/m.test(toml) ? "See license file" : "UNKNOWN");
+      const text = Object.keys(files)
+        .filter((p) => !p.endsWith("Cargo.toml"))
+        .sort()
+        .map((p) => files[p].toString("utf8").trim())
+        .filter(Boolean)
+        .join("\n\n");
+      return { name, version, license, text };
+    } catch (error) {
+      if (attempt >= 4) throw error;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    }
+  }
+}
+
+const results = [];
+const queue = [...crates];
+await Promise.all(
+  Array.from({ length: 4 }, async () => {
+    for (let c = queue.shift(); c; c = queue.shift()) results.push(await readCrate(c));
+  }),
+);
+results.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+
+mkdirSync(join(root, "licenses"), { recursive: true });
+writeFileSync(
+  outJson,
+  JSON.stringify(
+    {
+      note: "Generated by shared/licenses/cargo.mjs. Don't edit by hand.",
+      cargoLockSha256: lockHash,
+      packages: results,
+    },
+    null,
+    2,
+  ) + "\n",
+);
+writeFileSync(outText, noticesText("Third-party Rust software", results));
+const unknown = results.filter((r) => r.license === "UNKNOWN").map((r) => `${r.name}@${r.version}`);
+console.log(`Wrote ${results.length} Rust packages to licenses/.`);
+if (unknown.length) console.warn(`No license given by: ${unknown.join(", ")}`);
