@@ -32,6 +32,8 @@ jobs:
       - run: npm ci
       - name: Vendored shared code matches OpenAppHub
         run: node scripts/check-shared.mjs
+      - name: Open-source license list is up to date (SHARED-SPEC §10.3)
+        run: node shared/licenses/generate.mjs --check
       - name: Env files untracked and free of private values
         # Only .env.example (placeholders) and .env.desktop (public build flag) may be tracked.
         run: node scripts/ci/check-env.mjs

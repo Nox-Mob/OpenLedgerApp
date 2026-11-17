@@ -15,3 +15,5 @@ shared/
 db/core/
 scripts/migrate.mjs
 scripts/check-shared.mjs
+public/third-party.json
+public/third-party-licenses.txt

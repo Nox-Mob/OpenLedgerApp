@@ -174,6 +174,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/cookies" className="hover:text-foreground">
           Cookies
         </Link>
+        <Link to="/about" className="hover:text-foreground">
+          About
+        </Link>
       </footer>
       {org && <TutorialPanel orgId={org.id} />}
     </SuiteShell>

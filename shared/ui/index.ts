@@ -14,6 +14,7 @@ export {
 export { ThemeToggle } from "./ThemeToggle";
 export { PlainLink, type LinkLike, type LinkLikeProps } from "./link";
 export { CookieConsent, CookieTable } from "./CookieConsent";
+export { AboutLicenses, filterPackages, licenseCounts, type ThirdPartyPackage } from "./About";
 export { AppLogo } from "./AppLogo";
 export { EmailPreferencesPanel, EmailServerPanel } from "./EmailSettings";
 export {

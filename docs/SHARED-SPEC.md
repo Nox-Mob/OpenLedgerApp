@@ -543,6 +543,26 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 | `staging.yml` | push to `main` | `migrate.mjs --seed` against staging. Skips with a notice until `STAGING_DATABASE_URL` exists |
 | `migrate.yml` | owner, `workflow_dispatch` | migrations only, `target: staging | production` (dry run by default) |
 
+
+### 10.3 About page and open-source licenses
+
+Every app (the hub included) has an **About** page at `/about`, linked from its legal footer next to
+Terms, Privacy and Cookies. It lists the outside services the suite uses (`shared/licenses/services.ts`)
+and every open-source package the app ships, with its license (`shared/ui/About.tsx`).
+
+- `node shared/licenses/generate.mjs`, run from the app's root after installing, writes
+  `public/third-party.json` (name, version, license, link) and `public/third-party-licenses.txt` (the
+  full license texts and copyright notices, as each package ships them). It follows `dependencies`,
+  not `devDependencies`, and leaves out platform-only builds.
+- CI runs it with `--check`, so a pull request that changes packages must update both files.
+- A package that states no license is shown as "Not stated by the package" and needs a decision:
+  replace it, or confirm its license with its authors.
+- Code copied from another project (not installed from npm) is added by hand to the same files, with
+  its license and notice.
+- Not covered yet: the docs site (`docs.openapphub.org`, Astro), and the Rust packages in
+  OpenLedgerApp's desktop edition (`src-tauri/Cargo.lock`), which need their own list when the desktop
+  app is distributed.
+
 ---
 
 ## 11. Demo and seed data
