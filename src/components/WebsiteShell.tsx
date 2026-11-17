@@ -52,6 +52,9 @@ export function WebsiteShell({ children }: { children: ReactNode }) {
             <Link to="/not-advice" className="hover:text-foreground">
               Not advice
             </Link>
+            <Link to="/about" className="hover:text-foreground">
+              About
+            </Link>
             <a href="mailto:support@awhl.com" className="hover:text-foreground">
               Contact <ArrowUpRight className="inline h-3 w-3" />
             </a>

@@ -43,6 +43,9 @@ export function LegalPage({
           <Link to="/not-advice" className="hover:text-foreground">
             Not advice
           </Link>
+          <Link to="/about" className="hover:text-foreground">
+            About
+          </Link>
         </div>
       </footer>
     </div>
