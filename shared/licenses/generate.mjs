@@ -1,31 +1,19 @@
 #!/usr/bin/env node
-// Open-source licenses (SHARED-SPEC §10.4): lists every third-party package an app ships, with its
-// license, for the app's About page, and collects the full license texts that MIT, BSD, Apache and
+// Open-source licenses (SHARED-SPEC §10.3), one repository at a time: every third-party npm
+// package the repository ships, with its license and the license text that MIT, BSD, Apache and
 // similar licenses ask us to pass on.
 //
-//   node shared/licenses/generate.mjs           write public/third-party.json and
-//                                               public/third-party-licenses.txt
+//   node shared/licenses/generate.mjs           write licenses/third-party.json and
+//                                               licenses/THIRD-PARTY-LICENSES.txt
 //   node shared/licenses/generate.mjs --check   fail if they are out of date (CI)
 //
-// Run from the app's root after installing its packages. It follows the app's "dependencies"
-// (and the packages those need), not its devDependencies: build and test tools aren't shipped.
-// Output has no dates, so it only changes when a package changes.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+// Run from the repository's root after installing its packages. It follows "dependencies" (and the
+// packages those need), not devDependencies: build and test tools aren't shipped. The hub combines
+// every repository's list into the one suite-wide list on the About page
+// (scripts/collect-licenses.mjs). Output has no dates, so it only changes when a package changes.
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-
-const root = resolve(process.cwd());
-const check = process.argv.includes("--check");
-const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-
-function findPackageDir(name, fromDir) {
-  let dir = fromDir;
-  for (;;) {
-    const candidate = join(dir, "node_modules", name);
-    if (existsSync(join(candidate, "package.json"))) return candidate;
-    if (dir === root || dirname(dir) === dir) return null;
-    dir = dirname(dir);
-  }
-}
+import { fileURLToPath } from "node:url";
 
 function licenseOf(pkg) {
   const l = pkg.license ?? pkg.licenses;
@@ -35,25 +23,10 @@ function licenseOf(pkg) {
   return "UNKNOWN";
 }
 
-function urlOf(pkg) {
-  const repo = typeof pkg.repository === "string" ? pkg.repository : pkg.repository?.url;
-  const raw = pkg.homepage || repo || "";
-  let url = raw
-    .replace(/^git\+/, "")
-    .replace(/^git:\/\//, "https://")
-    .replace(/^ssh:\/\/git@/, "https://")
-    .replace(/^git@github\.com:/, "https://github.com/")
-    .replace(/\.git(#.*)?$/, "");
-  if (/^github:/.test(url)) url = `https://github.com/${url.slice(7)}`;
-  if (/^[\w.-]+\/[\w.-]+$/.test(url)) url = `https://github.com/${url}`;
-  return /^https?:\/\//.test(url) ? url : `https://www.npmjs.com/package/${pkg.name}`;
-}
-
 function licenseText(dir) {
-  const files = readdirSync(dir)
+  return readdirSync(dir)
     .filter((f) => /^(licen[cs]e|copying|notice)([.-].*)?$/i.test(f))
-    .sort();
-  return files
+    .sort()
     .map((f) => {
       try {
         return readFileSync(join(dir, f), "utf8").trim();
@@ -65,94 +38,111 @@ function licenseText(dir) {
     .join("\n\n");
 }
 
-const seen = new Map();
-function visit(name, fromDir, optional) {
-  const dir = findPackageDir(name, fromDir);
-  if (!dir) {
-    if (!optional) console.warn(`not installed: ${name} (needed from ${fromDir})`);
-    return;
+/** Every third-party npm package installed for `root`'s dependencies: name, version, license, text. */
+export function collectNpm(root) {
+  root = resolve(root);
+  const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const seen = new Map();
+
+  function findPackageDir(name, fromDir) {
+    let dir = fromDir;
+    for (;;) {
+      const candidate = join(dir, "node_modules", name);
+      if (existsSync(join(candidate, "package.json"))) return candidate;
+      if (dir === root || dirname(dir) === dir) return null;
+      dir = dirname(dir);
+    }
   }
-  const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
-  const key = `${pkg.name}@${pkg.version}`;
-  if (seen.has(key)) return;
-  // Packages with no name or a "private" flag are our own (workspaces); skip them. So are
-  // platform-only builds (an "os" or "cpu" field, like lightningcss-linux-x64-gnu): which ones
-  // are installed depends on the machine, and their main package is listed.
-  if (!pkg.name || pkg.private || pkg.os || pkg.cpu) return;
-  seen.set(key, {
-    name: pkg.name,
-    version: pkg.version,
-    license: licenseOf(pkg),
-    url: urlOf(pkg),
-    text: licenseText(dir),
-  });
-  for (const dep of Object.keys(pkg.dependencies ?? {})) visit(dep, dir, false);
-  for (const dep of Object.keys(pkg.optionalDependencies ?? {})) visit(dep, dir, true);
+
+  function visit(name, fromDir, optional) {
+    const dir = findPackageDir(name, fromDir);
+    if (!dir) {
+      if (!optional) console.warn(`not installed: ${name} (needed from ${fromDir})`);
+      return;
+    }
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+    const key = `${pkg.name}@${pkg.version}`;
+    if (seen.has(key)) return;
+    // Our own packages (no name, or "private") are skipped. So are platform-only builds (an "os"
+    // or "cpu" field, like lightningcss-linux-x64-gnu): which ones are installed depends on the
+    // machine, and their main package is listed.
+    if (!pkg.name || pkg.private || pkg.os || pkg.cpu) return;
+    seen.set(key, {
+      name: pkg.name,
+      version: pkg.version,
+      license: licenseOf(pkg),
+      text: licenseText(dir),
+    });
+    for (const dep of Object.keys(pkg.dependencies ?? {})) visit(dep, dir, false);
+    for (const dep of Object.keys(pkg.optionalDependencies ?? {})) visit(dep, dir, true);
+  }
+
+  for (const dep of Object.keys(rootPkg.dependencies ?? {})) visit(dep, root, false);
+  for (const dep of Object.keys(rootPkg.optionalDependencies ?? {})) visit(dep, root, true);
+  return {
+    name: rootPkg.name,
+    packages: [...seen.values()].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version),
+    ),
+  };
 }
 
-for (const dep of Object.keys(rootPkg.dependencies ?? {})) visit(dep, root, false);
-for (const dep of Object.keys(rootPkg.optionalDependencies ?? {})) visit(dep, root, true);
+const RULE = "-".repeat(78);
 
-const packages = [...seen.values()].sort(
-  (a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version),
-);
-
-const json =
-  JSON.stringify(
-    {
-      note: "Generated by shared/licenses/generate.mjs. Don't edit by hand.",
-      app: rootPkg.name,
-      packages: packages.map(({ name, version, license, url }) => ({
-        name,
-        version,
-        license,
-        url,
-      })),
-    },
-    null,
-    2,
-  ) + "\n";
-
-const rule = "-".repeat(78);
-const text =
-  [
-    `Third-party software in ${rootPkg.name}`,
-    "",
-    "This app includes the open-source packages below. Each is used under its own license,",
-    "reproduced here as the package ships it. Generated by shared/licenses/generate.mjs.",
-    "",
-    ...packages.flatMap((p) => [
-      rule,
-      `${p.name} ${p.version}`,
-      `License: ${p.license}`,
-      p.url,
+/** The plain-text notices file: each package's name, license and license text. */
+export function noticesText(title, packages) {
+  return (
+    [
+      title,
       "",
-      p.text ||
-        `(The package ships no license file. Its package.json gives the license as ${p.license}.)`,
+      "The open-source software below is used under its own license, reproduced as each package",
+      "ships it.",
       "",
-    ]),
-  ].join("\n") + "\n";
-
-const outJson = join(root, "public", "third-party.json");
-const outText = join(root, "public", "third-party-licenses.txt");
-const unknown = packages
-  .filter((p) => p.license === "UNKNOWN")
-  .map((p) => `${p.name}@${p.version}`);
-
-if (check) {
-  const same = (file, body) => existsSync(file) && readFileSync(file, "utf8") === body;
-  if (!same(outJson, json) || !same(outText, text)) {
-    console.error(
-      "The open-source license list is out of date. Run: node shared/licenses/generate.mjs",
-    );
-    process.exit(1);
-  }
-  console.log(`License list up to date (${packages.length} packages).`);
-} else {
-  writeFileSync(outJson, json);
-  writeFileSync(outText, text);
-  console.log(
-    `Wrote ${packages.length} packages to public/third-party.json and public/third-party-licenses.txt.`,
+      ...packages.flatMap((p) => [
+        RULE,
+        p.name,
+        `License: ${p.license === "UNKNOWN" ? "not stated by the package" : p.license}`,
+        "",
+        p.text || "(The package ships no license file.)",
+        "",
+      ]),
+    ].join("\n") + "\n"
   );
 }
-if (unknown.length) console.warn(`No license given by: ${unknown.join(", ")}`);
+
+function main() {
+  const root = resolve(process.cwd());
+  const check = process.argv.includes("--check");
+  const { name, packages } = collectNpm(root);
+  const json =
+    JSON.stringify(
+      {
+        note: "Generated by shared/licenses/generate.mjs. Don't edit by hand.",
+        repository: name,
+        packages: packages.map(({ name, version, license }) => ({ name, version, license })),
+      },
+      null,
+      2,
+    ) + "\n";
+  const text = noticesText(`Third-party software in ${name}`, packages);
+  const outJson = join(root, "licenses", "third-party.json");
+  const outText = join(root, "licenses", "THIRD-PARTY-LICENSES.txt");
+
+  if (check) {
+    const same = (file, body) => existsSync(file) && readFileSync(file, "utf8") === body;
+    if (!same(outJson, json) || !same(outText, text)) {
+      console.error(
+        "The open-source license list is out of date. Run: node shared/licenses/generate.mjs",
+      );
+      process.exit(1);
+    }
+    console.log(`License list up to date (${packages.length} packages).`);
+    return;
+  }
+  mkdirSync(join(root, "licenses"), { recursive: true });
+  writeFileSync(outJson, json);
+  writeFileSync(outText, text);
+  console.log(`Wrote ${packages.length} packages to licenses/.`);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

@@ -25,7 +25,7 @@ function AboutPage() {
       </Link>
       <h1 className="mt-4 text-3xl font-semibold">About and open-source licenses</h1>
       <div className="mt-6">
-        <AboutLicenses appName="OpenLedgerApp" />
+        <AboutLicenses />
       </div>
     </main>
   );
