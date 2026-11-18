@@ -547,24 +547,26 @@ Old domains (for example `opencharterapp.org`) redirect to the new ones once the
 ### 10.3 About page and open-source licenses
 
 Every app (the hub included) has an **About** page at `/about`, linked from its legal footer next to
-Terms, Privacy and Cookies. It shows **one list for the whole suite**: every open-source library used
-within the OpenAppHub suite (the hub, the three apps, the docs site and OpenLedgerApp's desktop
-edition), by **name and license only**: no versions, no links, nothing about where or how each is
-used. It links to the full license texts, which MIT, BSD, Apache and similar licenses ask us to pass
-on.
+Terms, Privacy and Cookies. It shows **one list for the whole web suite**: every open-source library
+used within the OpenAppHub suite (the hub, the three apps and the docs site), by **name and license
+only**: no versions, no links, nothing about where or how each is used. It links to the full license
+texts, which MIT, BSD, Apache and similar licenses ask us to pass on.
 
 - **Each repository** keeps its own list in `licenses/`, written by
   `node shared/licenses/generate.mjs` (npm `dependencies`, not dev tools; platform-only builds left
   out). CI runs it with `--check`.
-- **Rust** (OpenLedgerApp's `src-tauri/Cargo.lock`): `node shared/licenses/cargo.mjs` reads each
-  package's license and license files from crates.io into `licenses/rust.json`. It needs network
-  access, so CI only checks that `Cargo.lock` hasn't changed since (`--check`).
 - **The suite list:** in the hub, `node scripts/collect-licenses.mjs ../opencharterapp
   ../openboardapp ../openledgerapp ../openapphub-docs` (each checked out and installed) writes
   `shared/licenses/suite.json` (name and license, shown by `shared/ui/About.tsx`) and
   `public/third-party-licenses.txt` (every license text, served at
   `openapphub.org/third-party-licenses.txt`). Run it before syncing `shared/` whenever an app's
   packages change.
+- **Rust, desktop only** (owner decision 2026-11-18): OpenLedgerApp's desktop edition also ships the
+  Rust libraries in `src-tauri/Cargo.lock`. They're not on the web list. `node shared/licenses/cargo.mjs`
+  reads each one's license and license files from crates.io into `licenses/rust.json` and
+  `licenses/THIRD-PARTY-LICENSES-RUST.txt` (it needs network access, so CI only checks that
+  `Cargo.lock` hasn't changed since, with `--check`). The desktop build copies both into
+  `desktop-dist/`, and the desktop About page adds them to its list.
 - `buffers` (through OpenLedgerApp's `exceljs`) states no license; the owner accepted it as is
   (2026-11-17). It shows as "Not stated".
 - Code copied from another project (not installed from a package manager) is added by hand to the

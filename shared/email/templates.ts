@@ -29,7 +29,21 @@ const str = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" 
 
 function appUrl(ctx: RenderContext, app: string, path: string): string {
   const base = (ctx.urls[app as AppId] ?? ctx.urls.hub ?? "").replace(/\/+$/, "");
-  if (/^https?:\/\//.test(path)) return path;
+  if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(path)) {
+    // An absolute link only to one of the suite's own sites: our emails never carry a link
+    // somewhere else, whatever ends up in a row's data.
+    try {
+      const url = new URL(path);
+      const ours = Object.values(ctx.urls)
+        .filter((u): u is string => !!u)
+        .map((u) => new URL(u).origin);
+      if ((url.protocol === "https:" || url.protocol === "http:") && ours.includes(url.origin))
+        return url.href;
+    } catch {
+      // not a valid URL: fall through to the app's home page
+    }
+    return `${base}/`;
+  }
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

@@ -1,0 +1,11 @@
+{
+  "note": "Advisories CI may let through, each with a reason and an expiry date (shared/security/audit.mjs). Keep it short: an entry is for an advisory with no fix yet that can't reach the running apps.",
+  "advisories": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "ReDoS in glob patterns; no fixed version exists yet (every version is affected). picomatch only runs at build time (Vite, TanStack's route generator, Astro) on patterns we write; it isn't in the deployed Workers or the docs site.",
+      "until": "2026-12-18"
+    }
+  ]
+}
