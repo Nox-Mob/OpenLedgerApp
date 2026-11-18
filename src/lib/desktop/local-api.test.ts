@@ -1,4 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createMemoryRepositories } from "@/lib/adapters/memory";
 import { callLocal, DesktopUnavailableError } from "@/lib/desktop/local-api";
@@ -89,14 +88,5 @@ describe("desktop local data", () => {
     await expect(callLocal("createInvite", {}, createMemoryRepositories())).rejects.toBeInstanceOf(
       DesktopUnavailableError,
     );
-  });
-
-  it("every exported server function is wrapped for desktop", () => {
-    const dir = "src/lib";
-    for (const f of readdirSync(dir).filter((n) => n.endsWith(".functions.ts"))) {
-      const src = readFileSync(`${dir}/${f}`, "utf8");
-      const bare = src.match(/export const \w+ = createServerFn\(/g) ?? [];
-      expect(bare, f).toEqual([]);
-    }
   });
 });

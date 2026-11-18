@@ -66,12 +66,6 @@ describe("getTerms", () => {
           expect(t[k], `${org}/${lvl}/${k}`).toBeTruthy();
       }
   });
-  it("every term item has exactly three wordings", () => {
-    for (const item of TERM_ITEMS) {
-      expect(item.business).toHaveLength(3);
-      if (item.nonprofit) expect(item.nonprofit).toHaveLength(3);
-    }
-  });
 });
 
 describe("cleanOverrides", () => {

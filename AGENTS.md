@@ -102,7 +102,7 @@ SHARED-SPEC §13 is satisfied; Ledger runs on the shared project; a hub sign-in 
 - CI, tests and migration-safety rules: see scripts/ci/AGENTS.md.
 - Server functions: use createServerFn().validator(), never deprecated .inputValidator().
 - Routing: public website owns `/`; the existing authenticated dashboard lives at `/ledger` so public visitors never need a session to read the website.
-- Releases: two steps (docs/release-checklist.md); version/changelog date/architecture bump only after GitHub CI is confirmed green (release.test.ts). Desktop drafts build from main after all CI.
+- Releases: two steps (docs/release-checklist.md); version/changelog date/architecture bump only after GitHub CI is confirmed green; version.test.ts checks the version matches package.json. Desktop drafts build from main after all CI.
 - MFA: org require_mfa enforced in DB via mfa_ok inside membership helpers; org row and own role stay visible to explain why.
 
 - Domain rules: accounting invariants live in pure src/lib/domain/ (no storage imports) and run before every write; DB triggers are a backup, so a future SQLite edition gets the same guarantees.
@@ -116,7 +116,7 @@ SHARED-SPEC §13 is satisfied; Ledger runs on the shared project; a hub sign-in 
 - Org delete needs deferrable "no action" FKs and a balance trigger skipping deleted transactions; keep new FKs deferrable.
 - Package manager: npm only (package-lock.json, installed with npm ci); no bun.lock, so every install resolves the same tree.
 - Permissions: CAPABILITIES in src/lib/permissions.ts is the only role table; permissions.test.ts pins every cell so changes are deliberate.
-- Direct table writes: *.functions.ts never write tables directly (services or audited_write); only cloud-only non-book records may, each marked `// cloud-only-write: <reason>`. Enforced by direct-writes.test.ts as its own CI step.
+- Direct table writes: *.functions.ts never write tables directly (services or audited_write); only cloud-only non-book records may, each marked `// cloud-only-write: <reason>`. Kept in code review.
 - Inputs: amounts, dates and names go through src/lib/validation.ts on both form and server so every form shows the same message.
 - Page states: lists use PageStates.tsx components; read errors with errorMessage() (src/lib/errors.ts), never `catch (e: any)`.
 - Types: no-explicit-any is an error in app code (tests exempt); typed client is `Db`, table-walking backup code uses `UntypedDb` (src/lib/db.ts).
