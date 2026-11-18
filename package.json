@@ -12,7 +12,6 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "check:direct-writes": "vitest run src/lib/direct-writes.test.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:db": "bash scripts/db/test.sh",

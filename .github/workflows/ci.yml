@@ -39,15 +39,6 @@ jobs:
       - name: Env files untracked and free of private values
         # Only .env.example (placeholders) and .env.desktop (public build flag) may be tracked.
         run: node scripts/ci/check-env.mjs
-      - name: Direct database writes (server functions must use shared code)
-        # Tracked on its own so a new direct write shows up as a named failure.
-        # Fix by moving the write into a service or audited_write; only cloud-only
-        # records may carry a `// cloud-only-write: <reason>` comment.
-        run: |
-          npx vitest run src/lib/direct-writes.test.ts src/lib/architecture.test.ts --reporter=default --reporter=github-actions || {
-            echo "### ❌ A server function writes to the database directly. Move it into shared code (see src/lib/direct-writes.test.ts)." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          }
       - name: Run tests
         run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=test-results.xml --reporter=github-actions
       - name: Report failures
