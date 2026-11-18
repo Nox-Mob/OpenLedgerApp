@@ -67,6 +67,7 @@ never edit it in an app repo. Change it here, bump `VERSION`, then sync it into 
   every foreign key that has no index (partial on a nullable single column);
   `public.tuning_problems(schema)` lists what's left, for tests. Each repo calls it for its own
   schemas in a migration after its last policy change, and tests that nothing is left.
+- `1.25.2`: Security round 8. `security/audit.mjs` and `security/audit-allow.json`: CI's dependency audit with a dated allow-list (picomatch has no fix yet). `email/smtp.ts`: Reply-To can't add a header line. `email/templates.ts`: emails only link to the suite's own sites.
 - `1.25.1`: The About page's suite list is the web suite only; Rust libraries move to OpenLedgerApp's desktop edition (`AboutLicenses` takes `moreTexts` for its license file).
 - `1.25.0`: About page with open-source licenses (SHARED-SPEC §10.3). `licenses/generate.mjs` (npm) lists each repository's libraries and license texts in `licenses/`; the hub's `scripts/collect-licenses.mjs` combines them into `licenses/suite.json`, one list for the web suite (name and license); `licenses/cargo.mjs` lists the Rust libraries that only OpenLedgerApp's desktop edition ships; `ui/About.tsx` (`AboutLicenses`) shows it at `/about`.
 - `1.24.1`: OWASP Top 10 2025 review. `email/templates.ts`: the `recovery_locked` security notice (core 0023 emails it when someone with the person's password makes 10 wrong backup-code or recovery-link tries in an hour).

@@ -222,7 +222,7 @@ jobs:
       - name: Audit (fails on high/critical)
         # Audits packages shipped with the app (dev-only tooling such as eslint is skipped).
         run: |
-          npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+          node shared/security/audit.mjs 2>&1 | tee audit.log
           code=${PIPESTATUS[0]}
           if [ $code -ne 0 ]; then
             echo "### ❌ High/critical vulnerable packages found — update them manually" >> "$GITHUB_STEP_SUMMARY"

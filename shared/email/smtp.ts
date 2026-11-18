@@ -135,12 +135,15 @@ export function addressOf(mailbox: string): string {
 }
 
 function mailbox(value: string): string {
+  // addressOf checks the whole value (no line breaks, one address), so neither the name nor the
+  // address can add a header line. Reply-To goes through here only, not MAIL FROM / RCPT TO.
+  const address = addressOf(value);
   const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(value);
-  if (!m || !m[1]) return addressOf(value);
+  if (!m || !m[1]) return address;
   const name = m[1].replace(/^"|"$/g, "");
   return /^[\x20-\x7e]*$/.test(name)
-    ? `"${name.replace(/"/g, "'")}" <${m[2]}>`
-    : `${headerValue(name)} <${m[2]}>`;
+    ? `"${name.replace(/"/g, "'")}" <${address}>`
+    : `${headerValue(name)} <${address}>`;
 }
 
 /** The message as MIME: multipart/alternative with plain text and HTML, both base64. */
