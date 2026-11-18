@@ -26,7 +26,14 @@ export function licenseTextsUrl(): string {
   return url.startsWith("http") ? url : "https://openapphub.org/third-party-licenses.txt";
 }
 
-export function AboutLicenses({ libraries = LIBRARIES }: { libraries?: Library[] }) {
+export function AboutLicenses({
+  libraries = LIBRARIES,
+  moreTexts,
+}: {
+  libraries?: Library[];
+  /** A second license file, for libraries only one edition ships (OpenLedgerApp desktop's Rust). */
+  moreTexts?: { href: string; label: string } | undefined;
+}) {
   const [query, setQuery] = useState("");
   const shown = useMemo(() => filterLibraries(libraries, query), [libraries, query]);
   const texts = licenseTextsUrl();
@@ -40,6 +47,15 @@ export function AboutLicenses({ libraries = LIBRARIES }: { libraries?: Library[]
         <a href={texts} className="underline underline-offset-4">
           the license file
         </a>
+        {moreTexts && (
+          <>
+            {" "}
+            and{" "}
+            <a href={moreTexts.href} className="underline underline-offset-4">
+              {moreTexts.label}
+            </a>
+          </>
+        )}
         .
       </p>
 

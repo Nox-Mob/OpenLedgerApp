@@ -1,5 +1,5 @@
 {
-  "version": "1.25.0",
+  "version": "1.25.1",
   "files": {
     "db/core/0001_core.sql": "baddb6ecede2fd542f26f6f5984f58d8b2307e79a8c06174929e640feb5a5a74",
     "db/core/0002_core_functions.sql": "ceb19f325a69564276b2e958274069f35e3b8b6f138e339fa5c7599ac19b62b7",
@@ -24,7 +24,7 @@
     "db/core/0021_core_send_limits.sql": "b8fc85eb75a52f0f8da4754cdaf05d6d8c5e5f402bf7582e9a99fa2ff5e68ced",
     "db/core/0022_core_org_limit.sql": "3909ed8093406f332766533cff66bff487504a8aa846e061ed4cc96c80149098",
     "db/core/0023_core_security_alerts.sql": "251369c9704fb66a8fd6423b1c15cb4e30aba98b50970d742c435cfc36f50483",
-    "docs/SHARED-SPEC.md": "acbeaed2dc378dd2bef1847a3e9d0d056d3928e076bac6bcdd4ef8735b90c6a2",
+    "docs/SHARED-SPEC.md": "a304706fdef683fdf17efe60f37c839cca6af1ee6c47e020472357a77d8abc12",
     "scripts/check-shared.mjs": "e0e10face5c36ff0aa680196f07299bb364c03cad393278bfd68cbddab845d3e",
     "scripts/migrate.mjs": "6d237efeb77f561dbc801231851ff44990bb56ebcd0c5b94f3e7059d5b2f8214",
     "shared/analytics.ts": "63e3f1c11f6ed25c5076ac9133869157cd48833f325dd69cc460dff071d3448c",
@@ -50,10 +50,10 @@
     "shared/format.ts": "9f912637c2c62ea590a16af566b08e3938eb78e78d16547c885e569cd9b24066",
     "shared/integrations/board.ts": "f812ec62d5c6986ff8d41f666e777f95b43d03132897ce85da725a040bf69aae",
     "shared/integrations/detect.ts": "fa2bf7e8254b5225cb2fa14f690f0ac6ea848f5bf1ad62a6d18ec84c7fcfa91e",
-    "shared/licenses/cargo.mjs": "1680757a92050bb67e76a7cb592e9b0bf2b7904bacb1b7cb9dd52bbbec3bb506",
+    "shared/licenses/cargo.mjs": "bffa5b12c008cb0e0f75feb927218b6651cf07d46597d6c5f3296468451d20c5",
     "shared/licenses/generate.mjs": "379c97c9260975772ac56f9f9cb667f370490bec1c9df06c371ca59a81666609",
-    "shared/licenses/suite.json": "cea2db4a15bf789e9dd375198318cf80a0bc9d103113eeab488d04486fa8ed15",
-    "shared/README.md": "b75006eacb11a86d33b9e538fbe44ff9ad062277efa36c273530c37ac45c42bf",
+    "shared/licenses/suite.json": "14f1f819d2a28ca2a9832bf59de59a08267b0c68e10d78f069fc5dd57402c88b",
+    "shared/README.md": "2e787d9dd1755a804883c88eede574c66f661a38a6685d93c117a44bd75e0553",
     "shared/safe-path.ts": "7766f7bb737b32c220ac94d05763dcafd55a0602ae4cbfbe53bd4705cff1a357",
     "shared/security/server.ts": "d5b054686311676f5249f810d0cef65ed33fe065cd518b75d4e535189c2c4de2",
     "shared/supabase/billing.ts": "e7d799cad437a50b5d14e2b7cbd548ee2b7b8f5d03efd044ee7d27447b52581b",
@@ -61,7 +61,7 @@
     "shared/supabase/hosted.ts": "79d4a4255048d8265deff98225a20cf9103f8a1740839bc306cab056634d9f54",
     "shared/supabase/org.ts": "e7b194b07bbe16da81323f6da8a04a1a8efa6dea1301a4a957d46cb9e9ed0030",
     "shared/theme.ts": "e3e82dd7001c74561430ad88cbf7306b17adb0295cc7bb083e8a33d00d52bc34",
-    "shared/ui/About.tsx": "117a602a06f4daa49e3a4c8824ba6ad3801801714b1efcd671b72a7542daba27",
+    "shared/ui/About.tsx": "39b12818fcf7eee4de83eca5442d6a3083d3a419dffba83e81f0418aff26a3f0",
     "shared/ui/ActionLink.tsx": "2dd74b845d0a4b2d68a31c08d3948f6ddb8f2e62d00039c62fff05dcec2775df",
     "shared/ui/AddToBoardPackage.tsx": "f5605da6d744691df503cf35e8090202a4356fb82eba53764554040d59dc0ab4",
     "shared/ui/AppLogo.tsx": "370c0cf5b237a7522b3fa15e37b0b7262af9604b7d0e8c34980e058597d493b8",
@@ -85,6 +85,6 @@
     "shared/ui/ThemeToggle.tsx": "9f9f0bc87851bdcf6d31d6c66d3cc4eea46d3942c5e7ed1801a0078f2e394d41",
     "shared/ui/TwoStep.tsx": "581edf5140562cc6fc27540fe465a67266c2fe51d4c87a620eedff6f3c92af42",
     "shared/ui/useFocusTrap.ts": "b241b0ca2030866dcdd9fab25668ac740f68310f60d238f9d2ff37f78a61c64a",
-    "shared/VERSION": "32112436a82effc1d958644a972f2a81e829e5ff08beb71305473cf6d41ca956"
+    "shared/VERSION": "2dc30a5c0f4087900d4a0780f6bc627b83300594dd020fb566313aaa4577e9c7"
   }
 }
